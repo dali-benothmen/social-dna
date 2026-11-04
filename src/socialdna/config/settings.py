@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     offline: bool = False
     allow_download: bool = False
     remote_media_consent: bool = False
+    max_media_bytes: int = Field(default=2_000_000_000, gt=0)
+    max_duration_seconds: float = Field(default=600, gt=0, allow_inf_nan=False)
+    max_decode_frames: int = Field(default=36_000, gt=0)
+    media_timeout_seconds: float = Field(default=300, gt=0, allow_inf_nan=False)
 
     @classmethod
     def load(cls, *, config_file: Path | None = None, **overrides: Any) -> "Settings":

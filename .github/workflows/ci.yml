@@ -1,4 +1,4 @@
-name: foundation
+name: socialdna
 on: [push, pull_request]
 jobs:
   test:
@@ -13,6 +13,15 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ matrix.python }}
+      - name: Install FFmpeg (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Install FFmpeg (macOS)
+        if: runner.os == 'macOS'
+        run: brew list ffmpeg || brew install ffmpeg
+      - name: Install FFmpeg (Windows)
+        if: runner.os == 'Windows'
+        run: choco install ffmpeg -y --no-progress
       - run: uv sync --locked
       - run: uv run pytest --cov=socialdna
       - run: uv run ruff check .

@@ -1,4 +1,4 @@
-# Storage foundation (Milestone 0)
+# Local storage (Milestones 0–1)
 
 `open_application(Settings(...))` is the lifecycle boundary used by every command.
 It resolves the filesystem, rejects detected network mounts, creates a local data
@@ -17,9 +17,10 @@ The first migration creates:
 - `artifact_objects`, `artifact_references`;
 - `migration_checksums`, plus Alembic's `alembic_version`.
 
-Timeline, feature, vector-registry/outbox, graph, metrics, psychology, and research
-tables are introduced when their working use cases are implemented in later milestones.
-The current Alembic revision is `0001_foundation`.
+Migration `0002_timeline` adds `media_locations`, `media_probes`, task result/dependency
+tables, scenes, frames, text tracks/segments, audio segments, feature definitions,
+observations, evidence items, and reports. Vector-registry/outbox, graph, metrics,
+psychology, and research tables remain deferred. The baseline migration is unchanged.
 
 All SQLAlchemy connections enable foreign keys, WAL, a bounded busy timeout,
 `synchronous=FULL`, and a 1,000-page automatic WAL checkpoint threshold. The engine
@@ -43,12 +44,13 @@ transaction. Existing bytes are checksum-verified before deduplication. Artifact
 paths cannot resolve outside the managed artifact directory.
 
 Reference counts include both `artifact_references` owner links and direct source/media
-foreign keys. Repeatedly adding the same owner/role is idempotent. SQLite foreign
+foreign keys. Media-task and report objects additionally have explicit owner links.
+Repeatedly adding the same owner/role is idempotent. SQLite foreign
 keys prevent removing an object row while a canonical reference still points to it.
 
 If file creation succeeds but the SQLite transaction rolls back, the unregistered
 file is retained. `storage verify` reports orphaned objects and staged files for
-inspection. Automatic destructive cleanup is not implemented in Milestone 0.
+inspection. Automatic destructive cleanup is not implemented.
 
 ## Health checks
 
@@ -60,7 +62,8 @@ unregistered artifacts, and reads Qdrant's local collection metadata.
 
 `doctor` also checks the current Python/dependency versions, disk free space,
 FFmpeg/ffprobe executable versions, and the absence of configured ML models. Missing
-media tools are warnings because they are not required by Milestone 0 operations.
+media tools are warnings for health/storage commands; video analysis requires them
+and returns dependency-unavailable exit code 3 before creating a run.
 
 No graph relationships, semantic embeddings, or cross-store indexes are claimed
 until their milestones implement and test them. This release does not provide a
@@ -80,4 +83,11 @@ client returns the same storage-conflict error family. Never remove a live lock 
 
 Configuration and filenames are passed as data. There is no shell evaluation of
 media paths, no model preparation, no API key lookup, and no network request in the
-Milestone 0 application runtime.
+application runtime. FFmpeg protocols are restricted to local files/pipes.
+
+Task completion, result JSON, canonical observations/evidence, provenance, and artifact
+references commit together. A new run can reference an earlier successful producer via
+`reused_from_task_id`; timeline queries resolve those producer IDs rather than copying
+rows. Failed/incomplete attempts have no committed canonical output. The writer lock
+allows interrupted tasks to be retried without a background lease-reaper service.
+See [video-analysis.md](video-analysis.md) for the execution and recovery contract.

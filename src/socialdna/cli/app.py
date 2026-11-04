@@ -23,6 +23,14 @@ app = typer.Typer(
 )
 storage = typer.Typer(help="Inspect and verify automatically managed local storage.")
 app.add_typer(storage, name="storage")
+ingestion = typer.Typer(help="Import authorized local data.")
+analysis = typer.Typer(help="Analyze registered or local media.")
+timeline_app = typer.Typer(help="Query the synchronized media timeline.")
+report_app = typer.Typer(help="Generate grounded reports from persistent evidence.")
+app.add_typer(ingestion, name="import")
+app.add_typer(analysis, name="analyze")
+app.add_typer(timeline_app, name="timeline")
+app.add_typer(report_app, name="report")
 
 DataDir = Annotated[Path | None, typer.Option(help="Override the platform data directory.")]
 ConfigFile = Annotated[Path | None, typer.Option("--config", help="Read [socialdna] from TOML.")]
@@ -76,14 +84,22 @@ def execute(
         ]
         result = ResultEnvelope(
             command=command,
-            status="error" if errors else "success",
+            status="error"
+            if errors
+            else "partial"
+            if data.get("status") == "partial"
+            else "success",
+            run_id=data.get("run_id"),
             data=data,
+            limitations=data.get("limitations", []),
             warnings=warnings,
             errors=errors,
         )
         emit(result, selected_format)
         if errors:
             raise typer.Exit(ExitCode.STORAGE_INTEGRITY)
+        if result.status == "partial":
+            raise typer.Exit(ExitCode.PARTIAL)
     except SocialDNAError as exc:
         emit(error_result(command, exc), selected_format)
         raise typer.Exit(exc.exit_code) from exc
@@ -149,6 +165,157 @@ def verify_command(
         config,
         output_format,
     )
+
+
+@ingestion.command("local")
+def import_local_command(
+    ctx: typer.Context,
+    path: Path,
+    copy_media: bool = False,
+    data_dir: DataDir = None,
+    config: ConfigFile = None,
+    output_format: Format = None,
+) -> None:
+    """Register local video; --copy-media also retains managed original bytes."""
+    from socialdna.application.bootstrap import open_application
+    from socialdna.application.import_service import import_local
+
+    def operation(settings: Settings) -> dict[str, Any]:
+        with open_application(settings) as application:
+            return import_local(application, path, copy_media=copy_media)
+
+    execute(ctx, "import.local", operation, data_dir, config, output_format)
+
+
+@analysis.command("video")
+def analyze_video_command(
+    ctx: typer.Context,
+    target: str,
+    depth: str = "standard",
+    subtitles: Path | None = None,
+    copy_media: bool = False,
+    resume: str | None = None,
+    palette_bins: int = 8,
+    max_frames: int = 120,
+    scene_threshold: float = 3.0,
+    silence_db: float = -45,
+    data_dir: DataDir = None,
+    config: ConfigFile = None,
+    output_format: Format = None,
+) -> None:
+    """Analyze video deterministically. Use --resume RUN_ID after interruption."""
+    from pydantic import ValidationError
+
+    from socialdna.application.analysis_service import analyze_video
+    from socialdna.application.bootstrap import open_application
+    from socialdna.domain.media import AnalysisOptions
+
+    def operation(settings: Settings) -> dict[str, Any]:
+        try:
+            options = AnalysisOptions.model_validate(
+                {
+                    "depth": depth,
+                    "palette_bins": palette_bins,
+                    "max_frames": max_frames,
+                    "scene_threshold": scene_threshold,
+                    "silence_db": silence_db,
+                }
+            )
+        except ValidationError as exc:
+            raise ConfigurationError(str(exc)) from exc
+        with open_application(settings) as application:
+            return analyze_video(
+                application,
+                target,
+                options=options,
+                subtitles=subtitles,
+                copy_media=copy_media,
+                resume=resume,
+                on_run=lambda run_id: typer.echo(f"Analysis run: {run_id}", err=True),
+            )
+
+    execute(ctx, "analyze.video", operation, data_dir, config, output_format)
+
+
+def parse_offset(value: str) -> int:
+    from decimal import Decimal, InvalidOperation
+
+    try:
+        text = value.strip()
+        milliseconds = (
+            Decimal(text[:-2])
+            if text.endswith("ms")
+            else Decimal(text[:-1] if text.endswith("s") else text) * 1000
+        )
+        if not milliseconds.is_finite() or milliseconds < 0:
+            raise ValueError()
+        return round(milliseconds)
+    except (ValueError, InvalidOperation) as exc:
+        raise ConfigurationError(
+            "Time must be non-negative seconds (5s) or milliseconds (5000ms)."
+        ) from exc
+
+
+@timeline_app.command("show")
+def timeline_command(
+    ctx: typer.Context,
+    media_id: str,
+    start: str = "0s",
+    end: str | None = None,
+    run: str | None = None,
+    data_dir: DataDir = None,
+    config: ConfigFile = None,
+    output_format: Format = None,
+) -> None:
+    """Query intersecting evidence lanes in a half-open media interval."""
+    from socialdna.application.bootstrap import open_application
+    from socialdna.media.timeline import timeline
+
+    def operation(settings: Settings) -> dict[str, Any]:
+        with open_application(settings) as application:
+            return timeline(
+                application,
+                media_id,
+                parse_offset(start),
+                parse_offset(end) if end is not None else None,
+                run_id=run,
+            )
+
+    execute(ctx, "timeline.show", operation, data_dir, config, output_format)
+
+
+@report_app.command("generate")
+def report_command(
+    ctx: typer.Context,
+    run: Annotated[str, typer.Option()],
+    report_format: Annotated[str, typer.Option("--format")] = "json",
+    data_dir: DataDir = None,
+    config: ConfigFile = None,
+) -> None:
+    """Emit a JSON report envelope or raw Markdown; persist the generated report artifact."""
+    from socialdna.application.bootstrap import open_application
+    from socialdna.application.report_service import generate_report
+
+    if report_format not in ("json", "markdown"):
+        raise ConfigurationError("Report format must be json or markdown.")
+    if report_format == "json":
+
+        def operation(settings: Settings) -> dict[str, Any]:
+            with open_application(settings) as application:
+                return generate_report(application, run, "json")
+
+        execute(ctx, "report.generate", operation, data_dir, config, "json")
+    else:
+        root_options = ctx.find_root().obj or {}
+        settings = Settings.load(
+            config_file=config or root_options.get("config"),
+            data_dir=data_dir or root_options.get("data_dir"),
+        )
+        with open_application(settings) as application:
+            result = generate_report(application, run, "markdown")
+        typer.echo(result["content"], nl=False)
+        if result["status"] == "partial":
+            raise typer.Exit(ExitCode.PARTIAL)
 
 
 def main() -> None:

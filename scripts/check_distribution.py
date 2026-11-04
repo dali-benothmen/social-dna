@@ -7,9 +7,11 @@ when build tooling is isolated outside PATH.
 
 import argparse
 import json
+import shutil
 import subprocess
 import sys
 import tempfile
+import tomllib
 from pathlib import Path
 
 
@@ -29,8 +31,9 @@ def main() -> None:
     parser.add_argument("--offline", action="store_true")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
+    version = tomllib.loads((root / "pyproject.toml").read_text())["project"]["version"]
     cache = ["--cache-dir", args.cache_dir] if args.cache_dir else []
-    for pattern in ("*.whl", "*.tar.gz"):
+    for pattern in (f"socialdna-{version}-*.whl", f"socialdna-{version}.tar.gz"):
         distributions = sorted((root / "dist").glob(pattern))
         if len(distributions) != 1:
             raise RuntimeError(f"Expected exactly one {pattern} in dist/, found {distributions}")
@@ -82,6 +85,63 @@ def main() -> None:
                 )
                 if result["status"] != "success" or result["errors"]:
                     raise RuntimeError(f"Installed distribution failed health checks: {result}")
+            if shutil.which("ffmpeg") and shutil.which("ffprobe"):
+                source = isolated / "generated.mkv"
+                run(
+                    [
+                        "ffmpeg",
+                        "-nostdin",
+                        "-v",
+                        "error",
+                        "-f",
+                        "lavfi",
+                        "-i",
+                        "color=c=red:s=64x48:r=10:d=0.5",
+                        "-an",
+                        "-c:v",
+                        "ffv1",
+                        "-threads",
+                        "1",
+                        str(source),
+                    ],
+                    cwd=isolated,
+                )
+                analysis = json.loads(
+                    run(
+                        [
+                            str(executable),
+                            "analyze",
+                            "video",
+                            str(source),
+                            "--format",
+                            "json",
+                            "--data-dir",
+                            str(isolated / "data"),
+                        ],
+                        cwd=isolated,
+                    )
+                )
+                if analysis["status"] != "success" or not analysis["data"]["reports"]:
+                    raise RuntimeError(f"Installed media analysis failed: {analysis}")
+                report = json.loads(
+                    run(
+                        [
+                            str(executable),
+                            "report",
+                            "generate",
+                            "--run",
+                            analysis["run_id"],
+                            "--format",
+                            "json",
+                            "--data-dir",
+                            str(isolated / "data"),
+                        ],
+                        cwd=isolated,
+                    )
+                )
+                if not report["data"]["content"]["timeline"]["observations"]:
+                    raise RuntimeError("Installed media report has no measurements.")
+                print(f"PASS: {distribution.name} installed video analysis and report restart")
             print(f"PASS: {distribution.name} isolated install, initialization and verification")
 
 

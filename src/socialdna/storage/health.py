@@ -65,7 +65,7 @@ def database_checks(application: Application) -> list[CheckResult]:
             CheckResult(
                 name="sqlite.schema",
                 status="error" if missing or mismatches else "ok",
-                message="Foundation schema matches the installed revision."
+                message="Canonical schema matches the installed revision."
                 if not missing and not mismatches
                 else "Schema drift detected.",
                 details={
@@ -202,7 +202,7 @@ def _tool_check(name: str) -> CheckResult:
         return CheckResult(
             name=name,
             status="warning",
-            message=f"{name} not found; required for future media analysis. "
+            message=f"{name} not found; required for local media analysis. "
             "Install FFmpeg using your operating system's package manager.",
         )
     try:
@@ -238,6 +238,14 @@ def doctor(settings: Settings) -> list[CheckResult]:
         "qdrant-client",
         "networkx",
         "portalocker",
+        "numpy",
+        "opencv-python-headless",
+        "scenedetect-headless",
+        "Pillow",
+        "librosa",
+        "soundfile",
+        "scipy",
+        "pysubs2",
     ):
         try:
             version = importlib.metadata.version(package)
@@ -255,7 +263,7 @@ def doctor(settings: Settings) -> list[CheckResult]:
         CheckResult(
             name="models",
             status="deferred",
-            message="No local models are configured in Milestone 0. "
+            message="Model enrichment is deferred to Milestone 3. "
             "No model downloads or inference were attempted.",
         )
     )

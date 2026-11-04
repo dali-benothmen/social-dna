@@ -1,18 +1,18 @@
 # SocialDNA Implementation Plan
 
-Status: approved; Milestone 0 complete
+Status: approved; Milestones 0–1 complete
 
 Date: 2026-11-04
 
 Architecture source: `ARCHITECTURE.md`
 
-Repository state: Milestone 0 foundation implemented as package version `0.0.1`.
+Repository state: deterministic local video vertical slice implemented as package version `0.0.2`.
 
 ## 1. Outcome and approval boundary
 
 The implementation will deliver a local-first, evidence-grounded social-media research engine and portable Agent Skill. The first usable vertical slice will analyze an authorized local video, persist a timestamped timeline, reopen that knowledge in another process, retrieve it semantically and through a graph traversal, and generate a cited report without any external database server or paid API key.
 
-The architecture and roadmap were approved on 2026-11-04. Implementation is limited to one completed milestone per change. Milestone 0 is complete; Milestone 1 has not started.
+The architecture and roadmap were approved on 2026-11-04. Implementation is limited to one completed milestone per change. Milestones 0–1 are complete. Milestone 2 has not started.
 
 The initial release is complete after Milestone 6. Milestones 7 and 8 are optional post-release expansion and must not delay the local-first release.
 
@@ -38,7 +38,7 @@ The roadmap deliberately orders a thin end-to-end system before advanced interpr
 | Milestone | Working result | Release gate |
 |---|---|---|
 | 0. Repository and canonical storage | Installable CLI, auto-init, migrations, health checks, stable contracts | Complete (`0.0.1`) |
-| 1. Deterministic local video vertical slice | Local video to timestamped JSON/Markdown report | First user value |
+| 1. Deterministic local video vertical slice | Local video to timestamped JSON/Markdown report | Complete (`0.0.2`); first user value |
 | 2. Persistent research memory | Cross-process Qdrant/graph/FTS retrieval and repair | v0.1 |
 | 3. Local model enrichment | Optional ASR, OCR, landmarks/classifiers, provider safety | v0.2 |
 | 4. Account imports and performance analytics | Multi-post baselines and defensible statistics | v0.3 |
@@ -252,6 +252,12 @@ System: none for initialization; FFmpeg is detected but not installed.
 This is the base milestone. All later work uses its application bootstrap, unit of work, task state, artifact store, IDs, and output contract; later milestones do not create alternate storage/configuration paths.
 
 ## 7. Milestone 1 — Deterministic local video vertical slice
+
+Completed 2026-11-04. Local file registration/managed copy, FFprobe metadata and source PTS, bounded FFmpeg execution, adaptive scenes/scores, scene-aware frames/contact sheets, visual/audio observations, supplied subtitle tracks, unified timeline queries, durable DAG caching/resume, and typed JSON/Markdown reports are functional. Reports include evidence, provenance, feature definitions/units and explicit unavailable-modality limitations. New revision `0002_timeline` upgrades the released foundation without modifying its checksum.
+
+Verification: **77 automated tests passed**, plus a final two-test regression of failure recovery/selective invalidation after simplifying the cached timeline descriptor. Coverage includes generated owned fixtures; VFR/nonzero starts; delayed/short/no audio; source deletion after managed copy; changed-source rejection; partial failure/resume; interruption after each major task; selective palette invalidation; no duplicate cached measurements/media blobs; malicious filenames; bounded subprocess logs/timeouts; escaping; CLI restart persistence; and released-foundation migration preservation. Ruff lint/format passed for 77 Python files; strict mypy passed for 59 source files. Wheel and source-distribution builds and fresh isolated installs passed, including installed video analysis and a separate-process report from each format; the verification was repeated fully offline after priming the dependency cache. Runtime tests downloaded no models and used no external services. Linux Python 3.11 / FFmpeg 4.4.2 were executed here; the configured macOS/Windows/Python 3.13 CI jobs were not run in this workspace.
+
+Architectural details and justified file-map simplifications are recorded in `ARCHITECTURE.md` section 23 and `docs/video-analysis.md`. Media import remains in `application/import_service.py`; durable task commits use Core directly, and JSON rendering uses the typed report model rather than adding placeholder ingestion/repository/renderer abstractions. No optional ML models, semantic indexing, graph construction, or Milestone 2 work is included.
 
 ### What will be implemented
 

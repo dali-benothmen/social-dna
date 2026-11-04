@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from socialdna import __version__
 from socialdna.domain.results import ResultEnvelope
 from socialdna.storage.locking import DataDirectoryLock
 
@@ -36,7 +37,7 @@ def test_commands_return_valid_json(command: tuple[str, ...], tmp_path: Path) ->
 
 
 def test_global_options_and_version(tmp_path: Path) -> None:
-    assert run_cli("--version").stdout.strip() == "0.0.1"
+    assert run_cli("--version").stdout.strip() == __version__
     data = tmp_path / "global"
     result = run_cli("--data-dir", str(data), "--format", "json", "storage", "status")
     assert result.returncode == 0, result.stdout + result.stderr
@@ -48,7 +49,7 @@ def test_help_no_initialization(tmp_path: Path) -> None:
     result = run_cli("--data-dir", str(data), "--help")
     assert result.returncode == 0
     assert "doctor" in result.stdout and "storage" in result.stdout
-    assert "analyze" not in result.stdout
+    assert "analyze" in result.stdout
     assert not data.exists()
 
 

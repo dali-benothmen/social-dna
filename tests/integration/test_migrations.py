@@ -8,6 +8,8 @@ from sqlalchemy import inspect
 from socialdna.application.bootstrap import open_application
 from socialdna.config.settings import Settings
 from socialdna.core.exceptions import StorageIntegrityError
+from socialdna.core.hashing import hash_file
+from socialdna.core.time import utc_now
 from socialdna.storage.database import Database
 from socialdna.storage.migration_runner import (
     MIGRATIONS,
@@ -22,7 +24,7 @@ def test_migration_downgrade_upgrade(tmp_path: Path) -> None:
     try:
         migrate(database)
         with database.transaction() as connection:
-            assert current_revision(connection) == "0001_foundation"
+            assert current_revision(connection) == "0002_timeline"
             config = migration_config()
             config.attributes["connection"] = connection
             command.downgrade(config, "base")
@@ -30,7 +32,40 @@ def test_migration_downgrade_upgrade(tmp_path: Path) -> None:
             assert inspect(connection).get_table_names() == ["alembic_version"]
         migrate(database)
         with database.transaction() as connection:
-            assert current_revision(connection) == "0001_foundation"
+            assert current_revision(connection) == "0002_timeline"
+    finally:
+        database.close()
+
+
+def test_upgrade_released_foundation_preserves_existing_data(tmp_path: Path) -> None:
+    database = Database(tmp_path / "upgrade.db")
+    try:
+        with database.transaction() as connection:
+            config = migration_config()
+            config.attributes["connection"] = connection
+            command.upgrade(config, "0001_foundation")
+            connection.exec_driver_sql(
+                "INSERT INTO migration_checksums VALUES (?, ?, ?)",
+                (
+                    "0001_foundation",
+                    hash_file(MIGRATIONS / "versions/v0001_foundation.py"),
+                    utc_now(),
+                ),
+            )
+            connection.exec_driver_sql(
+                "INSERT INTO creators (id, display_name) VALUES ('existing', 'Keep me')"
+            )
+        migrate(database)
+        with database.transaction() as connection:
+            assert current_revision(connection) == "0002_timeline"
+            assert (
+                connection.exec_driver_sql(
+                    "SELECT display_name FROM creators WHERE id='existing'"
+                ).scalar()
+                == "Keep me"
+            )
+            assert "observations" in inspect(connection).get_table_names()
+        migrate(database)
     finally:
         database.close()
 
@@ -38,8 +73,8 @@ def test_migration_downgrade_upgrade(tmp_path: Path) -> None:
 def test_failed_ddl_migration_rolls_back(tmp_path: Path) -> None:
     location = tmp_path / "migrations"
     shutil.copytree(MIGRATIONS, location)
-    (location / "versions" / "v0002_failure.py").write_text(
-        'from alembic import op\nrevision="0002_failure"\ndown_revision="0001_foundation"\n'
+    (location / "versions" / "v0003_failure.py").write_text(
+        'from alembic import op\nrevision="0003_failure"\ndown_revision="0002_timeline"\n'
         'def upgrade():\n    op.execute("CREATE TABLE must_rollback (id INTEGER)")\n'
         '    raise RuntimeError("injected migration failure")\n'
         "def downgrade():\n    pass\n"

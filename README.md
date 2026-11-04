@@ -1,10 +1,17 @@
 # SocialDNA
 
-SocialDNA is a planned local-first social-media research engine. This release implements
-**Milestone 0: the package, CLI contracts, and canonical storage foundation**.
+SocialDNA is a local-first social-media research engine. Version `0.0.2` implements
+**Milestone 1: a deterministic local-video vertical slice**, on the storage foundation.
 
 Working capabilities:
 
+- Local video registration by checksum, optional managed originals, and FFprobe metadata.
+- Adaptive shot detection, scene-aware evidence frames/contact sheets, visual color,
+  texture and motion measurements, audio loudness/energy/spectral/pitch estimates,
+  and supplied SRT/VTT subtitle tracks.
+- Timestamped timeline queries and evidence-linked JSON/Markdown reports.
+- Durable task dependencies, configuration/version fingerprints, selective cache reuse,
+  partial failure reporting, and interrupted-run resume.
 - Automatic, idempotent SQLite initialization with Alembic migrations, transactional
   DDL, migration checksums, foreign keys, WAL, and bounded lock waiting.
 - Persistent Qdrant Local metadata, one embedded client per application lifetime,
@@ -17,8 +24,9 @@ Working capabilities:
   and FFmpeg/ffprobe detection.
 - Text output for people and a versioned JSON envelope for agents.
 
-Video analysis, embeddings, semantic retrieval, persistent graph queries, analytics,
-and the Agent Skill are subsequent milestones. They are not available in this release.
+Automatic transcription, OCR, semantic interpretation, embeddings, persistent graph
+queries, performance analytics, psychological hypotheses, and the Agent Skill are
+subsequent milestones. They are not available in this release.
 
 ## Install from this checkout
 
@@ -39,9 +47,42 @@ socialdna doctor
 ```
 
 Initialization requires no system media tools, API key, model download, Docker,
-or database server. FFmpeg/ffprobe are only detected at this milestone. Install
-FFmpeg through your operating system's package manager before future media analysis;
+or database server. Install FFmpeg (including ffprobe) through your operating system's
+package manager before analyzing video;
 SocialDNA never installs it automatically.
+
+## Analyze a local video
+
+Use media you own or are authorized to analyze. No API keys or model downloads are needed.
+
+```bash
+uv run socialdna analyze video /path/to/video.mp4 --subtitles /path/to/captions.srt --format json
+# The result contains media_id, run_id, task states, and managed report paths.
+uv run socialdna timeline show MEDIA_ID --start 0s --end 5s --format json
+uv run socialdna report generate --run RUN_ID --format markdown
+```
+
+`--subtitles` is optional; supplied subtitles are not claimed to be ASR or OCR output.
+`--depth quick|standard|deep` changes regular frame-sampling density; all profiles run
+the same deterministic analyzers. Deep does not enable model interpretation.
+
+By default the original stays at its source path. Add `--copy-media` to import/analyze
+to retain a managed original; you can then delete your external copy without losing
+the ability to analyze by media ID. Existing evidence/reports remain queryable even
+when an uncopied original is absent, but new analysis/resume requires verified source bytes.
+
+After interruption, use the printed run ID with the same options and subtitle bytes:
+
+```bash
+uv run socialdna analyze video MEDIA_ID --resume RUN_ID --format json
+```
+
+Completed tasks are reused after checksum validation; failed/incomplete tasks retry.
+Changing options normally starts a new run and invalidates only affected tasks. Resume
+rejects configuration/tool-version changes to protect immutable evidence. Each run has
+its own report snapshots; cached extraction does not duplicate measurements or media blobs.
+Reports are content-addressed objects at the paths returned by the command, not files
+named after untrusted titles. See [the video pipeline](docs/video-analysis.md) for details.
 
 ## Commands
 
@@ -50,11 +91,15 @@ socialdna init
 socialdna doctor --format json
 socialdna storage status
 socialdna storage verify --format json
+socialdna import local /path/to/video.mp4 --copy-media --format json
+socialdna analyze video /path/to/video.mp4 --depth quick --format json
+socialdna timeline show MEDIA_ID --start 0s --end 5s --format json
+socialdna report generate --run RUN_ID --format json
 socialdna --help
 socialdna --version
 ```
 
-`init` is optional: `doctor`, `storage status`, and `storage verify` initialize the
+`init` is optional: all storage/media commands initialize the
 data directory on first use. Help and version do not create storage. Global options
 may precede the command or follow a leaf command:
 
@@ -80,6 +125,10 @@ busy_timeout_ms = 5000
 offline = true
 allow_download = false
 remote_media_consent = false
+max_media_bytes = 2000000000
+max_duration_seconds = 600.0
+max_decode_frames = 36000
+media_timeout_seconds = 300.0
 ```
 
 ```bash
@@ -87,7 +136,7 @@ socialdna doctor --config /path/to/settings.toml
 SOCIALDNA_DATA_DIR=/path/to/library socialdna storage verify
 ```
 
-The download/remote consent settings define future provider policy; Milestone 0
+The download/remote consent settings define future provider policy; this release
 contains no model/provider inference and makes no remote calls regardless of these settings.
 
 Default storage uses `platformdirs`: typically `~/.local/share/socialdna` on Linux,
@@ -129,9 +178,9 @@ Human warnings use stderr only in text mode. The envelope has `schema_version`,
 | 0 | Operation succeeded; optional-tool warnings may be present |
 | 1 | Unexpected internal error |
 | 2 | Invalid CLI input or configuration |
-| 3 | Required dependency/model unavailable (reserved for relevant operations) |
+| 3 | Required dependency unavailable, e.g. FFmpeg for video analysis |
 | 4 | Storage permission denied |
-| 5 | Partial analysis (reserved for later analysis commands) |
+| 5 | Partial analysis or media processing failure |
 | 6 | Another process/client holds the storage lock |
 | 7 | Provider failure (reserved for later providers) |
 | 8 | Storage integrity or schema validation failure |
@@ -187,9 +236,11 @@ uv build
 uv run python scripts/check_distribution.py
 ```
 
-The core tests require no API credentials, model downloads, or FFmpeg. They exercise
-real SQLite/Alembic/Qdrant storage, migration failure recovery, interprocess locking,
-restart persistence, artifacts, CLI output, and schema contracts.
+Tests require no API credentials or model downloads. Media integration tests require
+FFmpeg/ffprobe and skip explicitly if absent; CI installs those tools on all three OSes.
+Generated owned fixtures cover scene changes, motion, tones, subtitles, VFR, shifted
+timestamps, and audio offsets. Tests also exercise real SQLite/Alembic/Qdrant storage,
+failure recovery, interprocess locking, restart persistence, artifacts, and CLI contracts.
 
 See [PLAN.md](PLAN.md) for completed work and future milestones, and
 [ARCHITECTURE.md](ARCHITECTURE.md) for the approved design and implementation decisions.

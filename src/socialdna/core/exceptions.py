@@ -35,3 +35,13 @@ class StoragePermissionError(SocialDNAError):
 class DependencyUnavailable(SocialDNAError):
     code = "dependency_unavailable"
     exit_code = ExitCode.UNAVAILABLE
+
+
+class InvalidMedia(SocialDNAError):
+    code = "invalid_media"
+    exit_code = ExitCode.INVALID_INPUT
+
+
+class MediaProcessingError(SocialDNAError):
+    code = "media_processing"
+    exit_code = ExitCode.PARTIAL
