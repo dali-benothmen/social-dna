@@ -89,14 +89,23 @@ def build_report(application: Application, run_id: str) -> VideoReport:
                 for artifact_id in json.loads(raw).get("artifacts", [])
             }
         )
+        artifact_ids = sorted(
+            set(artifact_ids)
+            | {
+                call[field]
+                for call in data["provider_calls"]
+                for field in ("request_artifact_id", "response_artifact_id")
+                if call[field]
+            }
+        )
         artifacts: list[dict[str, Any]] = []
         for artifact_id in artifact_ids:
             artifact = dict(application.artifacts.get(connection, artifact_id))
             artifact["uri"] = application.artifacts.path_for(artifact["relative_path"]).as_uri()
             artifacts.append(artifact)
     limitations = [
-        "Automatic transcription, OCR, object/subject interpretation and psychological analysis "
-        "are not implemented in Milestone 1.",
+        "Local enrichment runs only with prepared models and optional runtimes. "
+        "Psychological/performance analysis and semantic/graph memory are not implemented.",
         "No publishing or performance data was supplied; "
         "performance relationships cannot be assessed.",
         "Frame measurements use downscaled scene-aware samples; "

@@ -45,3 +45,8 @@ class InvalidMedia(SocialDNAError):
 class MediaProcessingError(SocialDNAError):
     code = "media_processing"
     exit_code = ExitCode.PARTIAL
+
+
+class ProviderFailure(SocialDNAError):
+    code = "provider_failure"
+    exit_code = ExitCode.PROVIDER_FAILURE

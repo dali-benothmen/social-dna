@@ -10,6 +10,7 @@ from socialdna.analyzers.audio import measure_audio
 from socialdna.analyzers.base import TaskContext, TaskOutput
 from socialdna.analyzers.visual import measure_motion, measure_visual
 from socialdna.application.bootstrap import Application
+from socialdna.application.enrichment_service import run_enrichment, select_providers
 from socialdna.application.import_service import resolve_media
 from socialdna.application.report_service import generate_report
 from socialdna.application.task_runner import TaskRunner
@@ -36,10 +37,12 @@ def analyze_video(
     resume: str | None = None,
     on_run: Callable[[str], None] | None = None,
     after_task: Callable[[str], None] | None = None,
+    on_estimate: Callable[[dict[str, Any]], None] | None = None,
 ) -> dict[str, Any]:
     require_tool("ffmpeg")
     require_tool("ffprobe")
     options = options or AnalysisOptions()
+    selections = select_providers(application, options)
     if subtitles is not None:
         subtitles = subtitles.expanduser().resolve()
         if not subtitles.is_file() or subtitles.suffix.lower() not in (".srt", ".vtt"):
@@ -47,6 +50,28 @@ def analyze_video(
         if subtitles.stat().st_size > 5_000_000:
             raise InvalidMedia("Subtitle file exceeds the 5 MB limit.")
     media_id, source, info, checksum = resolve_media(application, target, copy_media=copy_media)
+    estimate = {
+        "sequential_inference": True,
+        "max_selected_frames": min(
+            application.settings.max_enrichment_frames,
+            {"quick": 4, "standard": 12, "deep": 24}[options.depth],
+        ),
+        "estimated_peak_model_ram_mb": max(
+            (
+                selection.provider.manifest.expected_ram_mb
+                for selection in selections.values()
+                if selection.provider
+            ),
+            default=0,
+        ),
+        "inference_timeout_seconds_per_task": application.settings.inference_timeout_seconds,
+        "cpu_threads": application.settings.inference_threads,
+        "duration_ms": info.duration_ms,
+        "limitations": "Estimates exclude decoder/native-runtime overhead; "
+        "GPU support depends on installed runtime.",
+    }
+    if on_estimate:
+        on_estimate(estimate)
     versions = {name: tool_version(name) for name in ("ffmpeg", "ffprobe")}
     libraries = {
         name: version(name)
@@ -67,7 +92,28 @@ def analyze_video(
         "tools": versions,
         "libraries": libraries,
         "max_decode_frames": application.settings.max_decode_frames,
-        "pipeline_version": "deterministic-1",
+        "pipeline_version": "enrichment-1",
+        "enrichment": {key: value.configuration for key, value in selections.items()},
+        "provider_settings": {
+            key: value
+            for key, value in application.settings.model_dump(mode="json").items()
+            if key.startswith("asr_")
+            or key
+            in {
+                "reasoning_profile",
+                "remote_media_consent",
+                "offline",
+                "max_enrichment_frames",
+                "max_input_bytes",
+                "max_input_tokens",
+                "max_output_tokens",
+                "max_provider_attempts",
+                "provider_python",
+                "provider_pythons",
+                "inference_threads",
+                "inference_timeout_seconds",
+            }
+        },
     }
     runs = metadata.tables["analysis_runs"]
     with application.database.transaction() as connection:
@@ -94,7 +140,7 @@ def analyze_video(
                     target_type="media",
                     target_id=media_id,
                     depth=options.depth,
-                    profile_version="deterministic-1",
+                    profile_version="enrichment-1",
                     config_json=canonical_json(config),
                     config_hash=hash_config(config),
                     status="running",
@@ -247,16 +293,7 @@ def analyze_video(
             lambda ctx: import_subtitles(subtitles, duration, ctx),
         )
 
-        def unavailable(ctx: TaskContext) -> TaskOutput:
-            return TaskOutput(skipped="This capability requires Milestone 3 model adapters.")
-
-        for key in ("transcription", "ocr", "multimodal"):
-            run(
-                key,
-                {},
-                [],
-                unavailable,
-            )
+        run_enrichment(application, runner, options, selections, duration, after_task=after_task)
         dependencies = list(runner.tasks)
         run(
             "timeline",
@@ -272,21 +309,25 @@ def analyze_video(
             allow_partial=True,
         )
     failed = [task for task in runner.tasks.values() if task["status"] == "failed"]
+    unavailable = any(result.get("unavailable") for result in runner.results.values())
     with application.database.transaction() as connection:
         connection.execute(
             runs.update()
             .where(runs.c.id == run_id)
-            .values(status="failed" if failed else "succeeded", finished_at=utc_now())
+            .values(
+                status="failed" if failed or unavailable else "succeeded", finished_at=utc_now()
+            )
         )
     report_formats: tuple[Literal["json", "markdown"], ...] = ("json", "markdown")
     reports = [generate_report(application, run_id, format_) for format_ in report_formats]
     return {
         "run_id": run_id,
         "media_id": media_id,
-        "status": "partial" if failed else "success",
+        "status": "partial" if failed or unavailable else "success",
         "tasks": runner.tasks,
         "reports": [
             {key: value for key, value in report.items() if key != "content"} for report in reports
         ],
         "limitations": reports[0]["content"]["limitations"],
+        "resource_estimate": estimate,
     }

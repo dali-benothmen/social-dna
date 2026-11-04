@@ -7,6 +7,7 @@ from pydantic import Field, ValidationError
 from pydantic_settings import BaseSettings, EnvSettingsSource, SettingsConfigDict
 
 from socialdna.core.exceptions import ConfigurationError
+from socialdna.domain.providers import Capability, ReasoningProfile
 
 
 class Settings(BaseSettings):
@@ -21,6 +22,24 @@ class Settings(BaseSettings):
     max_duration_seconds: float = Field(default=600, gt=0, allow_inf_nan=False)
     max_decode_frames: int = Field(default=36_000, gt=0)
     media_timeout_seconds: float = Field(default=300, gt=0, allow_inf_nan=False)
+    asr_model: str = "asr-tiny"
+    ocr_model: str = "ocr-en"
+    pose_model: str = "pose-lite"
+    audio_classifier_model: str = "yamnet"
+    alignment_model: str | None = None
+    asr_language: str | None = None
+    asr_device: str = Field(default="cpu", pattern="^(cpu|cuda|auto)$")
+    asr_compute_type: str = Field(default="int8", pattern="^(int8|float16|float32|int8_float16)$")
+    inference_timeout_seconds: float = Field(default=300, gt=0, le=3600, allow_inf_nan=False)
+    inference_threads: int = Field(default=2, ge=1, le=64)
+    provider_python: Path | None = None
+    provider_pythons: dict[Capability, Path] = Field(default_factory=dict)
+    max_enrichment_frames: int = Field(default=24, ge=1, le=120)
+    max_input_bytes: int = Field(default=2_000_000, ge=1000, le=20_000_000)
+    max_input_tokens: int = Field(default=16000, ge=100, le=100000)
+    max_output_tokens: int = Field(default=2000, ge=100, le=16000)
+    max_provider_attempts: int = Field(default=2, ge=1, le=3)
+    reasoning_profile: ReasoningProfile | None = None
 
     @classmethod
     def load(cls, *, config_file: Path | None = None, **overrides: Any) -> "Settings":

@@ -1,7 +1,7 @@
 import json
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 
 from socialdna.application.bootstrap import Application
 from socialdna.core.exceptions import InvalidMedia
@@ -90,4 +90,54 @@ def timeline(
             .order_by(segments.c.start_ms)
         )
         result["text_segments"] = [dict(row) for row in connection.execute(query).mappings()]
+        segment_ids = [row["id"] for row in result["text_segments"]]
+        words, boxes = metadata.tables["text_words"], metadata.tables["ocr_boxes"]
+        result["text_words"] = [
+            dict(row)
+            for row in connection.execute(
+                select(words)
+                .where(
+                    words.c.segment_id.in_(segment_ids),
+                    or_(
+                        words.c.start_ms.is_(None),
+                        (words.c.start_ms < end_ms) & (words.c.end_ms > start_ms),
+                    ),
+                )
+                .order_by(words.c.segment_id, words.c.ordinal)
+            ).mappings()
+        ]
+        result["ocr_boxes"] = [
+            dict(row)
+            for row in connection.execute(
+                select(boxes)
+                .where(
+                    boxes.c.text_segment_id.in_(segment_ids),
+                    boxes.c.frame_id.in_([frame["id"] for frame in result["frames"]]),
+                )
+                .order_by(boxes.c.id)
+            ).mappings()
+        ]
+        for box in result["ocr_boxes"]:
+            box["points"] = json.loads(box["points_json"])
+        inputs = metadata.tables["inference_inputs"]
+        result["inference_inputs"] = [
+            dict(row)
+            for row in connection.execute(
+                select(inputs)
+                .where(inputs.c.task_id.in_(producers))
+                .order_by(inputs.c.task_id, inputs.c.evidence_id)
+            ).mappings()
+        ]
+        tasks, calls = metadata.tables["analysis_tasks"], metadata.tables["provider_calls"]
+        audit_ids = set(producers) | set(
+            connection.scalars(select(tasks.c.id).where(tasks.c.run_id == run_id))
+        )
+        result["provider_calls"] = [
+            dict(row)
+            for row in connection.execute(
+                select(calls)
+                .where(calls.c.task_id.in_(audit_ids))
+                .order_by(calls.c.created_at, calls.c.id)
+            ).mappings()
+        ]
     return result

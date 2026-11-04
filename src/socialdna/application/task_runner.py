@@ -10,7 +10,7 @@ from sqlalchemy.dialects.sqlite import insert
 from socialdna import __version__
 from socialdna.analyzers.base import TaskContext, TaskOutput
 from socialdna.application.bootstrap import Application
-from socialdna.core.exceptions import InvalidMedia
+from socialdna.core.exceptions import InvalidMedia, ProviderFailure
 from socialdna.core.hashing import canonical_json, hash_config
 from socialdna.core.ids import stable_id
 from socialdna.core.time import format_utc, utc_now
@@ -134,7 +134,30 @@ class TaskRunner:
                 if blocked and not allow_partial
                 else compute(context)
             )
+            if output.provider and not output.skipped and not output.input_evidence_ids:
+                raise ProviderFailure("Model outputs require a non-empty input evidence list.")
+            if (
+                output.records
+                and not output.skipped
+                and output.provider is None
+                and (configuration.get("identity") or configuration.get("profile"))
+            ):
+                raise ProviderFailure("Configured model outputs require provider provenance.")
             with self.application.database.transaction() as connection:
+                if output.provider and not output.skipped:
+                    evidence = metadata.tables["evidence_items"]
+                    verified: set[str] = set(
+                        connection.scalars(
+                            select(evidence.c.id).where(
+                                evidence.c.id.in_(output.input_evidence_ids),
+                                evidence.c.media_asset_id == self.media_id,
+                            )
+                        )
+                    )
+                    if verified != set(output.input_evidence_ids):
+                        raise ProviderFailure(
+                            "Model input evidence must belong to the analyzed media."
+                        )
                 locations = metadata.tables["media_locations"]
                 sources = metadata.tables["source_records"]
                 source_id = connection.scalar(
@@ -152,6 +175,10 @@ class TaskRunner:
                         tool_name="socialdna",
                         tool_version=__version__,
                         source_record_id=source_id,
+                        provider_name=output.provider.provider if output.provider else None,
+                        model_name=output.provider.model if output.provider else None,
+                        model_revision=output.provider.revision if output.provider else None,
+                        prompt_hash=output.prompt_hash,
                         config_json=canonical_json({**configuration, "fingerprint": fingerprint}),
                         created_at=utc_now(),
                     )
@@ -186,6 +213,12 @@ class TaskRunner:
                     for row in rows:
                         statement = insert(table).values(**substitute(row))
                         connection.execute(statement.on_conflict_do_nothing())
+                for evidence_id in sorted(set(output.input_evidence_ids)):
+                    connection.execute(
+                        insert(metadata.tables["inference_inputs"])
+                        .values(task_id=task_id, evidence_id=evidence_id)
+                        .on_conflict_do_nothing()
+                    )
                 result = substitute(output.result)
                 result["artifacts"] = list(artifacts.values())
                 result["producer_task_id"] = task_id

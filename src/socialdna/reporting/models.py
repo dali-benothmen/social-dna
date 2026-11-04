@@ -19,4 +19,7 @@ class VideoReport(BaseModel):
     tasks: list[dict[str, Any]]
     timeline: dict[str, Any]
     limitations: list[str] = Field(default_factory=list)
-    interpretation: str = "Deterministic observations only; no psychological or performance claims."
+    interpretation: str = (
+        "Signal measurements and explicitly labeled model estimates/hypotheses; "
+        "no verified psychological or performance claims."
+    )

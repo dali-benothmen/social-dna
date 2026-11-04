@@ -1,4 +1,4 @@
-# Local storage (Milestones 0–1)
+# Local storage (Milestones 0–1 and 3)
 
 `open_application(Settings(...))` is the lifecycle boundary used by every command.
 It resolves the filesystem, rejects detected network mounts, creates a local data
@@ -21,6 +21,11 @@ Migration `0002_timeline` adds `media_locations`, `media_probes`, task result/de
 tables, scenes, frames, text tracks/segments, audio segments, feature definitions,
 observations, evidence items, and reports. Vector-registry/outbox, graph, metrics,
 psychology, and research tables remain deferred. The baseline migration is unchanged.
+
+Revision `0003_enrichment` adds nullable paired `text_words` timing, normalized OCR-box
+evidence linked to frames/text segments, `inference_inputs` source-evidence foreign keys,
+and durable `provider_calls` request/response artifacts and status. This is the current
+head; no Milestone 2 memory schema is implied by the sequential revision number.
 
 All SQLAlchemy connections enable foreign keys, WAL, a bounded busy timeout,
 `synchronous=FULL`, and a 1,000-page automatic WAL checkpoint threshold. The engine
@@ -82,8 +87,9 @@ against callers that bypass SocialDNA's application context. A conflicting embed
 client returns the same storage-conflict error family. Never remove a live lock file.
 
 Configuration and filenames are passed as data. There is no shell evaluation of
-media paths, no model preparation, no API key lookup, and no network request in the
-application runtime. FFmpeg protocols are restricted to local files/pipes.
+media paths. Deterministic analysis performs no network request or API-key lookup.
+Model preparation and explicitly configured reasoning have separate consent boundaries;
+see [local enrichment](local-enrichment.md). FFmpeg protocols are restricted to local files/pipes.
 
 Task completion, result JSON, canonical observations/evidence, provenance, and artifact
 references commit together. A new run can reference an earlier successful producer via

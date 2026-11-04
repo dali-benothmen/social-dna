@@ -28,6 +28,13 @@ class AnalysisOptions(BaseModel):
     max_frames: int = Field(default=120, ge=2, le=1000)
     scene_threshold: float = Field(default=3.0, gt=0, le=100, allow_inf_nan=False)
     silence_db: float = Field(default=-45, ge=-100, le=-1, allow_inf_nan=False)
+    no_ai: bool = False
+    transcribe: bool | None = None
+    ocr: bool | None = None
+    align: bool = False
+    pose: bool = False
+    classify_audio: bool = False
+    reason: bool = False
 
     @property
     def sample_ms(self) -> int:

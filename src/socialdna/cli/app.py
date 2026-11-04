@@ -1,3 +1,4 @@
+import json
 import sys
 from collections.abc import Callable
 from pathlib import Path
@@ -31,6 +32,8 @@ app.add_typer(ingestion, name="import")
 app.add_typer(analysis, name="analyze")
 app.add_typer(timeline_app, name="timeline")
 app.add_typer(report_app, name="report")
+models_app = typer.Typer(help="Inspect and explicitly prepare verified optional model assets.")
+app.add_typer(models_app, name="models")
 
 DataDir = Annotated[Path | None, typer.Option(help="Override the platform data directory.")]
 ConfigFile = Annotated[Path | None, typer.Option("--config", help="Read [socialdna] from TOML.")]
@@ -43,13 +46,23 @@ def root(
     data_dir: DataDir = None,
     config: ConfigFile = None,
     output_format: Format = None,
+    offline: bool | None = None,
+    no_ai: Annotated[bool, typer.Option("--no-ai")] = False,
+    remote_media_consent: bool | None = None,
     version: Annotated[bool, typer.Option("--version", is_eager=True)] = False,
 ) -> None:
     if version:
         typer.echo(__version__)
         raise typer.Exit()
     ctx.ensure_object(dict)
-    ctx.obj.update(data_dir=data_dir, config=config, output_format=output_format)
+    ctx.obj.update(
+        data_dir=data_dir,
+        config=config,
+        output_format=output_format,
+        offline=offline,
+        no_ai=no_ai,
+        remote_media_consent=remote_media_consent,
+    )
 
 
 def execute(
@@ -70,6 +83,10 @@ def execute(
             config_file=config or options.get("config"),
             data_dir=data_dir or options.get("data_dir"),
         )
+        if options.get("offline") is not None:
+            settings.offline = options["offline"]
+        if options.get("remote_media_consent") is not None:
+            settings.remote_media_consent = options["remote_media_consent"]
         data = operation(settings)
         checks = [CheckResult.model_validate(item) for item in data.get("checks", [])]
         errors = [
@@ -199,11 +216,20 @@ def analyze_video_command(
     max_frames: int = 120,
     scene_threshold: float = 3.0,
     silence_db: float = -45,
+    no_ai: Annotated[bool, typer.Option("--no-ai")] = False,
+    transcribe: bool | None = None,
+    ocr: bool | None = None,
+    align: bool = False,
+    pose: bool = False,
+    classify_audio: bool = False,
+    reason: bool = False,
+    offline: bool | None = None,
+    remote_media_consent: bool | None = None,
     data_dir: DataDir = None,
     config: ConfigFile = None,
     output_format: Format = None,
 ) -> None:
-    """Analyze video deterministically. Use --resume RUN_ID after interruption."""
+    """Analyze video with optional prepared local models. Use --no-ai for signals only."""
     from pydantic import ValidationError
 
     from socialdna.application.analysis_service import analyze_video
@@ -219,10 +245,21 @@ def analyze_video_command(
                     "max_frames": max_frames,
                     "scene_threshold": scene_threshold,
                     "silence_db": silence_db,
+                    "no_ai": no_ai or bool((ctx.find_root().obj or {}).get("no_ai")),
+                    "transcribe": transcribe,
+                    "ocr": ocr,
+                    "align": align,
+                    "pose": pose,
+                    "classify_audio": classify_audio,
+                    "reason": reason,
                 }
             )
         except ValidationError as exc:
             raise ConfigurationError(str(exc)) from exc
+        if offline is not None:
+            settings.offline = offline
+        if remote_media_consent is not None:
+            settings.remote_media_consent = remote_media_consent
         with open_application(settings) as application:
             return analyze_video(
                 application,
@@ -232,9 +269,76 @@ def analyze_video_command(
                 copy_media=copy_media,
                 resume=resume,
                 on_run=lambda run_id: typer.echo(f"Analysis run: {run_id}", err=True),
+                on_estimate=(
+                    lambda estimate: typer.echo(
+                        "Resource estimate: " + json.dumps(estimate), err=True
+                    )
+                )
+                if depth == "deep"
+                else None,
             )
 
     execute(ctx, "analyze.video", operation, data_dir, config, output_format)
+
+
+@models_app.command("status")
+def models_status_command(
+    ctx: typer.Context,
+    data_dir: DataDir = None,
+    config: ConfigFile = None,
+    output_format: Format = None,
+) -> None:
+    """Inspect local checksums, expected downloads, dependencies, devices and licenses."""
+    from socialdna.application.bootstrap import open_application
+    from socialdna.providers.models import ModelStore
+
+    def operation(settings: Settings) -> dict[str, Any]:
+        with open_application(settings):
+            return {"models": ModelStore(settings).status(), "downloads_attempted": False}
+
+    execute(ctx, "models.status", operation, data_dir, config, output_format)
+
+
+@models_app.command("prepare")
+def models_prepare_command(
+    ctx: typer.Context,
+    name: str,
+    allow_download: bool | None = None,
+    offline: bool | None = None,
+    manifest: Path | None = None,
+    from_dir: Path | None = None,
+    data_dir: DataDir = None,
+    config: ConfigFile = None,
+    output_format: Format = None,
+) -> None:
+    """Download with explicit consent, or import files named in a verified manifest."""
+    import httpx
+    from pydantic import ValidationError
+
+    from socialdna.application.bootstrap import open_application
+    from socialdna.core.exceptions import DependencyUnavailable
+    from socialdna.providers.models import ModelStore
+
+    def operation(settings: Settings) -> dict[str, Any]:
+        if allow_download is not None:
+            settings.allow_download = allow_download
+        if offline is not None:
+            settings.offline = offline
+        with open_application(settings):
+            try:
+                return ModelStore(settings).prepare(
+                    name, manifest_path=manifest, source_dir=from_dir
+                )
+            except (ValidationError, OSError) as exc:
+                raise ConfigurationError(
+                    "Invalid model manifest or local source directory."
+                ) from exc
+            except httpx.HTTPError as exc:
+                raise DependencyUnavailable(
+                    "Model download failed; retry or use a verified local import."
+                ) from exc
+
+    execute(ctx, "models.prepare", operation, data_dir, config, output_format)
 
 
 def parse_offset(value: str) -> int:

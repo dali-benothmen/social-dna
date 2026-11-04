@@ -1,7 +1,9 @@
 # Deterministic local video analysis
 
-Milestone 1 supports authorized local video only. No remote inference, network media
-fetching, model downloads, psychological judgments, or performance claims run here.
+This describes the Milestone 1 deterministic foundation, still available with `--no-ai`.
+Milestone 3 adds [optional local enrichment](local-enrichment.md) to the same DAG/timeline.
+The deterministic path performs no inference, network media fetching, model downloads,
+psychological judgments, or performance claims.
 
 ## Pipeline and persistence
 
@@ -68,7 +70,7 @@ Markdown links evidence frames and cites subtitle/measurement evidence; it limit
 measurement listing to 250 entries and directs readers to JSON for the remainder.
 Untrusted names/text are escaped, not interpreted as instructions or active Markdown.
 
-Transcription, OCR, and multimodal understanding are explicit skipped tasks. Missing
+With `--no-ai` or absent optional models/profiles, enrichment tasks are explicitly skipped. Missing
 subtitles/audio are skipped modalities, not an analysis failure. An actual analyzer
 failure produces a partial report and exit 5; unaffected tasks continue, while dependent
 tasks are skipped. The run's execution status is `failed` if any task failed, while its
@@ -99,4 +101,4 @@ removed on normal exit/interruption; SIGKILL may leave cache directories for ins
 These limits/protocol restrictions are safeguards, not an OS sandbox for hostile codecs.
 
 Qdrant semantic indexing, persistent graph construction and lexical search start in
-Milestone 2 and do not trigger media reprocessing here.
+Milestone 2 (currently deferred) and do not trigger media reprocessing here.

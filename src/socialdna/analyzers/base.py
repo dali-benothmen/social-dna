@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any
 
 from socialdna.core.ids import stable_id
+from socialdna.domain.providers import ProviderIdentity
 from socialdna.storage.schema import metadata
 
 
@@ -12,6 +13,9 @@ class TaskOutput:
     records: dict[str, list[dict[str, Any]]] = field(default_factory=dict)
     blobs: dict[str, tuple[Path, str, str]] = field(default_factory=dict)
     skipped: str | None = None
+    provider: ProviderIdentity | None = None
+    prompt_hash: str | None = None
+    input_evidence_ids: list[str] = field(default_factory=list)
 
 
 @dataclass

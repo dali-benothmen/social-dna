@@ -22,7 +22,8 @@ def run_cli(*args: str, env: dict[str, str] | None = None) -> subprocess.Complet
 
 
 @pytest.mark.parametrize(
-    "command", [("init",), ("doctor",), ("storage", "status"), ("storage", "verify")]
+    "command",
+    [("init",), ("doctor",), ("storage", "status"), ("storage", "verify"), ("models", "status")],
 )
 def test_commands_return_valid_json(command: tuple[str, ...], tmp_path: Path) -> None:
     data = tmp_path / "fresh"

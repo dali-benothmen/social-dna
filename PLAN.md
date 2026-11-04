@@ -1,18 +1,18 @@
 # SocialDNA Implementation Plan
 
-Status: approved; Milestones 0–1 complete
+Status: approved; Milestones 0–1 and 3 complete; Milestone 2 deferred
 
 Date: 2026-11-04
 
 Architecture source: `ARCHITECTURE.md`
 
-Repository state: deterministic local video vertical slice implemented as package version `0.0.2`.
+Repository state: optional local enrichment implemented as package version `0.0.3`.
 
 ## 1. Outcome and approval boundary
 
 The implementation will deliver a local-first, evidence-grounded social-media research engine and portable Agent Skill. The first usable vertical slice will analyze an authorized local video, persist a timestamped timeline, reopen that knowledge in another process, retrieve it semantically and through a graph traversal, and generate a cited report without any external database server or paid API key.
 
-The architecture and roadmap were approved on 2026-11-04. Implementation is limited to one completed milestone per change. Milestones 0–1 are complete. Milestone 2 has not started.
+The architecture and roadmap were approved on 2026-11-04. Implementation is limited to one milestone per change. Milestones 0–1 are complete. The user explicitly requested Milestone 3 next on 2026-11-04; its enrichment implementation uses the existing canonical timeline and does not require Milestone 2 indexing. Milestone 2 has not started.
 
 The initial release is complete after Milestone 6. Milestones 7 and 8 are optional post-release expansion and must not delay the local-first release.
 
@@ -39,8 +39,8 @@ The roadmap deliberately orders a thin end-to-end system before advanced interpr
 |---|---|---|
 | 0. Repository and canonical storage | Installable CLI, auto-init, migrations, health checks, stable contracts | Complete (`0.0.1`) |
 | 1. Deterministic local video vertical slice | Local video to timestamped JSON/Markdown report | Complete (`0.0.2`); first user value |
-| 2. Persistent research memory | Cross-process Qdrant/graph/FTS retrieval and repair | v0.1 |
-| 3. Local model enrichment | Optional ASR, OCR, landmarks/classifiers, provider safety | v0.2 |
+| 2. Persistent research memory | Cross-process Qdrant/graph/FTS retrieval and repair | Deferred at user request; v0.1 gate still unmet |
+| 3. Local model enrichment | Optional ASR, OCR, landmarks/classifiers, provider safety | Complete out of order (`0.0.3`); v0.2 release gate still awaits memory |
 | 4. Account imports and performance analytics | Multi-post baselines and defensible statistics | v0.3 |
 | 5. Psychology and cross-content discovery | Evidence-backed hypotheses, associations, counterexamples, hybrid research | v0.4 |
 | 6. Media breadth, reports, skill, and release hardening | Photos/carousels, comparisons, HTML, portable skill, packaged v1 | v1.0 |
@@ -390,6 +390,14 @@ Milestones 0–1 canonical records and CLI contracts.
 Indexes Milestone 1's canonical timeline and report representations. The vector/graph layer never bypasses Milestone 0's SQLite unit of work and can be rebuilt solely from canonical records.
 
 ## 9. Milestone 3 — Optional local model enrichment and provider safety
+
+Completed 2026-11-04 at the user's explicit request to work on this milestone before Milestone 2. Scope includes verified model preparation/import/status; capability-specific provider contracts; isolated CPU/native worker execution; faster-whisper ASR; RapidOCR boxes/persistence; optional WhisperX forced-alignment, MediaPipe pose and YAMNet adapters; evidence-bounded compatible-server text/vision reasoning; consent/revocation/budget/retry enforcement; transfer audits; model provenance/input-evidence gates; depth controls; cache/resume; report/timeline integration; and a manual native ASR/OCR CI workflow.
+
+The out-of-order dependency change is recorded in `ARCHITECTURE.md` section 24. Existing canonical task/artifact/evidence interfaces provide the integration boundary; vector/graph/FTS memory is not duplicated or claimed available. Version remains pre-release `0.0.3`; the original v0.1/v0.2 release gates still require memory/release validation.
+
+Verification: **116 tests passed in one full run with real local-model tests enabled**, including offline CPU ASR/OCR and isolated MediaPipe pose/audio using generated owned media and checksum-verified assets. SDK contracts, privacy/consent revocation, echoed-credential rejection, malformed output, budgets, atomic provenance/evidence gates, selective caching, interrupted model-task recovery and migration preservation passed. Ruff lint/format passed for 92 Python files and strict mypy passed for 69 source files. Wheel/source builds and isolated base installations passed initialization, media analysis and report-restart checks; runtime operation/model inference used no hosted APIs or downloaded assets on demand. Only Linux Python 3.11 was executed here. Real WhisperX checkpoint/GPU execution and real VLM/LLM quality evaluation were not run; their implemented adapters have offline/timing/HTTP schema contracts, not native-model evaluation claims. See `docs/local-enrichment.md` for supported usage and these limitations.
+
+Implemented modules are `providers/{models,registry,worker,reasoning}.py`, `application/enrichment_service.py`, and `analyzers/{speech,ocr,language}.py`, with additive changes to existing contracts, settings, DAG, timeline, reports and CLI. Capability-specific provider wrappers stay cohesive rather than creating empty transcription/vision/audio modules solely to match the target tree. `0003_enrichment` adds the exercised schema; `tests/unit/test_provider*.py`, `tests/integration/test_enrichment.py`, and `tests/integration/test_real_local_models.py` cover the new paths.
 
 ### What will be implemented
 

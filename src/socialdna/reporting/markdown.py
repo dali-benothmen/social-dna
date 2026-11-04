@@ -46,7 +46,7 @@ def render_markdown(report: VideoReport) -> str:
             f"- {timestamp(frame['timestamp_ms'])}: `{frame_evidence[frame['id']]}` "
             f"[frame]({frame['artifact_uri']})"
         )
-    lines += ["", "## Supplied subtitles", ""]
+    lines += ["", "## Text tracks (supplied subtitles / ASR / OCR)", ""]
     text_evidence = {
         item["subject_id"]: item["id"]
         for item in report.timeline["evidence_items"]
@@ -55,14 +55,16 @@ def render_markdown(report: VideoReport) -> str:
     for segment in report.timeline["text_segments"]:
         lines.append(
             f"- {timestamp(segment['start_ms'])}–{timestamp(segment['end_ms'])}: "
+            + f"{escape(segment['track_type'])}: "
             + escape(segment["text"])
             + f" (evidence `{text_evidence[segment['id']]}`)"
         )
     lines += [
         "",
-        "## Measurements",
+        "## Measurements and model estimates",
         "",
-        "Values are algorithm-defined measurements, not interpretations.",
+        "Signal values are measurements. Model interpretations/audio labels are explicitly "
+        "uncertain hypotheses; ASR/OCR and landmarks are model estimates.",
         "",
     ]
     evidence = {

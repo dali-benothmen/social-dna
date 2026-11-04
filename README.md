@@ -1,7 +1,9 @@
 # SocialDNA
 
-SocialDNA is a local-first social-media research engine. Version `0.0.2` implements
-**Milestone 1: a deterministic local-video vertical slice**, on the storage foundation.
+SocialDNA is a local-first social-media research engine. Version `0.0.3` adds
+**Milestone 3: optional local model enrichment** to the working local-video slice.
+Milestone 2 (semantic/graph memory) was deliberately deferred at the user's request;
+it is not required to run enrichment and is not claimed to be implemented.
 
 Working capabilities:
 
@@ -12,6 +14,10 @@ Working capabilities:
 - Timestamped timeline queries and evidence-linked JSON/Markdown reports.
 - Durable task dependencies, configuration/version fingerprints, selective cache reuse,
   partial failure reporting, and interrupted-run resume.
+- Explicit checksum-verified model preparation/import and optional offline faster-whisper
+  ASR, RapidOCR, MediaPipe pose geometry/audio candidates, and a WhisperX alignment adapter.
+- Schema/evidence-validated reasoning through an explicitly configured compatible local
+  server or consent-gated remote profile; transfer attempts have durable request audits.
 - Automatic, idempotent SQLite initialization with Alembic migrations, transactional
   DDL, migration checksums, foreign keys, WAL, and bounded lock waiting.
 - Persistent Qdrant Local metadata, one embedded client per application lifetime,
@@ -24,9 +30,9 @@ Working capabilities:
   and FFmpeg/ffprobe detection.
 - Text output for people and a versioned JSON envelope for agents.
 
-Automatic transcription, OCR, semantic interpretation, embeddings, persistent graph
-queries, performance analytics, psychological hypotheses, and the Agent Skill are
-subsequent milestones. They are not available in this release.
+Embeddings, persistent graph queries, performance analytics, psychological pattern
+discovery, and the Agent Skill remain unavailable. Model interpretations are labeled
+uncertain hypotheses, not psychological/performance findings or verified facts.
 
 ## Install from this checkout
 
@@ -64,7 +70,10 @@ uv run socialdna report generate --run RUN_ID --format markdown
 
 `--subtitles` is optional; supplied subtitles are not claimed to be ASR or OCR output.
 `--depth quick|standard|deep` changes regular frame-sampling density; all profiles run
-the same deterministic analyzers. Deep does not enable model interpretation.
+the deterministic analyzers. Standard/deep also use prepared ASR/OCR models; quick
+requires explicit `--transcribe`/`--ocr`. Deep requests model word timestamps. Alignment,
+pose, audio classification and reasoning require explicit flags. `--no-ai` disables
+all enrichment, including when models and provider profiles are configured.
 
 By default the original stays at its source path. Add `--copy-media` to import/analyze
 to retain a managed original; you can then delete your external copy without losing
@@ -84,6 +93,29 @@ its own report snapshots; cached extraction does not duplicate measurements or m
 Reports are content-addressed objects at the paths returned by the command, not files
 named after untrusted titles. See [the video pipeline](docs/video-analysis.md) for details.
 
+## Optional local enrichment
+
+Keep the base install small; install only the extras you need:
+
+```bash
+uv sync --locked --extra speech --extra ocr
+uv run socialdna models status --format json
+uv run socialdna models prepare asr-tiny --allow-download
+uv run socialdna models prepare ocr-en --allow-download
+uv run socialdna analyze video /path/to/video.mp4 --depth deep --offline --format json
+```
+
+Preparation downloads pinned assets and verifies SHA-256. Analysis itself never downloads
+models, even if `allow_download` is configured. Auto-selected unavailable models are
+skipped with reasons; explicitly requested missing models or failed inference produce
+a partial result while retaining deterministic evidence. Supplied subtitles, ASR,
+aligned ASR, and OCR stay separate tracks.
+
+Do not install all extras into the engine environment: MediaPipe/WhisperX have substantial
+native dependency trees and OpenCV/PyTorch compatibility requirements. Use isolated
+workers as described in [local enrichment](docs/local-enrichment.md), which also covers
+language/model limitations, custom manifests, consent, budgets, and real model tests.
+
 ## Commands
 
 ```bash
@@ -95,6 +127,8 @@ socialdna import local /path/to/video.mp4 --copy-media --format json
 socialdna analyze video /path/to/video.mp4 --depth quick --format json
 socialdna timeline show MEDIA_ID --start 0s --end 5s --format json
 socialdna report generate --run RUN_ID --format json
+socialdna models status --format json
+socialdna models prepare asr-tiny --allow-download
 socialdna --help
 socialdna --version
 ```
@@ -136,8 +170,9 @@ socialdna doctor --config /path/to/settings.toml
 SOCIALDNA_DATA_DIR=/path/to/library socialdna storage verify
 ```
 
-The download/remote consent settings define future provider policy; this release
-contains no model/provider inference and makes no remote calls regardless of these settings.
+The download/remote consent settings control provider policy; this release
+uses explicit local model preparation and never downloads during analysis. Remote inference
+also requires a configured enabled profile, allowed evidence types, and consent.
 
 Default storage uses `platformdirs`: typically `~/.local/share/socialdna` on Linux,
 `~/Library/Application Support/socialdna` on macOS, and the local app-data directory
@@ -155,7 +190,7 @@ data-directory/
 │   ├── transcripts/
 │   └── thumbnails/
 ├── cache/
-├── models/              # no models downloaded by this release
+├── models/              # optional verified model bundles and installation manifests
 ├── reports/
 └── logs/
 ```
@@ -236,7 +271,8 @@ uv build
 uv run python scripts/check_distribution.py
 ```
 
-Tests require no API credentials or model downloads. Media integration tests require
+Core tests require no API credentials or model downloads. Real-model tests are opt-in
+and documented in [local enrichment](docs/local-enrichment.md). Media integration tests require
 FFmpeg/ffprobe and skip explicitly if absent; CI installs those tools on all three OSes.
 Generated owned fixtures cover scene changes, motion, tones, subtitles, VFR, shifted
 timestamps, and audio offsets. Tests also exercise real SQLite/Alembic/Qdrant storage,

@@ -259,12 +259,14 @@ def doctor(settings: Settings) -> list[CheckResult]:
                 )
             )
     checks.extend(_tool_check(name) for name in ("ffmpeg", "ffprobe"))
+    from socialdna.providers.models import ModelStore
+
     checks.append(
         CheckResult(
             name="models",
-            status="deferred",
-            message="Model enrichment is deferred to Milestone 3. "
-            "No model downloads or inference were attempted.",
+            status="ok",
+            message="Optional model availability inspected; no download/inference attempted.",
+            details={"models": ModelStore(settings).status()},
         )
     )
     filesystem = application_filesystem(settings.data_dir)
