@@ -105,7 +105,8 @@ def build_report(application: Application, run_id: str) -> VideoReport:
             artifacts.append(artifact)
     limitations = [
         "Local enrichment runs only with prepared models and optional runtimes. "
-        "Psychological/performance analysis and semantic/graph memory are not implemented.",
+        "Psychological discovery and semantic/graph memory are not implemented; "
+        "performance analytics requires a separate imported-account analysis.",
         "No publishing or performance data was supplied; "
         "performance relationships cannot be assessed.",
         "Frame measurements use downscaled scene-aware samples; "
@@ -143,8 +144,38 @@ def build_report(application: Application, run_id: str) -> VideoReport:
 
 
 def generate_report(
-    application: Application, run_id: str, report_format: Literal["json", "markdown"] = "json"
+    application: Application,
+    run_id: str | None,
+    report_format: Literal["json", "markdown"] = "json",
+    *,
+    account_id: str | None = None,
 ) -> dict[str, Any]:
+    from socialdna.application.performance_service import load_performance_report
+    from socialdna.reporting.performance import render_performance
+
+    performance: dict[str, Any] | None
+    if account_id:
+        performance = load_performance_report(application, account_id=account_id)
+    elif run_id:
+        with application.database.transaction() as connection:
+            runs = metadata.tables["analysis_runs"]
+            target = connection.scalar(select(runs.c.target_type).where(runs.c.id == run_id))
+        performance = (
+            load_performance_report(application, run_id=run_id)
+            if target in ("account", "comparison")
+            else None
+        )
+    else:
+        raise InvalidMedia("Supply an analysis run or account ID.")
+    if performance is not None:
+        run_id = performance["run_id"]
+        content = (
+            json.dumps(performance, indent=2, ensure_ascii=False, allow_nan=False)
+            if report_format == "json"
+            else render_performance(performance)
+        )
+        return _save_performance_report(application, performance, content, report_format)
+    assert run_id is not None
     report = build_report(application, run_id)
     content = (
         report.model_dump_json(indent=2) if report_format == "json" else render_markdown(report)
@@ -184,4 +215,49 @@ def generate_report(
         "path": str(application.artifacts.path_for(row["relative_path"])),
         "format": report_format,
         "content": report.model_dump() if report_format == "json" else content,
+    }
+
+
+def _save_performance_report(
+    application: Application,
+    report: dict[str, Any],
+    content: str,
+    report_format: Literal["json", "markdown"],
+) -> dict[str, Any]:
+    report_id = stable_id("report", report["run_id"], report_format)
+    with application.database.transaction() as connection:
+        artifact_id = application.artifacts.put_bytes(
+            connection,
+            content.encode("utf-8"),
+            kind="report",
+            mime_type="application/json" if report_format == "json" else "text/markdown",
+        )
+        application.artifacts.add_reference(
+            connection, artifact_id, owner_type="report", owner_id=report_id, role="content"
+        )
+        table = metadata.tables["reports"]
+        statement = insert(table).values(
+            id=report_id,
+            run_id=report["run_id"],
+            format=report_format,
+            artifact_id=artifact_id,
+            schema_version="1.0",
+            created_at=utc_now(),
+        )
+        connection.execute(
+            statement.on_conflict_do_update(
+                index_elements=[table.c.run_id, table.c.format],
+                set_={"artifact_id": artifact_id, "created_at": utc_now()},
+            )
+        )
+        row = application.artifacts.get(connection, artifact_id)
+    return {
+        "run_id": report["run_id"],
+        "status": report["status"],
+        "report_id": report_id,
+        "artifact_id": artifact_id,
+        "path": str(application.artifacts.path_for(row["relative_path"])),
+        "format": report_format,
+        "content": report if report_format == "json" else content,
+        "limitations": report["limitations"],
     }

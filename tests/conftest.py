@@ -84,3 +84,108 @@ def subtitles(tmp_path: Path) -> Path:
         encoding="utf-8",
     )
     return path
+
+
+@pytest.fixture
+def account_export(tmp_path: Path) -> Path:
+    import json
+    from datetime import UTC, datetime, timedelta
+
+    records = [
+        {
+            "record_type": "account",
+            "platform": "demo",
+            "external_id": "0001",
+            "creator_key": "owned-creator",
+            "handle": "example",
+            "niche": "education",
+        }
+    ]
+    for key in ("views", "likes", "shares", "saves"):
+        records.append(
+            {
+                "record_type": "metric_definition",
+                "platform": "demo",
+                "key": f"demo.{key}.v1",
+                "definition": f"Demo platform {key} count",
+            }
+        )
+    records.append(
+        {
+            "record_type": "metric_definition",
+            "platform": "demo",
+            "key": "demo.followers.v1",
+            "subject_type": "account",
+            "definition": "Account follower count at collection time",
+        }
+    )
+    records.append(
+        {
+            "record_type": "metric_snapshot",
+            "platform": "demo",
+            "subject_type": "account",
+            "subject_external_id": "0001",
+            "metric_key": "demo.followers.v1",
+            "observed_at": "2026-01-20T00:00:00Z",
+            "value": 1200,
+        }
+    )
+    for index in range(6):
+        published = datetime(2026, 1, 1, tzinfo=UTC) + timedelta(days=index)
+        records.append(
+            {
+                "record_type": "post",
+                "platform": "demo",
+                "external_id": f"p{index}",
+                "account_external_id": "0001",
+                "published_at": published.isoformat(),
+                "caption": "Owned caption " + "x" * index,
+            }
+        )
+        records.append(
+            {
+                "record_type": "tag",
+                "platform": "demo",
+                "post_external_id": f"p{index}",
+                "kind": "topic",
+                "value": "learning",
+            }
+        )
+        for key, value in (("views", (index + 1) * 100), ("likes", (index + 1) * 10)):
+            records.append(
+                {
+                    "record_type": "metric_snapshot",
+                    "platform": "demo",
+                    "subject_external_id": f"p{index}",
+                    "metric_key": f"demo.{key}.v1",
+                    "observed_at": (published + timedelta(days=7)).isoformat(),
+                    "value": value,
+                }
+            )
+        records.append(
+            {
+                "record_type": "metric_snapshot",
+                "platform": "demo",
+                "subject_external_id": f"p{index}",
+                "metric_key": "demo.shares.v1",
+                "observed_at": (published + timedelta(days=7)).isoformat(),
+                "availability": "not_permitted",
+                "reason": "Shares not included in export",
+            }
+        )
+    destination = tmp_path / "owned-account.json"
+    destination.write_text(
+        json.dumps(
+            {
+                "schema_version": "1.0",
+                "source": {
+                    "dataset_id": "owned-demo",
+                    "permission_basis": "creator_owned_export",
+                    "source_uri": "urn:socialdna:test-export",
+                },
+                "records": records,
+            }
+        ),
+        encoding="utf-8",
+    )
+    return destination

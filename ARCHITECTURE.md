@@ -1,10 +1,10 @@
 # SocialDNA Architecture
 
-Status: approved; Milestones 0–1 and local enrichment (3) implemented
+Status: approved; Milestones 0–1, 3 and 4 implemented; Milestone 2 deferred
 
 Date: 2026-11-04
 
-Implementation status: version `0.0.3` adds optional local enrichment to the CLI/storage and video foundation. The user explicitly selected Milestone 3 before Milestone 2; semantic/graph memory remains unimplemented. Analytics, psychological discovery, media breadth, and the skill remain planned.
+Implementation status: version `0.0.4` adds canonical account imports and performance analytics. The user selected Milestones 3 and 4 before Milestone 2; semantic/graph memory remains unimplemented. Psychological discovery, media breadth, and the Agent Skill remain planned. The designs below include future components; sections 22–25 record implemented slices and deviations.
 
 ## 1. Executive decision
 
@@ -674,4 +674,102 @@ The user explicitly requested local model enrichment before persistent research 
 - **Depth and failure semantics:** standard/deep use prepared ASR/OCR automatically, quick requires explicit selection, and deep enables word timing plus pre-run resource estimates. Alignment, pose, audio candidates and reasoning require explicit flags; `--no-ai` disables all of them. Optional auto-selected missing models are skipped; explicitly requested unavailable capabilities and actual model failures make analysis/report partial while leaving deterministic results usable. No-audio capabilities are not applicable, not invented failures. Alignment requires ASR and a matching prepared language model; it cannot overwrite the original transcript or download a missing NLTK/alignment dependency.
 - **Verified versus contract-only integrations:** real offline CPU ASR/OCR tests use generated libflite speech/Pillow text and verify cache reuse and process-restart persistence. Real MediaPipe pose/audio smoke tests run through an isolated interpreter and verified official bundles; the synthetic pose fixture does not assess positive human-landmark accuracy. WhisperX's pinned offline API/timing behavior and compatible-server schema/consent/audit behavior have contract tests, but this workspace did not install/run the large alignment checkpoint or evaluate a real VLM/LLM. GPU, macOS and Windows native optional-runtime behavior is not claimed verified. A manual GitHub Actions workflow explicitly prepares pinned ASR/OCR assets for opt-in native testing; core CI requires no models or hosted credentials.
 
-Current configuration, safety boundaries, commands and interpretation limitations are documented in `docs/local-enrichment.md`. The project remains pre-release (`0.0.3`) because the planned memory/release gates have not been met; implementing enrichment out of order does not claim v0.2/v1 readiness.
+Configuration, safety boundaries, commands and interpretation limitations are documented in `docs/local-enrichment.md`. Milestone 3 was released as pre-release `0.0.3` because the planned memory/release gates had not been met; implementing enrichment out of order did not claim v0.2/v1 readiness.
+
+## 25. Milestone 4 implementation decisions (2026-11-05)
+
+The user selected account imports/analytics next. Canonical accounts, posts, media,
+timeline evidence and provenance are sufficient for this slice; Milestone 2 remains
+deferred, with no alternate vector/graph store or placeholder retrieval implementation.
+Version `0.0.4` is a pre-release, not completion of the roadmap's v0.3 memory-dependent gate.
+
+- **One normalized import contract:** strict Pydantic record unions cover accounts,
+  posts, media references, supplied tags/topics, minimized permitted comments,
+  metric definitions and post/account snapshots (including followers). JSON has a
+  versioned source envelope; CSV repeats version/source metadata and uses typed
+  record columns. Standard-library CSV parsing preserves external IDs without
+  dataframe inference. Arbitrary vendor exports need explicit mapping; no platform
+  API, automatic downloader or vendor-schema guessing is included. pandas is used
+  for analytics aggregation/design matrices, not lossy import inference.
+- **Atomic validation, provenance and identity:** parse errors and cross-record/DB
+  reference errors are row-addressed. Dry runs do not initialize/migrate storage or
+  write canonical/artifact records. Imports revalidate under the data lock, then
+  commit all records and raw source/provenance together. Batch IDs use dataset ID
+  plus raw SHA-256; entity IDs retain the existing namespace contract. SQLAlchemy
+  services remain distinct from decoding: `account_import_service.py` handles
+  exports while `import_service.py` continues local media registration. Shared CLI
+  envelopes/options moved to `cli/common.py` to avoid circular command dependencies.
+- **Append-only measurements, not mutable counters:** migration `0004_analytics`
+  adds import batches, references/tags/comments, metric definitions/observations,
+  derived metrics, frozen cohorts/members, analyses/typed terms and account-media
+  run links. SQLite UPDATE triggers protect metric definitions and observations;
+  definition changes need new platform/version keys. Corrected cells append a
+  superseding snapshot; unchanged overlapping exports reuse IDs. An exact original
+  file remains idempotent even after a correction; reversion needs a new export
+  revision. Independent-source disagreements remain stored but excluded, not averaged.
+  Account/post FKs constrain snapshot subjects; publication/ownership edits are
+  rejected so historical post ages cannot silently change.
+- **Exposure and missingness are part of the estimand:** collection time, optional
+  observation window, availability/reason and post age are distinct. Age uses window
+  end when supplied, not delayed collection time. Period outcomes require an exact
+  window width. Analysis chooses one nearest eligible nonsuperseded snapshot per
+  post/key within an explicit age tolerance, without interpolation or available-at-
+  another-age substitution. Rates require every aligned component and a positive
+  denominator. Unknown shares/saves/retention stay null; current follower counts
+  never become historical post denominators implicitly.
+- **Bounded local batches reuse the existing DAG:** `analyze account --analyze-media`
+  sequentially links/analyzes local video references using Milestone 1/3 services.
+  The default is deterministic; prepared local models need an explicit flag. Remote
+  references are never fetched. Failures/missing references/limit skips are explicit
+  and produce partial output without discarding successful media work. Changed
+  references invalidate current links, not historical media/report evidence. Reruns
+  reuse durable media task caches; no new queue/resume subsystem is introduced.
+  Analytics aggregates primary media only, with opening-3-second sampled medians
+  and exact evidence/producer-run IDs. Carousel-wide aggregation remains Milestone 6.
+- **Statistics are explicit and conservative:** default `model=none` delivers raw
+  summaries, missingness, exposure distributions, leave-one-post-out robust creator
+  baselines, descriptive Spearman effects, and cluster bootstrap intervals when
+  eligible. Opt-in OLS/Poisson/Gaussian GEE/random-intercept mixed paths have sample,
+  parameter, cluster, rank, conditioning, dispersion and convergence gates. These
+  are engineering safeguards, not universal statistical adequacy claims. Creator
+  fixed effects/cluster covariance or single-creator HAC are used where applicable;
+  warnings/unstable fits release no terms. OLS-design influence diagnostics are
+  labeled as such, including for non-OLS models.
+- **Separate estimands and test families:** post-level correlations remain
+  descriptive. Eligible cross-creator permutation tests operate on creator-median
+  aggregates and report a distinct effect/p-value. Benjamini–Yekutieli FDR replaces
+  the unspecified/BH default because exploratory content features can be dependent;
+  model-term and aggregate-correlation families remain explicit and retain all terms.
+  Same-creator context/duration matching uses no outcomes and can legitimately
+  produce zero pairs; unmatched group differences are descriptive/confounded.
+- **Leakage-safe checks, not retrospective accuracy claims:** chronological and
+  creator-held-out evaluations are separate checks. Chronological training purges
+  outcomes collected after the publication cutoff; grouped splits forbid creator
+  overlap. The production imputer/scaler/ridge pipeline fits only training rows.
+  Outcome-derived predictors are excluded by a small content registry; future
+  predictor availability and duplicate post leakage are audited. Exports cannot
+  prove that a caption was unchanged at publication, and reports state that limit.
+- **Frozen research inputs:** each analytics run atomically saves spec, seed,
+  engine/library versions, input hash, cohort rows, snapshot/evidence/provenance
+  locators, derived formula/input IDs, result terms and complete JSON output.
+  Reports reopen stored output, not live mutable posts. Reproduction reruns frozen
+  inputs with the same versions; ordinary reruns include new imports. Account metrics
+  remain canonical, while reports analyze declared post outcomes. Snapshot citations
+  use `socialdna:metric/ID`; the media-specific evidence table is not misused to
+  fabricate timestamped media evidence for account counters.
+- **Operational bounds and verification:** imports are bounded to 32 MiB/100000
+  records; analytics to 5000 candidate posts; batch processing to 1–1000 posts
+  (default 100). The embedded single-process lock remains authoritative. New tests
+  cover import/schema/history/provenance, hand-computed baselines/rates, SciPy and
+  statsmodels agreement, matching, leakage, insufficiency, actual FFmpeg batches,
+  and separate-process reports/reproduction. Distribution smoke checks now exercise
+  installed account imports and analytics as well as media. Local verification is
+  Linux/Python 3.11; the existing CI matrix covers other declared platforms.
+
+Contracts and runnable examples: `docs/import-formats.md`,
+`docs/performance-analytics.md`, `examples/imports/*`.
+Implementation references: [statsmodels GEE](https://www.statsmodels.org/stable/gee.html),
+[multiple-test correction](https://www.statsmodels.org/stable/generated/statsmodels.stats.multitest.multipletests.html),
+[scikit-learn leakage guidance](https://scikit-learn.org/stable/common_pitfalls.html),
+[group/time validation](https://scikit-learn.org/stable/modules/cross_validation.html),
+[SciPy permutation tests](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.permutation_test.html).

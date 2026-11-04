@@ -85,6 +85,34 @@ def main() -> None:
                 )
                 if result["status"] != "success" or result["errors"]:
                     raise RuntimeError(f"Installed distribution failed health checks: {result}")
+            export = isolated / "account.json"
+            shutil.copyfile(root / "examples/imports/account.json", export)
+            base = [
+                str(executable),
+                "--data-dir",
+                str(isolated / "data"),
+                "--offline",
+                "--format",
+                "json",
+            ]
+            imported = json.loads(run([*base, "import", "json", str(export)], cwd=isolated))
+            account_id = imported["data"]["account_ids"][0]
+            analyzed = json.loads(
+                run(
+                    [*base, "analyze", "account", account_id, "--metric", "demo.views.v1"],
+                    cwd=isolated,
+                )
+            )
+            account_report = json.loads(
+                run([*base, "report", "generate", "--account", account_id], cwd=isolated)
+            )
+            if account_report["data"]["content"]["results"]["available_n"] != 2:
+                raise RuntimeError("Installed account report lost imported observations")
+            if analyzed["run_id"] != account_report["data"]["content"]["run_id"]:
+                raise RuntimeError("Installed account report did not reopen the saved analysis")
+            print(
+                f"PASS: {distribution.name} installed account import, analytics and report restart"
+            )
             if shutil.which("ffmpeg") and shutil.which("ffprobe"):
                 source = isolated / "generated.mkv"
                 run(

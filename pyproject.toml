@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "socialdna"
-version = "0.0.3"
+version = "0.0.4"
 description = "Local-first, evidence-grounded social media research engine"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -28,6 +28,9 @@ dependencies = [
   "soundfile>=0.13,<1",
   "pysubs2>=1.8,<2",
   "httpx>=0.28,<1",
+  "pandas>=2.2,<3",
+  "scikit-learn>=1.6,<2",
+  "statsmodels>=0.14.4,<0.15",
 ]
 
 [project.optional-dependencies]

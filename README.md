@@ -1,7 +1,7 @@
 # SocialDNA
 
-SocialDNA is a local-first social-media research engine. Version `0.0.3` adds
-**Milestone 3: optional local model enrichment** to the working local-video slice.
+SocialDNA is a local-first social-media research engine. Version `0.0.4` adds
+**Milestone 4: account imports and performance analytics** to the local-video slice.
 Milestone 2 (semantic/graph memory) was deliberately deferred at the user's request;
 it is not required to run enrichment and is not claimed to be implemented.
 
@@ -29,8 +29,13 @@ Working capabilities:
 - Storage health checks, FTS5 capability detection, Python dependency versions,
   and FFmpeg/ffprobe detection.
 - Text output for people and a versioned JSON envelope for agents.
+- Atomic, versioned CSV/JSON account/post exports, permitted comments/tags/media references,
+  immutable metric definitions, append-only snapshots, availability and raw-source provenance.
+- Age/window-aligned account reports, strict engagement rates, robust creator baselines,
+  matched comparisons, cluster uncertainty, guarded regression/GLM/GEE/mixed models,
+  leakage-audited validation, FDR correction and frozen, reproducible cohorts.
 
-Embeddings, persistent graph queries, performance analytics, psychological pattern
+Embeddings, persistent graph queries, psychological pattern
 discovery, and the Agent Skill remain unavailable. Model interpretations are labeled
 uncertain hypotheses, not psychological/performance findings or verified facts.
 
@@ -56,6 +61,23 @@ Initialization requires no system media tools, API key, model download, Docker,
 or database server. Install FFmpeg (including ffprobe) through your operating system's
 package manager before analyzing video;
 SocialDNA never installs it automatically.
+
+## Import an account and analyze performance
+
+```bash
+uv run socialdna import json examples/imports/account.json --dry-run --format json
+uv run socialdna import json examples/imports/account.json --format json
+# Use an account_id returned by the import.
+uv run socialdna analyze account ACCOUNT_ID --metric demo.views.v1 --format json
+uv run socialdna report generate --account ACCOUNT_ID --format markdown
+```
+
+These are normalized authorized exports, not automatic vendor/API imports.
+Missing metrics stay missing; small samples produce descriptive results with explicit
+limitations. Regression is opt-in, and observational associations are not causal findings.
+Use `--analyze-media` to process imported local video references; no media is downloaded.
+See [import formats](docs/import-formats.md), [analytics safeguards and commands](docs/performance-analytics.md),
+and [runnable examples](examples/imports/).
 
 ## Analyze a local video
 

@@ -1,0 +1,10 @@
+{
+  "metric_key": "demo.views.v1",
+  "age_days": 7,
+  "age_tolerance_days": 1,
+  "features": ["caption_length"],
+  "model": "none",
+  "seed": 42,
+  "bootstrap_resamples": 2000,
+  "population": {"platforms": ["demo"], "content_types": ["video"]}
+}

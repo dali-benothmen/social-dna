@@ -246,6 +246,9 @@ def doctor(settings: Settings) -> list[CheckResult]:
         "soundfile",
         "scipy",
         "pysubs2",
+        "pandas",
+        "scikit-learn",
+        "statsmodels",
     ):
         try:
             version = importlib.metadata.version(package)

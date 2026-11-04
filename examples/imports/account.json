@@ -1,0 +1,27 @@
+{
+  "schema_version": "1.0",
+  "source": {
+    "dataset_id": "synthetic-owned-demo",
+    "permission_basis": "creator_owned_export",
+    "source_uri": "urn:socialdna:synthetic-example",
+    "comments_permitted": false,
+    "terms": {"note": "Invented example data; not real account performance"}
+  },
+  "records": [
+    {"record_type": "account", "platform": "demo", "external_id": "0001", "creator_key": "demo-creator", "handle": "example", "niche": "education"},
+    {"record_type": "post", "platform": "demo", "external_id": "post-a", "account_external_id": "0001", "published_at": "2026-01-01T10:00:00Z", "caption": "An owned example post"},
+    {"record_type": "post", "platform": "demo", "external_id": "post-b", "account_external_id": "0001", "published_at": "2026-01-02T10:00:00Z", "caption": "Another example with a longer caption"},
+    {"record_type": "tag", "platform": "demo", "post_external_id": "post-a", "kind": "topic", "value": "learning"},
+    {"record_type": "metric_definition", "platform": "demo", "key": "demo.views.v1", "definition": "Demo cumulative view count, not unique viewers"},
+    {"record_type": "metric_definition", "platform": "demo", "key": "demo.likes.v1", "definition": "Demo cumulative like count"},
+    {"record_type": "metric_definition", "platform": "demo", "key": "demo.shares.v1", "definition": "Demo cumulative share count"},
+    {"record_type": "metric_definition", "platform": "demo", "key": "demo.saves.v1", "definition": "Demo cumulative save count"},
+    {"record_type": "metric_definition", "platform": "demo", "key": "demo.followers.v1", "subject_type": "account", "definition": "Account followers at collection time"},
+    {"record_type": "metric_snapshot", "platform": "demo", "subject_external_id": "post-a", "metric_key": "demo.views.v1", "observed_at": "2026-01-08T10:00:00Z", "value": 100},
+    {"record_type": "metric_snapshot", "platform": "demo", "subject_external_id": "post-b", "metric_key": "demo.views.v1", "observed_at": "2026-01-09T10:00:00Z", "value": 200},
+    {"record_type": "metric_snapshot", "platform": "demo", "subject_external_id": "post-a", "metric_key": "demo.likes.v1", "observed_at": "2026-01-08T10:00:00Z", "value": 10},
+    {"record_type": "metric_snapshot", "platform": "demo", "subject_external_id": "post-b", "metric_key": "demo.likes.v1", "observed_at": "2026-01-09T10:00:00Z", "value": 30},
+    {"record_type": "metric_snapshot", "platform": "demo", "subject_external_id": "post-a", "metric_key": "demo.shares.v1", "observed_at": "2026-01-08T10:00:00Z", "availability": "not_permitted", "reason": "Export does not grant access to shares"},
+    {"record_type": "metric_snapshot", "platform": "demo", "subject_type": "account", "subject_external_id": "0001", "metric_key": "demo.followers.v1", "observed_at": "2026-01-10T00:00:00Z", "value": 1200}
+  ]
+}

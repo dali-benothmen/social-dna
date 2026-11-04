@@ -1,19 +1,20 @@
 import json
 import sys
-from collections.abc import Callable
 from pathlib import Path
-from typing import Annotated, Any, cast
+from typing import Annotated, Any
 
 import typer
 
 from socialdna import __version__
 from socialdna.application.bootstrap import initialize
+from socialdna.cli.account_commands import register as register_accounts
+from socialdna.cli.common import ConfigFile, DataDir, Format, execute
 from socialdna.cli.errors import error_result
-from socialdna.cli.output import OutputFormat, emit
+from socialdna.cli.output import emit
 from socialdna.config.settings import Settings
 from socialdna.core.enums import ExitCode
 from socialdna.core.exceptions import ConfigurationError, SocialDNAError
-from socialdna.domain.results import CheckResult, Issue, ResultEnvelope
+from socialdna.domain.results import Issue, ResultEnvelope
 from socialdna.storage.health import doctor, storage_status, storage_verify
 
 app = typer.Typer(
@@ -34,10 +35,8 @@ app.add_typer(timeline_app, name="timeline")
 app.add_typer(report_app, name="report")
 models_app = typer.Typer(help="Inspect and explicitly prepare verified optional model assets.")
 app.add_typer(models_app, name="models")
-
-DataDir = Annotated[Path | None, typer.Option(help="Override the platform data directory.")]
-ConfigFile = Annotated[Path | None, typer.Option("--config", help="Read [socialdna] from TOML.")]
-Format = Annotated[str | None, typer.Option("--format", help="Output format: text or json.")]
+compare_app = typer.Typer(help="Compare age-aligned post or account populations.")
+app.add_typer(compare_app, name="compare")
 
 
 @app.callback()
@@ -63,63 +62,6 @@ def root(
         no_ai=no_ai,
         remote_media_consent=remote_media_consent,
     )
-
-
-def execute(
-    ctx: typer.Context,
-    command: str,
-    operation: Callable[[Settings], dict[str, Any]],
-    data_dir: Path | None,
-    config: Path | None,
-    output_format: str | None,
-) -> None:
-    options = ctx.find_root().obj or {}
-    format_value = output_format or options.get("output_format") or "text"
-    if format_value not in ("text", "json"):
-        raise ConfigurationError("--format must be text or json")
-    selected_format = cast(OutputFormat, format_value)
-    try:
-        settings = Settings.load(
-            config_file=config or options.get("config"),
-            data_dir=data_dir or options.get("data_dir"),
-        )
-        if options.get("offline") is not None:
-            settings.offline = options["offline"]
-        if options.get("remote_media_consent") is not None:
-            settings.remote_media_consent = options["remote_media_consent"]
-        data = operation(settings)
-        checks = [CheckResult.model_validate(item) for item in data.get("checks", [])]
-        errors = [
-            Issue(code=check.name, message=check.message)
-            for check in checks
-            if check.status == "error"
-        ]
-        warnings = [
-            Issue(code=check.name, message=check.message)
-            for check in checks
-            if check.status == "warning"
-        ]
-        result = ResultEnvelope(
-            command=command,
-            status="error"
-            if errors
-            else "partial"
-            if data.get("status") == "partial"
-            else "success",
-            run_id=data.get("run_id"),
-            data=data,
-            limitations=data.get("limitations", []),
-            warnings=warnings,
-            errors=errors,
-        )
-        emit(result, selected_format)
-        if errors:
-            raise typer.Exit(ExitCode.STORAGE_INTEGRITY)
-        if result.status == "partial":
-            raise typer.Exit(ExitCode.PARTIAL)
-    except SocialDNAError as exc:
-        emit(error_result(command, exc), selected_format)
-        raise typer.Exit(exc.exit_code) from exc
 
 
 @app.command("init")
@@ -391,7 +333,8 @@ def timeline_command(
 @report_app.command("generate")
 def report_command(
     ctx: typer.Context,
-    run: Annotated[str, typer.Option()],
+    run: Annotated[str | None, typer.Option()] = None,
+    account: Annotated[str | None, typer.Option()] = None,
     report_format: Annotated[str, typer.Option("--format")] = "json",
     data_dir: DataDir = None,
     config: ConfigFile = None,
@@ -400,13 +343,15 @@ def report_command(
     from socialdna.application.bootstrap import open_application
     from socialdna.application.report_service import generate_report
 
+    if bool(run) == bool(account):
+        raise ConfigurationError("Supply exactly one of --run or --account.")
     if report_format not in ("json", "markdown"):
         raise ConfigurationError("Report format must be json or markdown.")
     if report_format == "json":
 
         def operation(settings: Settings) -> dict[str, Any]:
             with open_application(settings) as application:
-                return generate_report(application, run, "json")
+                return generate_report(application, run, "json", account_id=account)
 
         execute(ctx, "report.generate", operation, data_dir, config, "json")
     else:
@@ -416,7 +361,7 @@ def report_command(
             data_dir=data_dir or root_options.get("data_dir"),
         )
         with open_application(settings) as application:
-            result = generate_report(application, run, "markdown")
+            result = generate_report(application, run, "markdown", account_id=account)
         typer.echo(result["content"], nl=False)
         if result["status"] == "partial":
             raise typer.Exit(ExitCode.PARTIAL)
@@ -461,3 +406,6 @@ def main() -> None:
         )
         emit(result, "json" if json_requested else "text")
         raise SystemExit(ExitCode.INTERNAL) from exc
+
+
+register_accounts(ingestion, analysis, compare_app)

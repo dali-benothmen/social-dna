@@ -24,7 +24,7 @@ def test_migration_downgrade_upgrade(tmp_path: Path) -> None:
     try:
         migrate(database)
         with database.transaction() as connection:
-            assert current_revision(connection) == "0003_enrichment"
+            assert current_revision(connection) == "0004_analytics"
             config = migration_config()
             config.attributes["connection"] = connection
             command.downgrade(config, "base")
@@ -32,7 +32,7 @@ def test_migration_downgrade_upgrade(tmp_path: Path) -> None:
             assert inspect(connection).get_table_names() == ["alembic_version"]
         migrate(database)
         with database.transaction() as connection:
-            assert current_revision(connection) == "0003_enrichment"
+            assert current_revision(connection) == "0004_analytics"
     finally:
         database.close()
 
@@ -57,7 +57,7 @@ def test_upgrade_released_foundation_preserves_existing_data(tmp_path: Path) -> 
             )
         migrate(database)
         with database.transaction() as connection:
-            assert current_revision(connection) == "0003_enrichment"
+            assert current_revision(connection) == "0004_analytics"
             assert (
                 connection.exec_driver_sql(
                     "SELECT display_name FROM creators WHERE id='existing'"
@@ -73,8 +73,8 @@ def test_upgrade_released_foundation_preserves_existing_data(tmp_path: Path) -> 
 def test_failed_ddl_migration_rolls_back(tmp_path: Path) -> None:
     location = tmp_path / "migrations"
     shutil.copytree(MIGRATIONS, location)
-    (location / "versions" / "v0004_failure.py").write_text(
-        'from alembic import op\nrevision="0004_failure"\ndown_revision="0003_enrichment"\n'
+    (location / "versions" / "v0005_failure.py").write_text(
+        'from alembic import op\nrevision="0005_failure"\ndown_revision="0004_analytics"\n'
         'def upgrade():\n    op.execute("CREATE TABLE must_rollback (id INTEGER)")\n'
         '    raise RuntimeError("injected migration failure")\n'
         "def downgrade():\n    pass\n"

@@ -1,18 +1,18 @@
 # SocialDNA Implementation Plan
 
-Status: approved; Milestones 0–1 and 3 complete; Milestone 2 deferred
+Status: approved; Milestones 0–1, 3 and 4 complete; Milestone 2 deferred
 
 Date: 2026-11-04
 
 Architecture source: `ARCHITECTURE.md`
 
-Repository state: optional local enrichment implemented as package version `0.0.3`.
+Repository state: account imports and performance analytics implemented as package version `0.0.4`.
 
 ## 1. Outcome and approval boundary
 
 The implementation will deliver a local-first, evidence-grounded social-media research engine and portable Agent Skill. The first usable vertical slice will analyze an authorized local video, persist a timestamped timeline, reopen that knowledge in another process, retrieve it semantically and through a graph traversal, and generate a cited report without any external database server or paid API key.
 
-The architecture and roadmap were approved on 2026-11-04. Implementation is limited to one milestone per change. Milestones 0–1 are complete. The user explicitly requested Milestone 3 next on 2026-11-04; its enrichment implementation uses the existing canonical timeline and does not require Milestone 2 indexing. Milestone 2 has not started.
+The architecture and roadmap were approved on 2026-11-04. Implementation is limited to one milestone per change. Milestones 0–1, 3 and 4 are complete. The user explicitly requested Milestone 3 and then Milestone 4; both consume canonical SQLite/timeline interfaces without Milestone 2 indexing. Milestone 2 has not started; its release gates remain unmet.
 
 The initial release is complete after Milestone 6. Milestones 7 and 8 are optional post-release expansion and must not delay the local-first release.
 
@@ -41,7 +41,7 @@ The roadmap deliberately orders a thin end-to-end system before advanced interpr
 | 1. Deterministic local video vertical slice | Local video to timestamped JSON/Markdown report | Complete (`0.0.2`); first user value |
 | 2. Persistent research memory | Cross-process Qdrant/graph/FTS retrieval and repair | Deferred at user request; v0.1 gate still unmet |
 | 3. Local model enrichment | Optional ASR, OCR, landmarks/classifiers, provider safety | Complete out of order (`0.0.3`); v0.2 release gate still awaits memory |
-| 4. Account imports and performance analytics | Multi-post baselines and defensible statistics | v0.3 |
+| 4. Account imports and performance analytics | Multi-post baselines and defensible statistics | Complete out of order (`0.0.4`); roadmap v0.3 gate still awaits memory |
 | 5. Psychology and cross-content discovery | Evidence-backed hypotheses, associations, counterexamples, hybrid research | v0.4 |
 | 6. Media breadth, reports, skill, and release hardening | Photos/carousels, comparisons, HTML, portable skill, packaged v1 | v1.0 |
 | 7. Official platform adapters | Permission-aware YouTube/Instagram/TikTok ingestion | Post-v1 optional |
@@ -393,7 +393,7 @@ Indexes Milestone 1's canonical timeline and report representations. The vector/
 
 Completed 2026-11-04 at the user's explicit request to work on this milestone before Milestone 2. Scope includes verified model preparation/import/status; capability-specific provider contracts; isolated CPU/native worker execution; faster-whisper ASR; RapidOCR boxes/persistence; optional WhisperX forced-alignment, MediaPipe pose and YAMNet adapters; evidence-bounded compatible-server text/vision reasoning; consent/revocation/budget/retry enforcement; transfer audits; model provenance/input-evidence gates; depth controls; cache/resume; report/timeline integration; and a manual native ASR/OCR CI workflow.
 
-The out-of-order dependency change is recorded in `ARCHITECTURE.md` section 24. Existing canonical task/artifact/evidence interfaces provide the integration boundary; vector/graph/FTS memory is not duplicated or claimed available. Version remains pre-release `0.0.3`; the original v0.1/v0.2 release gates still require memory/release validation.
+The out-of-order dependency change is recorded in `ARCHITECTURE.md` section 24. Existing canonical task/artifact/evidence interfaces provide the integration boundary; vector/graph/FTS memory is not duplicated or claimed available. Milestone 3 was delivered as pre-release `0.0.3`; the original v0.1/v0.2 release gates still require memory/release validation.
 
 Verification: **116 tests passed in one full run with real local-model tests enabled**, including offline CPU ASR/OCR and isolated MediaPipe pose/audio using generated owned media and checksum-verified assets. SDK contracts, privacy/consent revocation, echoed-credential rejection, malformed output, budgets, atomic provenance/evidence gates, selective caching, interrupted model-task recovery and migration preservation passed. Ruff lint/format passed for 92 Python files and strict mypy passed for 69 source files. Wheel/source builds and isolated base installations passed initialization, media analysis and report-restart checks; runtime operation/model inference used no hosted APIs or downloaded assets on demand. Only Linux Python 3.11 was executed here. Real WhisperX checkpoint/GPU execution and real VLM/LLM quality evaluation were not run; their implemented adapters have offline/timing/HTTP schema contracts, not native-model evaluation claims. See `docs/local-enrichment.md` for supported usage and these limitations.
 
@@ -459,6 +459,46 @@ Adds optional tasks to the existing DAG and writes the same observation/evidence
 
 ## 10. Milestone 4 — Account imports and performance analytics
 
+Status: complete (`0.0.4`), 2026-11-05. Selected by the user while Milestone 2 remains deferred.
+
+Delivered:
+
+- [x] Strict versioned CSV/JSON account/post/media/tag/comment/metric contracts,
+  read-only dry runs, atomic row/reference validation and idempotent external keys.
+- [x] Raw-export artifacts, permission/source provenance, immutable metric definitions,
+  append-only corrections and explicit availability/window/exposure-age semantics.
+- [x] Bounded local-video account batches, durable media-cache reuse, partial failures,
+  missing/remote-reference reporting and primary-media evidence aggregation.
+- [x] Age-aligned outcomes/strict rates, cohorts, leave-one-out robust creator baselines,
+  descriptive effects, seeded cluster bootstrap, matching and FDR correction.
+- [x] Guarded OLS/Poisson/Gaussian GEE/random-intercept mixed-model paths, interactions,
+  rank/dispersion/convergence gates and labeled influence diagnostics.
+- [x] Separate chronological/creator validation, cutoff-purged outcomes and training-only
+  preprocessing, with deliberately bad leakage fixtures.
+- [x] Frozen cohort inputs, full specifications/versions/seeds/results, exact reproduction,
+  JSON/Markdown reports, metric/source/evidence citations and cross-process CLI commands.
+- [x] Frozen migration `0004_analytics`, package/lock version `0.0.4`, executable examples,
+  import/analytics documentation and installed-distribution account smoke coverage.
+
+Implementation details and tradeoffs are recorded in `ARCHITECTURE.md` section 25.
+CSV parsing deliberately uses the standard library to preserve identifiers; pandas
+handles analytics. Export ingestion lives in `application/account_import_service.py`
+beside the existing local-media importer; account orchestration lives in
+`application/performance_service.py`. The portable skill, live platform adapters,
+psychological discovery, carousel-wide aggregation and semantic/graph indexing are
+not included. Normalized exports are supported, not arbitrary vendor layouts.
+
+Verification: the full regression run passed 164 tests including real offline CPU
+ASR/OCR and isolated MediaPipe smoke tests (88% aggregate coverage). Final targeted
+runs additionally cover the two new strict-JSON hardening tests and updated
+account/comparison reproduction and escaped-path cases: 166 tests are now collected.
+Ruff lint/format checks pass across 105 Python files and strict mypy across 83 source
+files. Both wheel and source distributions pass isolated install, initialization,
+integrity, account import/analytics/report restart and video-analysis/report checks
+with network disabled after priming the dependency cache. Workspace verification is
+Linux/Python 3.11/FFmpeg 4.4.2; other platforms remain covered by the CI definition,
+not claimed locally executed.
+
 ### What will be implemented
 
 - Versioned CSV and JSON import schemas for accounts, posts, media references, hashtags, comments, metric definitions, metric snapshots, follower counts, and creator-owned analytics exports.
@@ -494,7 +534,8 @@ Adds optional tasks to the existing DAG and writes the same observation/evidence
 ### Dependencies
 
 pandas, NumPy, SciPy, scikit-learn, statsmodels.
-Milestones 0–3 storage, media analysis, provenance, evidence, and retrieval.
+Milestones 0–1 and 3 canonical storage, media analysis, provenance and evidence.
+Milestone 2 retrieval/projections remain deferred and are not required for this slice.
 
 ### Acceptance criteria
 
@@ -517,6 +558,9 @@ Milestones 0–3 storage, media analysis, provenance, evidence, and retrieval.
 ### Integration with previous work
 
 Connects media observations from Milestones 1–3 to real performance snapshots, while reusing the same accounts/posts/evidence/vector/graph IDs. It creates the comparable populations required by Milestone 5.
+
+Current implementation reuses canonical account/post/media/evidence IDs and leaves
+vector/graph projections for Milestone 2; it does not claim that retrieval exists.
 
 ## 11. Milestone 5 — Psychology, cross-content discovery, and research findings
 

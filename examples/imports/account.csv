@@ -1,0 +1,5 @@
+_schema_version,_dataset_id,_permission_basis,_source_uri,record_type,platform,external_id,account_external_id,published_at,key,definition,subject_external_id,metric_key,observed_at,value
+1.0,synthetic-csv,creator_owned_export,urn:socialdna:csv-example,account,demo,0002,,,,,,,,
+1.0,synthetic-csv,creator_owned_export,urn:socialdna:csv-example,post,demo,csv-post,0002,2026-01-01T10:00:00Z,,,,,,
+1.0,synthetic-csv,creator_owned_export,urn:socialdna:csv-example,metric_definition,demo,,,,demo.views.v1,Demo cumulative view count,,,,
+1.0,synthetic-csv,creator_owned_export,urn:socialdna:csv-example,metric_snapshot,demo,,,,,,csv-post,demo.views.v1,2026-01-08T10:00:00Z,42
