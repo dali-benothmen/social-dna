@@ -1,0 +1,252 @@
+---
+title: SocialDNA Architecture and Implementation Roadmap
+brief: Local-first multimodal research with evidence-linked claims and durable, repairable memory.
+kind: plan
+status: approved
+localOnly: true
+---
+
+# SocialDNA Architecture and Implementation Roadmap
+
+SocialDNA will be a Python 3.11+ CLI and library that turns authorized social-media media and account exports into synchronized observations, hypotheses, statistical associations, and experiments. The first release proves one complete local path before adding platform APIs: analyze a video, persist its timeline and evidence, stop the process, retrieve the knowledge in a later process, traverse its graph, and generate a cited report.
+
+The architecture is approved. Milestone 0 is implemented; subsequent capabilities in this review document remain planned. Current implementation status is maintained in `PLAN.md` and `ARCHITECTURE.md`.
+
+<Callout id="review-boundary" tone="decision">
+
+**Approval boundary:** SQLite is canonical. Qdrant is a rebuildable semantic index. NetworkX is a bounded in-memory projection of graph rows stored in SQLite. No application code or dependency installation begins before review.
+
+</Callout>
+
+## A concrete first-release workflow
+
+1. A user runs `socialdna analyze video ./clip.mp4 --depth standard --format json`.
+2. SocialDNA initializes a local data directory, probes the media, detects scenes, samples/deduplicates frames, extracts audio, parses supplied subtitles, and computes deterministic features.
+3. Optional local transcription/OCR/AI tasks run only when their models are installed and allowed. Missing tasks make the result partial, not fabricated.
+4. SQLite commits the canonical timeline, observations, provenance, evidence, graph rows, vector documents, and a vector-index outbox operation.
+5. Qdrant is updated idempotently after the SQLite commit. A failed update remains repairable from the outbox.
+6. A later process runs `socialdna query`, hydrates semantic/lexical candidates from SQLite, expands a bounded evidence-bearing graph, and renders claims at their correct evidence level.
+
+## System architecture
+
+<Diagram id="system-architecture" caption="Local Mode ownership and data flow.">
+
+```html
+<div class="diagram-panel architecture" data-rough>
+  <section class="lane inputs">
+    <strong>Callers</strong>
+    <div class="diagram-node">Codex / Claude Code</div>
+    <div class="diagram-node">Human CLI user</div>
+    <div class="diagram-node">Python library</div>
+  </section>
+  <section class="lane engine">
+    <strong>Application engine</strong>
+    <div class="diagram-box">Typer + application services</div>
+    <div class="diagram-box">Durable analysis DAG</div>
+    <div class="diagram-card">Deterministic media analyzers</div>
+    <div class="diagram-card">Optional capability providers</div>
+    <div class="diagram-card">Research + reporting</div>
+  </section>
+  <section class="lane storage">
+    <strong>Local persistence</strong>
+    <div class="diagram-node canonical">SQLite<br/><span class="diagram-muted">canonical records, graph, outbox</span></div>
+    <div class="diagram-node">Artifacts<br/><span class="diagram-muted">content-addressed files</span></div>
+    <div class="diagram-node derived">Qdrant Local<br/><span class="diagram-muted">rebuildable vectors</span></div>
+    <div class="diagram-node derived">NetworkX<br/><span class="diagram-muted">bounded graph view</span></div>
+  </section>
+  <svg viewBox="0 0 900 350" aria-hidden="true">
+    <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" /></marker></defs>
+    <path d="M250 80 C310 80 320 80 375 80" marker-end="url(#arrow)" />
+    <path d="M530 150 C600 150 610 95 665 95" marker-end="url(#arrow)" />
+    <path d="M530 180 C600 180 610 180 665 180" marker-end="url(#arrow)" />
+    <path d="M720 130 C720 230 700 245 680 260" marker-end="url(#arrow)" />
+    <path d="M755 130 C790 210 790 240 780 260" marker-end="url(#arrow)" />
+  </svg>
+</div>
+```
+
+```css
+.architecture { position: relative; display: grid; grid-template-columns: 1fr 1.35fr 1.25fr; gap: 18px; min-height: 350px; padding: 18px; }
+.lane { display: flex; flex-direction: column; gap: 10px; position: relative; z-index: 2; }
+.lane > strong { text-align: center; }
+.diagram-node, .diagram-box, .diagram-card { text-align: center; padding: 10px; }
+.canonical { border-width: 2px; }
+.derived { border-style: dashed; }
+.architecture svg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
+.architecture svg path { fill: none; stroke: var(--wf-muted); stroke-width: 2; }
+.architecture svg marker path { fill: var(--wf-muted); }
+```
+
+</Diagram>
+
+## Hard-to-reverse decisions
+
+<Table
+  id="architecture-decisions"
+  columns={["Decision", "Chosen direction", "Reason / tradeoff"]}
+  rows={[
+    ["Canonical store", "SQLite", "Enables atomic domain, provenance, graph, and outbox writes; vectors remain rebuildable."],
+    ["Vector memory", "Qdrant Local, one client", "Zero server setup, but single-process locking and a practical small-data ceiling require warnings and a remote path."],
+    ["Graph", "SQLite rows + NetworkX MultiDiGraph", "Durable evidence-bearing edges without requiring Neo4j; queries materialize bounded subgraphs."],
+    ["Time model", "Integer milliseconds, half-open intervals", "Stable cross-modal alignment independent of variable frame rate."],
+    ["Claim model", "Observation → hypothesis → association → causal finding", "Prevents model labels and regressions from being presented as proven mechanisms."],
+    ["Agent boundary", "Portable Agent Skill + CLI JSON", "One stable interface for Codex and Claude Code; custom MCP is deferred."],
+    ["Guaranteed ingestion", "Local media and owned exports", "Official platform APIs cannot support arbitrary account/media access."],
+    ["Local models", "Explicit optional extras/downloads", "The base install remains useful offline and never silently downloads or uploads media."]
+  ]}
+/>
+
+## Canonical data model
+
+The complete table dictionary is in `ARCHITECTURE.md`. The model below shows ownership and the cross-store rebuild boundary.
+
+<DataModel
+  id="canonical-data-model"
+  entities={[
+    { id: "posts", name: "posts", fields: [
+      { name: "id", type: "uuid", pk: true },
+      { name: "account_id", type: "uuid", fk: "accounts.id" },
+      { name: "published_at", type: "rfc3339", nullable: true }
+    ]},
+    { id: "accounts", name: "accounts", fields: [
+      { name: "id", type: "uuid", pk: true },
+      { name: "platform", type: "text" }
+    ]},
+    { id: "media", name: "media assets", fields: [
+      { name: "id", type: "uuid", pk: true },
+      { name: "post_id", type: "uuid", fk: "posts.id" },
+      { name: "sha256", type: "text" }
+    ]},
+    { id: "timeline", name: "timeline + observations", fields: [
+      { name: "id", type: "uuid", pk: true },
+      { name: "media_id", type: "uuid", fk: "media.id" },
+      { name: "start_ms", type: "integer" },
+      { name: "end_ms", type: "integer" }
+    ]},
+    { id: "evidence", name: "evidence + provenance", fields: [
+      { name: "id", type: "uuid", pk: true },
+      { name: "observation_id", type: "uuid", fk: "timeline.id", nullable: true },
+      { name: "provenance_id", type: "uuid" }
+    ]},
+    { id: "claims", name: "hypotheses / findings", fields: [
+      { name: "id", type: "uuid", pk: true },
+      { name: "claim_level", type: "enum" },
+      { name: "analysis_id", type: "uuid", nullable: true }
+    ]},
+    { id: "vectors", name: "canonical vector documents", fields: [
+      { name: "id", type: "uuid", pk: true },
+      { name: "entity_id", type: "uuid" },
+      { name: "content_hash", type: "sha256" }
+    ]},
+    { id: "outbox", name: "vector outbox", fields: [
+      { name: "id", type: "uuid", pk: true },
+      { name: "document_id", type: "uuid", fk: "vectors.id" },
+      { name: "status", type: "enum" }
+    ]}
+  ]}
+  relations={[
+    { from: "posts", to: "accounts", kind: "n-1" },
+    { from: "media", to: "posts", kind: "n-1" },
+    { from: "timeline", to: "media", kind: "n-1" },
+    { from: "evidence", to: "timeline", kind: "n-1" },
+    { from: "claims", to: "evidence", kind: "n-n" },
+    { from: "vectors", to: "posts", kind: "n-1" },
+    { from: "outbox", to: "vectors", kind: "n-1" }
+  ]}
+/>
+
+## Multimodal correlation workflow
+
+- Extract measurable visual, audio, speech, text, publishing, and performance variables with analyzer/model provenance.
+- Keep speech, supplied subtitles, and embedded OCR as distinct tracks; align all lanes to the original media timebase.
+- Aggregate timeline features to declared post-level variables before performance statistics, avoiding false independence from frame-level rows.
+- Compare metric snapshots at common post ages and within creator/platform/niche cohorts; preserve missing metrics.
+- Let reasoning models propose taxonomy-bound hypotheses only from supplied evidence bundles.
+- Retrieve supporting examples and counterexamples through SQL, FTS5, Qdrant, and bounded graph traversal.
+- Use cluster-aware simple models, chronological/group validation, sensitivity checks, and false-discovery-rate correction.
+- Persist the analysis specification, effect, interval, diagnostics, limitations, and counterexamples before saving an association.
+- Require an experiment or defensible causal design before a finding can be marked causal.
+
+## Milestone roadmap
+
+<Table
+  id="milestone-roadmap"
+  columns={["Milestone", "Working result", "Acceptance focus"]}
+  rows={[
+    ["0 — Foundation", "Installable CLI, auto-init, canonical SQLite slice", "Idempotent migrations, locks, JSON contract, no network/model downloads"],
+    ["1 — Video vertical slice", "Local video → timestamped JSON/Markdown", "Real FFmpeg/scene/audio/subtitle evidence, resume and cache"],
+    ["2 — Durable memory", "Cross-process FTS/vector/graph retrieval", "Outbox crash recovery, reindex/delete, separate-process E2E"],
+    ["3 — Local model enrichment", "Optional ASR/OCR/AI evidence", "Structured outputs, provenance, consent, graceful partial results"],
+    ["4 — Account analytics", "CSV/JSON histories and defensible comparisons", "Missingness, post-age cohorts, leakage-safe validation"],
+    ["5 — Research discovery", "Psychology hypotheses and scoped findings", "Counterexamples, FDR, claim-promotion guards"],
+    ["6 — v1 hardening", "Photo/carousel, HTML, complete Agent Skill", "Packaging, docs/CLI contracts, Codex and Claude evaluations"],
+    ["7/8 — Optional expansion", "Official adapters and scale backends", "Permission/backend conformance; never blocks local v1"]
+  ]}
+/>
+
+## Files and review artifacts
+
+<FileTree
+  id="review-files"
+  title="Planning artifacts and planned implementation areas"
+  entries={[
+    { path: "PLAN.md", change: "added", note: "Detailed milestone scope, dependencies, acceptance criteria, tests, and integration." },
+    { path: "ARCHITECTURE.md", change: "added", note: "System design, schema, collections, graph, multimodal/statistical workflows, risks, and sources." },
+    { path: "src/socialdna/", change: "added", note: "Planned Python engine; not created during this planning phase." },
+    { path: "skills/socialdna/", change: "added", note: "Planned portable Agent Skill; not created during this planning phase." },
+    { path: "tests/", change: "added", note: "Planned unit, contract, integration, evaluation, and cross-process E2E suites." }
+  ]}
+/>
+
+## Principal risks
+
+- **Local vector ceiling:** Qdrant Local uses an exclusive directory lock and warns beyond 20,000 points. Limit representations, cluster comments, warn early, and offer remote Qdrant post-v1.
+- **Cross-store failure:** commit canonical vector documents and outbox rows in SQLite, then idempotently update Qdrant and reconcile.
+- **Scientific overclaim:** enforce claim levels in schema, services, reports, tests, and the Agent Skill.
+- **Platform access:** guarantee local/owned imports only; add official permission-aware adapters one by one after v1.
+- **Heavy ML installs:** keep deterministic base behavior and put transcription/OCR/AI in explicit extras with model preparation and resource estimates.
+- **Privacy:** require explicit provider configuration and remote-transfer consent; minimize audience identifiers and preserve permission provenance.
+
+## Verification gate
+
+The release-blocking smoke starts with an empty data directory, analyzes an authorized fixture, stores SQLite/artifact/vector/graph data, terminates the process, starts a second process, retrieves the video by semantics and FTS, traverses graph evidence, and renders JSON/Markdown reports whose substantial claims all resolve to stored evidence.
+
+### Open Questions
+
+<QuestionForm
+  id="open-questions"
+  questions={[
+    {
+      id: "relational-foundation",
+      title: "Which relational implementation should become the persisted-data contract?",
+      subtitle: "This choice affects migrations and any later PostgreSQL adapter.",
+      mode: "single",
+      options: [
+        { id: "sqlalchemy-core", label: "SQLAlchemy Core + Alembic", detail: "Recommended: robust migrations/transactions without adopting an ORM domain model.", recommended: true },
+        { id: "stdlib-sqlite", label: "sqlite3 + custom migrations", detail: "Fewer dependencies, but more bespoke migration/transaction work and a weaker future backend seam." }
+      ],
+      required: true
+    },
+    {
+      id: "transcription-default",
+      title: "Approve the local transcription split?",
+      mode: "single",
+      options: [
+        { id: "faster-default", label: "faster-whisper default", detail: "Recommended: lighter standard extra; WhisperX remains an optional precision alignment/diarization extra.", recommended: true },
+        { id: "whisperx-default", label: "WhisperX default", detail: "More alignment capability but a substantially heavier default dependency and model surface." }
+      ],
+      required: true
+    },
+    {
+      id: "agent-boundary",
+      title: "Approve CLI JSON as the initial agent tool boundary?",
+      mode: "single",
+      options: [
+        { id: "cli-first", label: "CLI JSON first", detail: "Recommended: one portable contract for Codex, Claude Code, humans, and Python integration.", recommended: true },
+        { id: "cli-plus-mcp", label: "CLI and MCP together", detail: "Larger initial API and test surface before the command schemas have stabilized." }
+      ],
+      required: true
+    }
+  ]}
+  submitLabel="Record architecture decisions"
+/>
