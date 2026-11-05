@@ -12,6 +12,8 @@ def isolated_environment(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Non
         if key.startswith("SOCIALDNA_") and key not in {
             "SOCIALDNA_TEST_MODEL_LIBRARY",
             "SOCIALDNA_TEST_MEDIAPIPE_PYTHON",
+            "SOCIALDNA_TEST_EMBEDDING_SPACE",
+            "SOCIALDNA_TEST_EMBEDDING_PYTHON",
         }:
             monkeypatch.delenv(key)
     monkeypatch.setenv("SOCIALDNA_DATA_DIR", str(tmp_path / "default-data"))

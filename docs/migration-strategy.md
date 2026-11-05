@@ -126,6 +126,23 @@ Required fault states:
 
 Changing embedding models creates a separate immutable space/collection namespace. Do not mix vector sizes, prefixes, normalization or representation policies. Keep old space readable until a validated transition/retention policy permits removal; do not promise automatic full re-embedding on every basic command.
 
+Implemented by additive `0010_memory` (`0.0.10`): canonical SQL triggers append
+`memory_changes` in the producer's own transaction. A second bounded transaction,
+after typed bindings/dependencies exist, publishes documents/citations/FTS/graph,
+vector desires/outbox and acknowledges those changes atomically. This refinement
+keeps canonical writers model/index-independent without losing pending work.
+The whole-directory lock serializes workers, so the outbox needs retryable pending
+jobs and generation CAS rather than expiring leases. Rebuild manifests and keyset
+eligibility/repair cursors persist across commands. Prepared real-model acceptance
+is an explicit opt-in test; fake production embeddings are never supplied. See
+[memory operations](research-memory.md) and the R6 architectural decision.
+
+The R4 deny-first erasure journal now includes derived document/FTS text, old FTS
+segments, graph relations and Qdrant point bytes. SQLite secure delete, FTS rebuild
+and checkpoint/vacuum complete before the journal reports active-library erasure.
+Latest-authority restore reconciliation applies this scrub to SQLite memory copies
+before normal reads; Qdrant/model files remain excluded from backups.
+
 ## 7. Retention, redaction and research eligibility
 
 Distinguish **withdrawal from new use** from **erasure of retained bytes**:

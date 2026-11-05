@@ -1003,11 +1003,12 @@ def reproduce(
         configuration["engine_version"] == __version__
         or (
             method == "performance-1"
-            and configuration["engine_version"] in ("0.0.4", "0.0.5", "0.0.6", "0.0.7", "0.0.8")
+            and configuration["engine_version"]
+            in ("0.0.4", "0.0.5", "0.0.6", "0.0.7", "0.0.8", "0.0.9")
         )
         or (
             method == "performance-2"
-            and configuration["engine_version"] in ("0.0.6", "0.0.7", "0.0.8")
+            and configuration["engine_version"] in ("0.0.6", "0.0.7", "0.0.8", "0.0.9")
         )
     )
     if not compatible_engine or any(

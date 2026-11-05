@@ -48,8 +48,8 @@ def test_qdrant_client_single_owner_and_close(tmp_path: Path) -> None:
     with LocalVectorStore(vector_dir) as first:
         assert first.client.get_collections().collections == []
         with pytest.raises(StorageConflict):
-            with LocalVectorStore(vector_dir):
-                pass
+            with LocalVectorStore(vector_dir) as second:
+                _ = second.client  # Ownership starts with actual lazy native acquisition.
     with LocalVectorStore(vector_dir) as reopened:
         assert reopened.client.get_collections().collections == []
     with pytest.raises(RuntimeError, match="closed"):

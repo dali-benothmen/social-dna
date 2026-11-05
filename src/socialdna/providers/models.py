@@ -189,6 +189,7 @@ PACKAGES = {
     "alignment": ["whisperx", "torch", "transformers", "nltk", "numpy"],
     "pose": ["mediapipe", "numpy", "Pillow"],
     "audio_classifier": ["mediapipe", "numpy", "soundfile"],
+    "text_embedding": ["sentence-transformers", "torch", "transformers", "tokenizers", "numpy"],
 }
 
 

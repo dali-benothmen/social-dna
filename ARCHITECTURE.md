@@ -1,6 +1,6 @@
 # SocialDNA architecture
 
-Revised: 2026-11-05. Implementation: **0.0.9**, database head **0009_behavioral**. R1–R5 are completed and verified; results are recorded in [PLAN.md](PLAN.md). **R6–R10 and U1/U2 remain planned**. The architecture incorporates the approved [intelligence audit](docs/architecture-audit.md). See [R1 operations](docs/research-foundation.md), [versioned analytics](docs/versioned-analytics.md), [creative analysis](docs/creative-analysis.md), [audience analysis](docs/audience-analysis.md) and [behavioral analysis](docs/behavioral-analysis.md) for actual commands and limits.
+Revised: 2026-11-05. Implementation: **0.0.10**, database head **0010_memory**. R1–R6 are delivered; results and optional verification limits are recorded in [PLAN.md](PLAN.md). **R7–R10 and U1/U2 remain planned**. The architecture incorporates the approved [intelligence audit](docs/architecture-audit.md). See [R1 operations](docs/research-foundation.md), [versioned analytics](docs/versioned-analytics.md), [creative analysis](docs/creative-analysis.md), [audience analysis](docs/audience-analysis.md), [behavioral analysis](docs/behavioral-analysis.md) and [research memory](docs/research-memory.md) for actual commands and limits.
 
 The [implementation plan](PLAN.md) defines delivery and acceptance gates. Detailed contracts live in [research contracts](docs/research-contracts.md), [statistical design](docs/statistical-design.md), [migration strategy](docs/migration-strategy.md), and the [twelve-step cooking use case](docs/research-use-case.md). The [previous architecture](docs/history/ARCHITECTURE.pre-research-revision.md) is a historical record, not a competing specification. Architecture/plan line references inside the unchanged audit refer to those pre-revision documents.
 
@@ -26,7 +26,7 @@ Scientific boundaries are architectural invariants: missing data is not zero; ex
 
 ### 2.1 Implemented foundation
 
-The current repository delivers deterministic local video processing, supplied subtitles, optional prepared local-model enrichment, strict account/post/comment/tag/metric imports, account media batches, descriptive/model-based comparisons and immutable analysis/report artifacts. R1 additionally supplies universal revisioned citations for existing media, comment spans and scalar metrics, draft registration and withdrawal-aware citation reports. Legacy media evidence remains interval-bound; imported metrics remain scalar snapshots. Current vector support initializes/checks Qdrant, but semantic retrieval and graph research memory are not implemented.
+The current repository delivers deterministic local video processing, supplied subtitles, optional prepared local-model enrichment, strict account/post/comment/tag/metric imports, account media batches, descriptive/model-based comparisons and immutable analysis/report artifacts. R1 additionally supplies universal revisioned citations and draft registration. R3–R5 add qualified creative/audience/behavioral producers. R6 provides persistent citation-backed SQL/FTS, optional immutable-space Qdrant retrieval and qualified SQLite-backed NetworkX views. Actual pretrained-model/corpus relevance is not inferred from controlled storage tests.
 
 The unversioned legacy path retains retrospective baselines, same-creator matching and auxiliary Ridge checks for exact reproduction. The explicit version 2 path corrects time-aware references, matching, lineage and selected OLS/Poisson validation; it withholds unidentifiable niche/between-creator effects and unseen-creator predictions. Comments still lack reaction analysis; retention-series contracts, semantic/graph memory and hypothesis evaluation/revision remain future work. Existing optional reasoners cannot already make those mechanism/performance claims.
 
@@ -41,7 +41,7 @@ All paths below are relative to `src/socialdna/`. A proposed filename is a respo
 | Extend canonical storage | `storage/{schema,repositories,health}.py`, migrations; `domain/{evidence,research}.py` | Add revision-aware universal evidence, registration and first-use query projections. Never edit migrations 0001–0004. |
 | Adapt imports and reporting | `ingestion/tabular.py`; `application/{account_import_service,performance_service,report_service}.py`; `reporting/` | Preserve v1 formats/readers; add immutable source snapshots, versioned metric semantics and citations, eligibility-aware current reports and explicit new research formats. |
 | Repair rather than replace analytics | `analytics/{metrics,baselines,cohorts,statistics,validation}.py` | Explicit designs, as-of history, actual feature lineage, identifiable models, duplicate-safe splits and validation of the actual selected pipeline. |
-| Adapt resource bootstrap | `application/bootstrap.py`, `storage/vectors.py` | Current bootstrap opens Qdrant eagerly. R6 moves derived resources behind lazy acquisition; existing locking remains. |
+| Adapt resource bootstrap | `application/bootstrap.py`, `storage/vectors.py` | R6 opens the Qdrant client lazily; existing data-directory locking remains. |
 | Add cohesive evidence/research services | Proposed `application/evidence_service.py`, `application/research_service.py`, corresponding domain contracts/repositories | R1 registration/resolution first; R7 evaluation and R8 reevaluation later. No generic agent framework. |
 | Add canonical producers | Proposed creative-event, audience and behavioral service/domain modules; `analytics/{designs,features}.py`, `research/discovery.py` | Introduce in R2–R5/R9 with real imports, writers, readers and tests. Reuse existing media/analytics services. |
 | Add derived memory | Proposed `memory/{lexical,vector_sync,graph,hybrid}.py`, `providers/embeddings.py`, `application/query_service.py` | R6 SQL/FTS + Qdrant outbox + bounded NetworkX projection, never application-owned hidden facts. |
@@ -256,6 +256,7 @@ The original five logical document families remain useful, but are versioned, pe
 | `statistical_findings` | Scoped effects, uncertainty, diagnostics, null/contrary results | Analysis/finding/assessment revisions and population/spec |
 | `audience_reactions` | Permitted reaction excerpts and versioned cluster summaries | Collection/comment/annotation/cluster revisions |
 | `research_knowledge` | Reviewed study findings, limitations and permissible excerpts | Source/study/construct/operationalization revisions |
+| `behavioral_observations` | Source-defined scalar metrics, series/bins and account outcomes | Exact metric/definition/cohort/window citations; not statistical or causal findings |
 
 Physical names include an immutable embedding-space identifier, e.g. family plus space hash. No incompatible embeddings are mixed. Collections are created only when a real producer needs them; capability status distinguishes absent, empty, stale and ready. Similarity scores are retrieval scores, not truth/confidence.
 
@@ -274,7 +275,7 @@ Qdrant payloads carry document/revision/space IDs, generation/hash, entity refs,
 
 Write protocol:
 
-1. Commit canonical revisions, desired document/index state and outbox job in one SQLite transaction.
+1. Commit canonical revisions and minimal desired-projection change records in one SQLite transaction. Once typed bindings/dependencies are complete, reconciliation atomically publishes documents, exact evidence bindings, FTS/graph rows, vector desires/outbox and acknowledges those changes. The R6 decision below explains this two-stage producer boundary.
 2. Outside the transaction, a lock-owning worker verifies source eligibility/current generation, loads the prepared model, embeds and upserts/deletes the deterministic point.
 3. Acknowledge with compare-and-swap on expected revision/generation. Old work cannot acknowledge or overwrite a newer desired state; process jobs serially per document/space and skip superseded work.
 4. On crash, replay idempotently. Query results hydrate through SQLite and reject stale/withdrawn/wrong-revision points even before repair.
@@ -596,3 +597,31 @@ survival fit, independent-viewer confidence interval or insertion of new behavio
 outcomes into R2 regression specifications. Source assertions and controlled fixtures
 are not empirical platform/annotation/causal validation. R6 memory and R7+ mechanism
 research remain separate deliveries.
+
+## 22. Research-memory delivery decisions (`0.0.10`)
+
+`0010_memory` is additive; released `0001`–`0009` scripts are frozen. It adds
+`memory_changes`, bounded maintenance cursor state, immutable `embedding_spaces`,
+logical `vector_documents`, versioned derived text/metadata and exact evidence
+bindings, desired/indexed vector generations, a durable outbox, FTS5 and qualified
+SQLite graph projections. SQL entity/evidence/projection FKs remain the authority.
+Documents/FTS/graph are rebuildable, not a second canonical truth store.
+
+| Decision | Reason and boundary |
+| -- | -- |
+| Two-stage transactional publisher | Canonical insert triggers append a minimal desired-projection journal in the writer's transaction, including withdrawals/tombstones. A bounded reconciler publishes documents/citations/FTS/graph/vector desires/outbox and removes processed journal rows in one later transaction. This refines the original single-transaction outbox sketch: many producers create canonical revisions before inserting typed bindings/dependencies, so embedding/document generation inside `save_entity` would validate incomplete records or couple canonical writes to optional storage. No commit can lose its pending work. Index lag is explicit. |
+| One lock-owning worker, no leases | The existing whole-directory process lock serializes workers. Native inference/Qdrant I/O occurs outside SQL transactions, with generation/eligibility rechecks and compare-and-swap acknowledgement. Pending jobs replay after interruption; deterministic point IDs prevent duplicate points. Lease expiration/stealing would add complexity without enabling supported concurrency. |
+| Qualified structural graph first | Actual canonical references, citations, contexts and definitions become edges carrying exact owner/evidence refs, field paths, scope and claim level. Draft hypotheses remain nodes, not evaluated mechanisms. Current edge owners are selected with canonical memberships; frozen older referenced context is not replaced with today's value. R7+ can register reified finding/assessment relations when those producers exist. No inferred causal/association/support edges are available now. |
+| Bounded views and persisted maintenance cursors | NetworkX loads only bounded neighborhoods (default depth 2, at most 2,000 nodes / 4,000 edge examinations). Repair and eligibility sweeps use keyset cursors so large libraries are not stuck on the first page. Search has explicit scoped candidate/result budgets and partial coverage. Top-K is never an analysis population. |
+| Separate behavioral document family | Source-defined bins/measurements/outcomes are `behavioral_observations`, not statistical findings. Representations retain exact citations, definitions and original timing; no observations become empirical findings through indexing. |
+| One initial optional mean-pooling adapter | Verified local Sentence Transformers uses safe-tensor files, an audited Transformer/mean-pooling module recipe, pinned manifest/runtime/prefix/dimensions/normalization/token/chunk contracts, and isolated network-denied workers. Unsupported recipes and token overflow fail explicitly. No model weights, model-quality target or learned multilingual quality result is bundled or fabricated. The real-model test requires explicitly prepared assets and otherwise skips. |
+| Deny first, scrub every derived copy | Resolver hydration denies withdrawn/expired/erased lineage before returning text or graph rows. Authorized R4 erasure scrubs document/FTS text (including old FTS segments), removes graph payloads, advances vector delete generations, deletes persistent points and vacuums their closed SQLite stores before completing the journal. Restore/rebuild obeys terminal tombstones; a worker cannot resurrect old content. Withdrawal alone is still not erasure. |
+| Keep local repair operationally honest | Qdrant/model files are omitted from backups; memory text/FTS/graph inside SQLite follows canonical backup/restore reconciliation. Missing points are requeued; FTS/graph can be rebuilt from canonical records. An unreadable unknown Qdrant directory is reported for operator quarantine/recreation, never silently deleted. No distributed transaction or automatic repair of arbitrary corrupted external data is promised. |
+
+Public adapters are `query`, `graph neighbors|path`, `memory status|register-space`
+and bounded `storage reconcile|reindex`; model preparation reuses the existing
+explicit manifest/checksum workflow. They call shared application services, not
+agent-specific state. Canonical imports/analysis and basic no-model retrieval
+never require Qdrant to open. Health checks distinguish derived damage/lag from
+canonical data loss. Rebuilds are explicit and resumable, not mandatory on every
+command. See [operations and verification boundaries](docs/research-memory.md).

@@ -28,8 +28,8 @@ def test_first_use_repeated_init_preserves_data(settings: Settings) -> None:
             assert connection.exec_driver_sql("PRAGMA foreign_keys").scalar() == 1
             assert connection.exec_driver_sql("PRAGMA journal_mode").scalar() == "wal"
             assert connection.exec_driver_sql("PRAGMA busy_timeout").scalar() == 5000
-            assert "graph_nodes" not in inspect(connection).get_table_names()
-            assert "vector_documents" not in inspect(connection).get_table_names()
+            assert "graph_nodes" in inspect(connection).get_table_names()
+            assert "vector_documents" in inspect(connection).get_table_names()
     for folder in ("vectors", "cache", "artifacts/objects", "models", "reports", "logs"):
         assert (settings.data_dir / folder).is_dir()
     assert (settings.data_dir / "vectors" / "meta.json").is_file()
@@ -98,7 +98,7 @@ def test_no_network_or_models_and_health(
     monkeypatch.setattr(socket, "getaddrinfo", forbidden)
     initialize(settings)
     status = storage_status(settings)
-    assert status["graph"]["status"] == "deferred"
+    assert status["graph"]["status"] == "available"
     assert status["vectors"]["collections"] == []
     assert not list((settings.data_dir / "models").iterdir())
     assert all(check.status != "error" for check in storage_verify(settings))

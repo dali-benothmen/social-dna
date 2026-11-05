@@ -1,8 +1,8 @@
 # SocialDNA implementation plan
 
-Revised: 2026-11-05. Scope: R1–R5 completed and verified. No R6 or later implementation is claimed.
+Revised: 2026-11-05. Scope: R1–R6 delivered. R6 prepared-real-model acceptance is opt-in and was not run without supplied weights; no R7 or later implementation is claimed.
 
-Runtime: package `0.0.9`, SQLite head `0009_behavioral`. Released migrations `0001_foundation`–`0008_audience` remain unchanged. Legacy Milestones 0, 1, 3 and 4 are completed deliveries; their limitations remain visible. Legacy Milestones 2, 5 and 6 are **superseded, not completed**. **R6–R10 and U1/U2 remain planned and unimplemented**.
+Runtime: package `0.0.10`, SQLite head `0010_memory`. Released migrations `0001_foundation`–`0009_behavioral` remain unchanged. Legacy Milestones 0, 1, 3 and 4 are completed deliveries; their limitations remain visible. Legacy Milestones 2, 5 and 6 are **superseded, not completed**. **R7–R10 and U1/U2 remain planned and unimplemented**.
 
 Authoritative design: [ARCHITECTURE.md](ARCHITECTURE.md), [research contracts](docs/research-contracts.md), [statistical design](docs/statistical-design.md), [migration strategy](docs/migration-strategy.md), and [reference use case](docs/research-use-case.md). The [audit](docs/architecture-audit.md) records the reasons for this revision; the [previous roadmap](docs/history/PLAN.pre-research-revision.md) is historical, not an alternative active plan.
 
@@ -44,7 +44,7 @@ M4 delivered its scoped implementation, but its retrospective baseline, same-cre
 | R3 | Semantic creative events and reproducible multimodal feature recipes | R1; R2 for analytics joins | Completed and verified, `0.0.7` |
 | R4 | Audience collection provenance, reaction annotations and qualified content links | R1, R3 | Completed and verified, `0.0.8` |
 | R5 | Behavioral metric series, denominators, attribution and account outcomes | R1, R2; R3 for event overlays | Completed and verified, `0.0.9` |
-| R6 | Persistent SQL/FTS/Qdrant/SQLite-backed NetworkX research memory | R1–R4; R5 for behavioral projections | Planned |
+| R6 | Persistent SQL/FTS/Qdrant/SQLite-backed NetworkX research memory | R1–R4; R5 for behavioral projections | Delivered `0.0.10`; real-model acceptance opt-in |
 | R7 | First complete, literature-backed psychological research vertical slice | R2–R6 | Planned |
 | R8 | Incremental hypothesis reevaluation and preserved contradiction history | R7 | Planned |
 | R9 | Bounded nonlinear, cross-creator and cross-niche discovery | R2, R3, R6–R8 | Planned |
@@ -400,7 +400,7 @@ Import authorized cooking-channel retention bins and follower history → overla
 
 ## 10. R6 — Persistent revision-aware research memory
 
-Status: **planned, unimplemented; replaces legacy M2**.
+Status: **delivered in `0.0.10` / `0010_memory`; replaces legacy M2**. Core SQL/FTS/graph and real Qdrant storage are automated-test paths. The prepared-real-model test explicitly skips without supplied verified weights/runtime; semantic relevance quality is not claimed. See [research-memory operations](docs/research-memory.md).
 
 ### Objective
 
@@ -431,6 +431,26 @@ Real Qdrant Local cross-process persistence; deterministic point IDs/space isola
 ### Demonstrable end-to-end behavior
 
 Analyze/import cooking media and audience data → index → terminate → query a result-first moment → traverse its content/reaction/metric provenance → retrieve an unsuccessful comparable example → withdraw a source → reconcile and verify it is excluded from current results while historical citation status remains inspectable.
+
+### Delivered components and implementation decisions
+
+- Added `domain/memory.py`, `memory/{documents,lexical,vector_sync,graph,hybrid,retention,health}.py`, `providers/embeddings.py`, `application/query_service.py`, `cli/memory_commands.py` and additive `0010_memory`. Existing `0001`–`0009` migrations are unchanged.
+- Real citation-backed SQL substring/FTS retrieval, revision/cutoff/source/family filters, explicit candidate budgets, owner deduplication, qualified graph neighborhoods/paths, bounded keyset eligibility/repair sweeps and cross-process persistence. Fine-grained bare media does not get invented descriptions. Behavioral observations have a separate family, not a misleading finding label.
+- Canonical insert triggers commit a minimal dirty journal with each writer. Reconciliation atomically commits documents/citations/FTS/graph/vector desires/outbox and removes processed journal rows. This two-stage publisher avoids incomplete typed bindings and model/index dependencies in canonical writers; see the R6 architecture decision. A data-directory lock serializes native vector work, so worker leases are unnecessary.
+- Immutable embedding-space identities and collection namespaces; deterministic points, generation guards before/after inference, idempotent pending jobs and compare-and-swap acknowledgement. Missing points are repairable. Qdrant is lazily opened; no-model SQL/FTS/graph works independently.
+- Optional verified local Transformer/mean-pooling safe-tensor adapter, isolated/offline workers, pinned runtime/prefix/token/chunk/normalization/dimension contracts and refusal of silent token truncation. No fake production embeddings, default model download or unvalidated multilingual relevance claim.
+- R4 erasure now scrubs derived documents/FTS including old FTS segments, graph relations and Qdrant bytes; tombstones/delete generations dominate stale jobs/rebuilds. Restores reconcile same-lineage obligations before normal exposure. Known external backup/export retention limitations remain.
+- Public `query`, `graph neighbors|path`, `memory status|register-space`, `storage reconcile|reindex` adapters, storage diagnostics and installed-distribution smoke coverage. Existing canonical audience/behavioral paths exercise their memory builders. No R7 findings, literature or mechanism evaluation was added.
+
+### Verification results
+
+- Final full regression: **383 passed, 3 skipped** (386 collected, 1,209.51 seconds). The skips require explicitly prepared embedding, ASR/OCR or MediaPipe assets/interpreters; no weights were downloaded. Focused crash/replay, stale-generation, physical deletion, restore/rebuild, Unicode span, graph qualification/bounds, CLI input and actual audience/behavioral/video integration checks passed.
+- Real Qdrant Local storage persists across closed/reopened clients and separate CLI processes. Deterministic test embeddings verify storage/replay/space isolation only. The opt-in real prepared-model adapter/index/restart test is present but was **not executed** without supplied assets. No learned relevance or psychological/annotation-quality claim is made.
+- Ruff lint and formatting passed repository-wide (193 Python files); strict mypy passed (134 source files). Documentation links, staged diff checks, offline locked dependency validation and offline wheel/sdist builds passed.
+- Both **installed wheel and source-distribution** smoke workflows passed outside the checkout: existing import/analysis/statistical citation/reproduction/video/creative/behavioral/report paths plus persistent SQL/FTS/graph retrieval, citation resolution, rebuild, audience erasure and storage verification.
+- Executed locally on Linux / Python **3.11.18**, SQLite **3.53.1**, qdrant-client **1.20.0**, NetworkX **3.6.1**. Windows/macOS CI execution is not claimed. Released `0001`–`0009` migration scripts remain unchanged.
+
+A deterministic generated-video label verifies exact moment retrieval, not cooking recognition or annotation validity. Statistical comparison populations remain SQL manifests, never nearest-neighbor samples. Prepared real-model acceptance and actual-corpus relevance evaluation remain optional verification work. R7 and later implementation was not started.
 
 ## 11. R7 — First complete psychological research vertical slice
 

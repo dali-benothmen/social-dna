@@ -281,6 +281,9 @@ def resume(database: Any, paths: DataPaths) -> None:
             ):
                 items.setdefault(kind, []).append(identity)
             connection.exec_driver_sql("PRAGMA secure_delete=ON")
+            from socialdna.memory.retention import scrub
+
+            vector_points = scrub(connection, items)
             triggers = list(
                 connection.exec_driver_sql(
                     "SELECT name,sql FROM sqlite_master WHERE type='trigger' AND "
@@ -381,6 +384,9 @@ def resume(database: Any, paths: DataPaths) -> None:
                     )
                 )
             )
+        from socialdna.memory.retention import purge_vectors
+
+        purge_vectors(paths, vector_points)
         for relative in blobs:
             ArtifactStore(paths).path_for(relative).unlink(missing_ok=True)
         # No active read transaction on this dedicated native connection. Secure

@@ -13,6 +13,7 @@ from socialdna.cli.behavioral_commands import register as register_behavioral_co
 from socialdna.cli.common import ConfigFile, DataDir, Format, execute
 from socialdna.cli.creative_commands import register as register_creative_commands
 from socialdna.cli.errors import error_result
+from socialdna.cli.memory_commands import register as register_memory_commands
 from socialdna.cli.output import emit
 from socialdna.cli.research_commands import register as register_research_commands
 from socialdna.config.settings import Settings
@@ -429,3 +430,4 @@ register_audience_commands(app, analysis)
 register_behavioral_commands(app, ingestion, analysis)
 register_accounts(ingestion, analysis, compare_app)
 register_research_commands(app, storage)
+register_memory_commands(app, storage)

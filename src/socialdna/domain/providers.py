@@ -4,7 +4,9 @@ from urllib.parse import urlsplit
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-Capability = Literal["transcription", "ocr", "alignment", "pose", "audio_classifier"]
+Capability = Literal[
+    "transcription", "ocr", "alignment", "pose", "audio_classifier", "text_embedding"
+]
 
 
 class StrictModel(BaseModel):

@@ -13,6 +13,7 @@ from socialdna.application import audience_service as service
 from socialdna.application.account_import_service import import_dataset
 from socialdna.application.bootstrap import Application, open_application
 from socialdna.application.evidence_service import EvidenceResolver, withdraw
+from socialdna.application.query_service import graph_query, query
 from socialdna.application.report_service import generate_report
 from socialdna.application.research_service import generate_research_report, register_research
 from socialdna.audience.annotations import AnnotationSet
@@ -23,6 +24,7 @@ from socialdna.core.ids import stable_id
 from socialdna.core.time import utc_now
 from socialdna.domain.creative import CreativeAnnotationSet
 from socialdna.domain.evidence import EvidenceRef
+from socialdna.domain.memory import QuerySpec
 from socialdna.media.timeline import timeline
 from socialdna.storage.backup import create_backup, restore_library, verify_backup
 from socialdna.storage.evidence_repository import EvidenceRepository
@@ -218,6 +220,10 @@ def test_reviewed_reactions_counts_links_reports_and_restart(
             assert resolved.locator_kind == "audience_record"
     with open_application(settings) as app:
         assert service.load_analysis(app, report["run_id"])["rates"] == report["rates"]
+        remembered = query(app, QuerySpec(text="ingredients", owner_kind="reaction_annotation"))
+        assert remembered["hits"][0]["citations"][0]["locator_kind"] == "audience_record"
+        view = graph_query(app, remembered["hits"][0]["owner"]["revision_id"])
+        assert any(node["ref"]["kind"] == "comment" for node in view["nodes"])
 
 
 def test_unknowns_literal_proposals_and_annotation_revisions(
@@ -297,6 +303,7 @@ def test_redaction_removes_registered_text_and_blocks_reimport(
         analysis = service.analyze(app, collection["ref"]["id"], key="reviewed")
         report = generate_report(app, analysis["run_id"], "markdown")
         target = spec.members[0].comment.id
+        assert query(app, QuerySpec(text="tonight", owner_kind="reaction_annotation"))["hits"]
         plan = service.redact(app, comment_id=target)
         assert not plan["written"] and Path(report["path"]).is_file()
         assert plan["counts"]["artifact"] >= 3
@@ -307,6 +314,7 @@ def test_redaction_removes_registered_text_and_blocks_reimport(
             reason="Owner requested erasure",
         )
         assert result["active_library_redacted"] and not Path(report["path"]).exists()
+        assert not query(app, QuerySpec(text="tonight", owner_kind="reaction_annotation"))["hits"]
         with app.database.transaction() as connection:
             assert (
                 connection.scalar(
@@ -570,7 +578,7 @@ def test_erasure_removes_unique_text_and_reconciles_restored_checkpoint(
                 assert BODIES[1].encode() not in file.read_bytes(), file
         sanitized = tmp_path / "after-erasure"
         create_backup(app.paths, sanitized)
-        assert verify_backup(sanitized)["database_revision"] == "0009_behavioral"
+        assert verify_backup(sanitized)["database_revision"] == "0010_memory"
     # The old backup remains an external retention obligation; restore gates
     # normal access until terminal erasure authority has been replayed.
     restored = tmp_path / "restored-audience"

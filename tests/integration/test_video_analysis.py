@@ -9,10 +9,12 @@ from sqlalchemy import func, select
 from socialdna.application.analysis_service import analyze_video
 from socialdna.application.bootstrap import open_application
 from socialdna.application.import_service import import_local
+from socialdna.application.query_service import query
 from socialdna.application.report_service import generate_report
 from socialdna.config.settings import Settings
 from socialdna.core.exceptions import DependencyUnavailable, InvalidMedia
 from socialdna.domain.media import AnalysisOptions
+from socialdna.domain.memory import QuerySpec
 from socialdna.media.timeline import timeline
 from socialdna.storage.schema import metadata
 
@@ -69,6 +71,10 @@ def test_video_to_timeline_reports_and_restart(
             )
         assert second["tasks"]["visual"]["status"] == "cached"
         assert timeline(application, first["media_id"], run_id=second["run_id"])["observations"]
+        remembered = query(application, QuerySpec(text="useful opening", owner_kind="text_segment"))
+        assert remembered["hits"]
+        citation = remembered["hits"][0]["citations"][0]
+        assert citation["locator"]["interval"] == {"start_ms": 200, "end_ms": 1100}
     process = subprocess.run(
         [
             sys.executable,

@@ -674,6 +674,8 @@ def redact(
         if not confirmation:
             return {**plan, "written": False, "requires_confirmation": True}
         operation = begin(connection, plan, confirmation=confirmation, reason=reason, actor=actor)
+    application.vectors.close()
+    application.vectors.__enter__()
     resume(application.database, application.paths)
     backups = sorted(str(path) for path in (application.paths.root / "backups").glob("*"))
     return {

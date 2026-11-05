@@ -13,6 +13,7 @@ from socialdna.application.account_import_service import import_dataset
 from socialdna.application.bootstrap import open_application
 from socialdna.application.evidence_service import EvidenceResolver, withdraw
 from socialdna.application.performance_service import analyze_account_outcomes
+from socialdna.application.query_service import graph_query, query
 from socialdna.application.report_service import generate_report
 from socialdna.config.settings import Settings
 from socialdna.core.exceptions import ConfigurationError
@@ -20,6 +21,7 @@ from socialdna.core.ids import stable_id
 from socialdna.core.time import utc_now
 from socialdna.domain.behavioral import AccountOutcomeSpec, BehavioralExport
 from socialdna.domain.evidence import EntityRef, EvidenceRef
+from socialdna.domain.memory import QuerySpec
 from socialdna.storage.evidence_repository import EvidenceRepository
 from socialdna.storage.health import artifact_checks, database_checks, evidence_checks
 from socialdna.storage.schema import metadata
@@ -213,6 +215,12 @@ def test_retention_real_persistence_comparison_citations_report_restart(
         )
     with open_application(settings) as app:
         assert service.load_analysis(app, result["run_id"])["comparison"] == result["comparison"]
+        remembered = query(app, QuerySpec(text="post-0-retention", owner_kind="metric_series"))
+        assert remembered["hits"][0]["citations"][0]["locator_kind"] == "behavioral_record"
+        bin_hit = query(app, QuerySpec(text="value", owner_kind="metric_bin"))["hits"][0]
+        assert bin_hit["citations"][0]["eligible"]
+        view = graph_query(app, bin_hit["owner"]["revision_id"])
+        assert any(node["ref"]["kind"] == "metric_series" for node in view["nodes"])
 
 
 def test_signed_account_endpoints_delays_and_exact_correction_history(

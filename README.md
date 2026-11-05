@@ -1,7 +1,10 @@
 # SocialDNA
 
 SocialDNA is a local-first social-media research engine. The implemented release is
-`0.0.9`: source-defined retention series, qualified attribution and signed account
+`0.0.10`: persistent citation-backed SQL/FTS research memory, qualified graph
+traversal and optional prepared local embeddings. See [research memory](docs/research-memory.md).
+
+`0.0.9` added source-defined retention series, qualified attribution and signed account
 outcomes; source-qualified audience collections, reaction review and content links,
 revisioned creative events, pinned multimodal recipes, versioned
 media/comment/metric/statistical citations, draft registration, withdrawal-aware
@@ -11,7 +14,9 @@ account imports, and bounded performance analytics.
 
 The revised [architecture](ARCHITECTURE.md) and [roadmap](PLAN.md) distinguish R1's
 implemented citation/statistical/creative foundation from later research capabilities.
-Semantic/graph memory remains planned in R6. Registering a draft
+Persistent SQL/FTS/qualified graph memory and optional local semantic retrieval are
+delivered in R6; prepared-real-model acceptance and corpus relevance remain explicit
+verification work. Registering a draft
 does not evaluate it or establish an association or psychological mechanism.
 
 Working capabilities:
@@ -72,8 +77,9 @@ Working capabilities:
   No interpolated retention, bins-as-viewers precision or causal attribution is
   claimed. See [behavioral analytics](docs/behavioral-analysis.md).
 
-Embeddings, persistent graph queries, psychological pattern
-discovery, and the Agent Skill remain unavailable. Model interpretations are labeled
+Psychological pattern discovery and the portable Agent Skill remain unavailable.
+Persistent research memory is described in [memory operations](docs/research-memory.md).
+Model interpretations are labeled
 uncertain hypotheses, not psychological/performance findings or verified facts.
 Cross-creator effects remain descriptive; unsupported niche/between-creator effects
 and unseen-creator fixed-effect predictions are withheld. Historical baselines need
@@ -270,7 +276,7 @@ on Windows. `storage status` displays the resolved location.
 data-directory/
 ├── socialdna.db
 ├── .socialdna.lock
-├── vectors/             # embedded Qdrant metadata; no embedding collections yet
+├── vectors/             # optional immutable-space derived Qdrant collections
 ├── artifacts/
 │   ├── objects/         # SHA-256 addressed blobs
 │   ├── frames/
@@ -283,11 +289,11 @@ data-directory/
 └── logs/
 ```
 
-SQLite is canonical. Qdrant is a derived index; its initial collections remain empty
-until embedding spaces are implemented. Graph storage is reported as deferred;
-the revised roadmap assigns memory implementation to R6. `storage verify` checks only
-capabilities implemented in `0.0.4` and does not claim semantic retrieval or graph
-persistence has been verified.
+SQLite is canonical, including revisioned evidence and qualified graph projections.
+FTS and optional Qdrant collections are derived indexes; basic commands load no
+embedding model. `storage verify` checks canonical integrity and derived-memory
+consistency, not learned relevance or psychological validity. Missing vector points
+can be reconciled; SQL/FTS/graph can be rebuilt from eligible canonical inputs.
 
 ## Machine output and exit codes
 

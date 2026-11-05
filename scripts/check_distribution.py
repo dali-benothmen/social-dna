@@ -140,6 +140,17 @@ def audience_smoke(base: list[str], isolated: Path, post_ids: list[str]) -> None
     report = cli("report", "generate", "--run", result["run_id"])
     if report["content"]["report_type"] != "audience":
         raise RuntimeError("Installed audience report did not survive restart")
+    cli("storage", "reconcile", "--limit", "5000")
+    remembered = cli("query", "tonight", "--owner-kind", "reaction_annotation")
+    if not remembered["hits"] or not remembered["hits"][0]["citations"][0]["eligible"]:
+        raise RuntimeError("Installed persistent FTS memory lost its qualified audience citation")
+    root = remembered["hits"][0]["owner"]["revision_id"]
+    view = cli("graph", "neighbors", root)
+    if not any(node["ref"]["kind"] == "comment" for node in view["nodes"]):
+        raise RuntimeError("Installed SQLite-backed graph lost its captured comment context")
+    cli("storage", "reindex", "--limit", "5000")
+    if not cli("query", "tonight", "--mode", "sql", "--owner-kind", "reaction_annotation")["hits"]:
+        raise RuntimeError("Installed memory rebuild did not preserve canonical retrieval")
     target = comments[0]["ref"]["id"]
     preview = cli("audience", "redact", "--comment", target)
     cli(
@@ -159,6 +170,8 @@ def audience_smoke(base: list[str], isolated: Path, post_ids: list[str]) -> None
         or cli("evidence", "resolve", result["evidence"]["id"])["eligible"]
     ):
         raise RuntimeError("Installed erasure did not remove reports and withhold citations")
+    if cli("query", "tonight", "--owner-kind", "reaction_annotation")["hits"]:
+        raise RuntimeError("Installed memory resurrected erased audience content")
     cli("storage", "verify")
 
 
@@ -658,7 +671,8 @@ def main() -> None:
             )
             audience_smoke(base, isolated, audience_posts)
             print(
-                f"PASS: {distribution.name} installed audience review, citation, report and erasure"
+                f"PASS: {distribution.name} installed audience review, citation, report, "
+                "persistent SQL/FTS/graph memory and erasure"
             )
             print(f"PASS: {distribution.name} isolated install, initialization and verification")
 

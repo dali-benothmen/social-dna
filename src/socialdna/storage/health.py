@@ -9,6 +9,7 @@ from sqlalchemy import inspect, select
 
 from socialdna.application.bootstrap import Application, open_application
 from socialdna.config.settings import Settings
+from socialdna.core.exceptions import SocialDNAError
 from socialdna.domain.results import CheckResult
 from socialdna.storage.migration_runner import (
     current_revision,
@@ -88,7 +89,7 @@ def database_checks(application: Application) -> list[CheckResult]:
                 CheckResult(
                     name="sqlite.fts5",
                     status="ok",
-                    message="FTS5 available; content indexes arrive in Milestone 2.",
+                    message="FTS5 available for citation-backed research memory.",
                 )
             )
         except Exception as exc:
@@ -201,13 +202,21 @@ def evidence_checks(application: Application) -> list[CheckResult]:
 
 
 def _vector_status(application: Application) -> dict[str, Any]:
-    collections = application.vectors.client.get_collections().collections
+    from socialdna.application.query_service import status
+
+    memory = status(application)
+    try:
+        names = [item.name for item in application.vectors.client.get_collections().collections]
+        state = "available"
+    except SocialDNAError:
+        names, state = [], "unavailable"
     return {
+        "status": state,
         "backend": "qdrant-local",
         "path": str(application.paths.vectors),
-        "collections": [item.name for item in collections],
-        "embeddings": "not_configured",
-        "semantic_retrieval": "not_implemented",
+        "collections": names,
+        "embeddings": memory["spaces"],
+        "semantic_retrieval": memory["semantic"],
     }
 
 
@@ -226,7 +235,7 @@ def storage_status(settings: Settings) -> dict[str, Any]:
                 "bytes": application.paths.database.stat().st_size,
             },
             "vectors": _vector_status(application),
-            "graph": {"status": "deferred", "reason": "Graph persistence begins in Milestone 2."},
+            "graph": {"status": "available", "backend": "sqlite-backed NetworkX"},
             "filesystem": {
                 "kind": application.filesystem.kind,
                 "mount": application.filesystem.mount,
@@ -236,25 +245,29 @@ def storage_status(settings: Settings) -> dict[str, Any]:
 
 
 def storage_verify(settings: Settings) -> list[CheckResult]:
+    from socialdna.memory.health import checks as memory_checks
+
     with open_application(settings) as application:
         checks = (
             database_checks(application)
             + artifact_checks(application)
             + evidence_checks(application)
+            + memory_checks(application)
         )
+        vector_status = _vector_status(application)
         checks.append(
             CheckResult(
                 name="qdrant.local",
-                status="ok",
-                message="Local storage opened and metadata read successfully.",
-                details=_vector_status(application),
+                status="ok" if vector_status["status"] == "available" else "warning",
+                message="Derived vector metadata inspected; SQL remains authoritative.",
+                details=vector_status,
             )
         )
         checks.append(
             CheckResult(
                 name="graph.persistence",
-                status="deferred",
-                message="Graph tables and traversal begin in Milestone 2.",
+                status="ok",
+                message="Qualified SQLite graph projections support bounded NetworkX views.",
             )
         )
         return checks

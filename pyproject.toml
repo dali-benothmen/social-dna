@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "socialdna"
-version = "0.0.9"
+version = "0.0.10"
 description = "Local-first, evidence-grounded social media research engine"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -39,6 +39,7 @@ ocr = ["rapidocr==3.10.0", "onnxruntime>=1.20,<2"]
 alignment = ["whisperx==3.8.6; python_version < '3.14'"]
 landmarks = ["mediapipe>=0.10.32,<2"]
 audio-classifier = ["mediapipe>=0.10.32,<2"]
+embeddings = ["sentence-transformers>=5,<6"]
 
 [project.scripts]
 socialdna = "socialdna.cli.app:main"

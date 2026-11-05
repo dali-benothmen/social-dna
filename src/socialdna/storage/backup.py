@@ -226,6 +226,7 @@ def restore_library(
                     "0007_creative",
                     "0008_audience",
                     "0009_behavioral",
+                    "0010_memory",
                 ):
                     raise StorageIntegrityError("Withdrawal authority has an unsupported schema")
                 obligations = (

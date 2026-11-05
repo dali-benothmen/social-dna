@@ -25,6 +25,37 @@ def infer(request: dict[str, Any]) -> dict[str, Any]:
     capability = request["capability"]
     root = Path(request["model_dir"])
     options = request["options"]
+    if capability == "text_embedding":
+        import torch
+        from sentence_transformers import SentenceTransformer
+
+        torch.set_num_threads(2)
+        space = options["space"]
+        model = SentenceTransformer(
+            str(root),
+            device="cpu",
+            local_files_only=True,
+            trust_remote_code=False,
+            prompts={},
+            default_prompt_name=None,
+            model_kwargs={"use_safetensors": True},
+        )
+        prefix = space["query_prefix"] if options["query"] else space["document_prefix"]
+        texts = [prefix + text for text in request["texts"]]
+        token_limit = min(space["max_tokens"], model.max_seq_length)
+        # Silent tokenizer truncation changes a representation; refuse it instead.
+        tokens = model.tokenizer(texts, truncation=False, add_special_tokens=True)
+        if any(len(ids) > token_limit for ids in tokens["input_ids"]):
+            raise ValueError("Text exceeds the declared/model token budget; use a compatible space")
+        values = model.encode(
+            texts,
+            batch_size=32,
+            show_progress_bar=False,
+            normalize_embeddings=True,
+            convert_to_numpy=True,
+            prompt="",
+        )
+        return {"vectors": values.tolist()}
     if capability == "transcription":
         from faster_whisper import WhisperModel
 
