@@ -75,6 +75,18 @@ def render_research(report: dict[str, Any]) -> str:
         )
         for item in report["audience_evidence"]:
             lines.append("- " + _safe(item))
+    if report.get("behavioral_evidence"):
+        lines.extend(
+            [
+                "",
+                "## Source-qualified behavioral evidence",
+                "",
+                "Aggregate bins are not independent viewers. Attribution is not causation.",
+                "",
+            ]
+        )
+        lines.extend("- " + _safe(item) for item in report["behavioral_evidence"])
+        lines.append("")
     lines.extend(["## Limitations", ""])
     lines.extend("- " + _safe(item) for item in report["limitations"])
     return "\n".join(lines) + "\n"

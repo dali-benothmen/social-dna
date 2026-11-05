@@ -5,7 +5,7 @@ import json
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 from urllib.parse import urlparse
 from urllib.request import url2pathname
 
@@ -14,6 +14,9 @@ from sqlalchemy import Connection, select, true
 from sqlalchemy.dialects.sqlite import insert
 
 from socialdna import __version__
+
+if TYPE_CHECKING:
+    from socialdna.domain.behavioral import AccountOutcomeSpec
 from socialdna.analytics.cohorts import in_population, match_pairs
 from socialdna.analytics.features import FeatureMaterializer, captured_entities, field_revision
 from socialdna.analytics.metrics import outcome, select_snapshot
@@ -1000,9 +1003,12 @@ def reproduce(
         configuration["engine_version"] == __version__
         or (
             method == "performance-1"
-            and configuration["engine_version"] in ("0.0.4", "0.0.5", "0.0.6", "0.0.7")
+            and configuration["engine_version"] in ("0.0.4", "0.0.5", "0.0.6", "0.0.7", "0.0.8")
         )
-        or (method == "performance-2" and configuration["engine_version"] in ("0.0.6", "0.0.7"))
+        or (
+            method == "performance-2"
+            and configuration["engine_version"] in ("0.0.6", "0.0.7", "0.0.8")
+        )
     )
     if not compatible_engine or any(
         importlib.metadata.version(name) != version for name, version in versions.items()
@@ -1024,6 +1030,246 @@ def reproduce(
         history=report.get("reference_population"),
         expected_results=report["results"],
     )
+
+
+def analyze_account_outcomes(
+    application: Application,
+    account_id: str,
+    spec: "AccountOutcomeSpec",
+) -> dict[str, Any]:
+    """Separate account outcomes from post count analytics and post attribution."""
+    from socialdna.analytics.attribution import summarize_attribution
+    from socialdna.analytics.metrics import account_size_as_of
+    from socialdna.application.behavioral_service import cutoff, persist_analysis
+    from socialdna.domain.behavioral import BehavioralMetricDefinition
+    from socialdna.domain.evidence import EntityRef, EvidenceRef
+    from socialdna.storage import behavioral_repository as behavioral
+    from socialdna.storage.evidence_repository import EvidenceRepository
+
+    knowledge = cutoff(spec.knowledge_cutoff)
+    with application.database.transaction() as connection:
+        repository = EvidenceRepository(connection)
+        accounts = captured_entities(connection, "account", knowledge)
+        if account_id not in accounts:
+            raise ConfigurationError("No actual account revision is known at this cutoff")
+        account = repository.ref(accounts[account_id][-1])
+        behavioral.active(connection, account, knowledge)
+        definition_data = behavioral.read(connection, spec.definition, knowledge)
+        definition = BehavioralMetricDefinition.model_validate(definition_data["spec"])
+        cohort = behavioral.read(connection, spec.cohort, knowledge)
+        if (
+            spec.definition.kind != "behavioral_metric_definition"
+            or spec.cohort.kind != "audience_cohort"
+            or cohort["spec"]["account"]["id"] != account_id
+            or definition.subject_type != "account"
+        ):
+            raise ConfigurationError("Account outcome definition/cohort scope mismatch")
+        if (spec.mode == "endpoint_difference" and definition.meaning != "followers") or (
+            spec.mode == "supplied_change" and definition.meaning != "net_growth"
+        ):
+            raise ConfigurationError(
+                "Choose a follower count definition or an explicit signed net-growth definition"
+            )
+        entities = [account, spec.definition, spec.cohort]
+        evidence: list[EvidenceRef] = []
+        observations = []
+        for ref in behavioral.latest(connection, "metric_measurement", knowledge):
+            raw = json.loads(repository.entity(ref)["payload_json"])["spec"]
+            if (
+                raw["subject"]["id"] == account_id
+                and raw["definition"] == spec.definition.model_dump()
+                and raw["cohort"] == spec.cohort.model_dump()
+                and raw["clock"]["window_end"] <= spec.end
+            ):
+                row = behavioral.read(connection, ref, knowledge)
+                observations.append(row)
+                entities.append(ref)
+                evidence.append(behavioral.evidence_ref(connection, ref))
+        change = None
+        first, last, supplied = None, None, None
+        size_start = (
+            account_size_as_of(observations, spec.start, knowledge, exact=True)
+            if spec.mode == "endpoint_difference"
+            else None
+        )
+        size_end = (
+            account_size_as_of(observations, spec.end, knowledge, exact=True)
+            if spec.mode == "endpoint_difference"
+            else None
+        )
+        if (
+            size_start
+            and size_end
+            and size_start["value"] is not None
+            and size_end["value"] is not None
+        ):
+            change = size_end["value"] - size_start["value"]
+            first, last = size_start["measurement"], size_end["measurement"]
+        elif spec.mode == "supplied_change":
+            matches = [
+                row
+                for row in observations
+                if row["spec"]["clock"]["window_start"] == spec.start
+                and row["spec"]["clock"]["window_end"] == spec.end
+                and row["spec"]["clock"]["data_cutoff"] == spec.end
+            ]
+            if (
+                matches
+                and len({(r["result"]["value"], r["result"]["availability"]) for r in matches}) == 1
+            ):
+                supplied, change = matches[0]["ref"], matches[0]["result"]["value"]
+        change_record = None
+        if not cohort["spec"]["known"]:
+            change = None
+        if change is not None:
+            projection = {
+                "account_revision_id": account.revision_id,
+                "definition_revision_id": spec.definition.revision_id,
+                "cohort_revision_id": spec.cohort.revision_id,
+                "start_measurement_revision_id": first["revision_id"] if first else None,
+                "end_measurement_revision_id": last["revision_id"] if last else None,
+                "supplied_measurement_revision_id": supplied["revision_id"] if supplied else None,
+                "value": change,
+            }
+            refs = [EntityRef.model_validate(r) for r in (first, last, supplied) if r]
+            inputs = {
+                "spec": spec.model_dump(mode="json"),
+                "inputs": [r.model_dump() for r in refs],
+                "account": account.model_dump(),
+            }
+            provenance = stable_id("account-change-provenance", hash_config(inputs))
+            behavioral.put(
+                connection,
+                "provenance_records",
+                id=provenance,
+                source_record_id=repository.entity(account)["source_id"],
+                method="signed-account-change-1",
+                tool_name="socialdna",
+                tool_version=__version__,
+                config_json=canonical_json(inputs),
+                created_at=utc_now(),
+            )
+            change_ref = behavioral.save(
+                connection,
+                "signed_metric_change",
+                hash_config(inputs),
+                {
+                    "spec": spec.model_dump(mode="json"),
+                    "value": change,
+                    "projection": projection,
+                    "claim_scope": "account-period change, not credit assigned to any post",
+                },
+                provenance,
+                entities=[account, spec.definition, spec.cohort, *refs],
+                evidence=[behavioral.evidence_ref(connection, r) for r in refs],
+                **projection,
+            )
+            change_citation = behavioral.cite(connection, change_ref)
+            change_record = {
+                "ref": change_ref.model_dump(),
+                "evidence": change_citation.model_dump(),
+                "value": change,
+            }
+            entities.append(change_ref)
+            evidence.append(change_citation)
+        attribution_rows = []
+        attribution_definition = None
+        if spec.attribution_definition:
+            attribution_definition = behavioral.read(
+                connection, spec.attribution_definition, knowledge
+            )
+            if (
+                spec.attribution_definition.kind != "behavioral_metric_definition"
+                or attribution_definition["spec"]["meaning"] != "conversion"
+            ):
+                raise ConfigurationError(
+                    "Attribution selection needs an actual conversion definition"
+                )
+            entities.append(spec.attribution_definition)
+            for ref in behavioral.latest(connection, "attribution_observation", knowledge):
+                raw = json.loads(repository.entity(ref)["payload_json"])["spec"]
+                # Freeze only supplied account-cohort observations overlapping the requested period.
+                if (
+                    raw["definition"] == spec.attribution_definition.model_dump()
+                    and raw["cohort"] == spec.cohort.model_dump()
+                    and raw["clock"]["window_start"] < spec.end
+                    and raw["clock"]["window_end"] > spec.start
+                ):
+                    row = behavioral.read(connection, ref, knowledge)
+                    attribution_rows.append(row)
+                    entities.append(ref)
+                    evidence.append(behavioral.evidence_ref(connection, ref))
+        attribution = summarize_attribution(attribution_rows)
+        if not cohort["spec"]["known"]:
+            attribution["source_reported_total"] = None
+            attribution["limitations"].append("unknown_cohort")
+        if (
+            attribution_definition
+            and attribution_definition["spec"]["aggregation"] != "sum_disjoint"
+        ):
+            attribution["source_reported_total"] = None
+            attribution["limitations"].append(
+                "Source definition does not authorize additive aggregation"
+            )
+        for row in attribution_rows:
+            if (
+                row["spec"]["clock"]["window_start"] < spec.start
+                or row["spec"]["clock"]["window_end"] > spec.end
+            ):
+                attribution["source_reported_total"] = None
+                attribution["limitations"].append(
+                    "Partially overlapping observations are not prorated into the requested period"
+                )
+        contexts = []
+        if spec.mode == "endpoint_difference":
+            for post_id, history in captured_entities(connection, "post", knowledge).items():
+                post = history[-1]["payload"]
+                if (
+                    post["account_id"] == account_id
+                    and spec.start <= post["published_at"] < spec.end
+                ):
+                    # Engine knowledge is not a late export's world clock.
+                    context = account_size_as_of(
+                        observations, post["published_at"], min(knowledge, post["published_at"])
+                    )
+                    contexts.append(
+                        {
+                            "post_id": post_id,
+                            "account_size_known_at_publication": context,
+                            "growth_attributed_to_post": None,
+                        }
+                    )
+        limitations = [
+            "Account growth is account-scoped and is never assigned to the nearest post.",
+            "Endpoint differences are derived measurements, not conversions or causal effects.",
+            "Delayed exports do not establish historical prediction availability.",
+        ]
+        if change is None:
+            limitations.append(
+                "No compatible exact endpoints/supplied period change; "
+                "missing growth stays unavailable."
+            )
+        return persist_analysis(
+            connection,
+            account,
+            {
+                "analysis_kind": "account_outcomes",
+                "status": "success" if change is not None else "partial",
+                "knowledge_cutoff": knowledge,
+                "spec": spec.model_dump(mode="json"),
+                "definition": definition_data,
+                "cohort": cohort,
+                "account_size_start": size_start,
+                "account_size_end": size_end,
+                "net_change": change_record,
+                "attribution": attribution,
+                "post_context": contexts,
+                "limitations": limitations,
+            },
+            entities,
+            evidence,
+            {"account_id": account_id, "spec": spec.model_dump(mode="json")},
+        )
 
 
 def load_performance_report(

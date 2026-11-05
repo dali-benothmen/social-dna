@@ -120,6 +120,12 @@ class AudienceLocator(BaseModel):
     collection: EntityRef
 
 
+class BehavioralLocator(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    kind: Literal["behavioral_record"] = "behavioral_record"
+    subject: EntityRef
+
+
 class CreativeEventLocator(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
     kind: Literal["creative_event", "creative_coverage"] = "creative_event"
@@ -134,7 +140,8 @@ EvidenceLocator = Annotated[
     | StatisticalLocator
     | PostTextLocator
     | CreativeEventLocator
-    | AudienceLocator,
+    | AudienceLocator
+    | BehavioralLocator,
     Field(discriminator="kind"),
 ]
 

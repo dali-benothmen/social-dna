@@ -26,6 +26,7 @@ def timeline(
     run_id: str | None = None,
     include_creative: bool = False,
     include_audience: bool = False,
+    include_behavioral: bool = False,
 ) -> dict[str, Any]:
     with application.database.transaction() as connection:
         assets, runs = metadata.tables["media_assets"], metadata.tables["analysis_runs"]
@@ -186,4 +187,8 @@ def timeline(
         from socialdna.application.audience_service import media_links
 
         result["audience"] = media_links(application, media_id)
+    if include_behavioral:
+        from socialdna.application.behavioral_service import media_overlay
+
+        result["behavioral"] = media_overlay(application, media_id)
     return result

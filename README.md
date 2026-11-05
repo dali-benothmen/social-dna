@@ -1,7 +1,8 @@
 # SocialDNA
 
 SocialDNA is a local-first social-media research engine. The implemented release is
-`0.0.8`: source-qualified audience collections, reaction review and content links,
+`0.0.9`: source-defined retention series, qualified attribution and signed account
+outcomes; source-qualified audience collections, reaction review and content links,
 revisioned creative events, pinned multimodal recipes, versioned
 media/comment/metric/statistical citations, draft registration, withdrawal-aware
 reports, verified backup/restore and explicit time-aware analytics. The foundation and
@@ -64,6 +65,12 @@ Working capabilities:
 - Previewed, confirmed active-library audience erasure with terminal tombstones,
   interrupted-cleanup recovery and backup-restore reconciliation. External copies
   and backup bytes require separate cleanup. See [audience analysis](docs/audience-analysis.md).
+
+- Explicit v2 behavioral definitions/cohorts and original-grid retention series,
+  compatible rate components, qualified conversion attribution, signed account
+  changes, historical account-size gates and frozen source-qualified reports.
+  No interpolated retention, bins-as-viewers precision or causal attribution is
+  claimed. See [behavioral analytics](docs/behavioral-analysis.md).
 
 Embeddings, persistent graph queries, psychological pattern
 discovery, and the Agent Skill remain unavailable. Model interpretations are labeled

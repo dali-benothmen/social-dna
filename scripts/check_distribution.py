@@ -13,7 +13,7 @@ import subprocess
 import sys
 import tempfile
 import tomllib
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 
@@ -159,6 +159,158 @@ def audience_smoke(base: list[str], isolated: Path, post_ids: list[str]) -> None
         or cli("evidence", "resolve", result["evidence"]["id"])["eligible"]
     ):
         raise RuntimeError("Installed erasure did not remove reports and withhold citations")
+    cli("storage", "verify")
+
+
+def behavioral_smoke(base: list[str], isolated: Path, account_id: str, post_ids: list[str]) -> None:
+    def cli(*args: str) -> dict:
+        return json.loads(run([*base, *args], cwd=isolated))["data"]
+
+    account = cli("behavioral", "subject", account_id, "--kind", "account")["ref"]
+    posts = [cli("behavioral", "subject", p, "--kind", "post") for p in post_ids]
+    path = isolated / "behavioral.json"
+    source = {
+        "dataset_id": "installed-owned-behavior",
+        "source_uri": "urn:owned:behavioral-fixture",
+        "permission_basis": "creator_owned_export",
+        "analytics_permitted": True,
+    }
+
+    def import_records(records: list[dict]) -> dict:
+        path.write_text(json.dumps({"schema_version": "2.0", "source": source, "records": records}))
+        return cli("import", "behavioral", str(path))
+
+    base_definition = {
+        "record_type": "behavioral_definition",
+        "platform": "demo",
+        "subject_type": "account",
+        "meaning": "followers",
+        "semantics": "count",
+        "unit": "accounts",
+        "domain": "nonnegative",
+        "measurement": "cumulative",
+        "numerator_definition": "account followers",
+        "population_basis": "accounts",
+        "replay_policy": "not_applicable",
+        "source_definition_uri": "urn:owned:fixture-definition",
+        "description": "Controlled installed-package source definition, not an API claim",
+    }
+    definitions = import_records(
+        [
+            {**base_definition, "key": "demo.followers.owned.v1"},
+            {
+                **base_definition,
+                "key": "demo.retention.owned.v1",
+                "subject_type": "post",
+                "meaning": "retention",
+                "semantics": "ratio",
+                "unit": "watch ratio",
+                "measurement": "series",
+                "numerator_definition": "repeat-inclusive watch events",
+                "denominator_definition": "eligible plays",
+                "population_basis": "plays",
+                "replay_policy": "includes_replays",
+            },
+            {
+                "record_type": "audience_cohort",
+                "key": "installed-owned-cohort",
+                "account": account,
+                "known": True,
+                "eligibility": "All source-defined eligible observations",
+                "aggregation_limitations": "Aggregate fixture only",
+            },
+        ]
+    )["records"]
+    refs = {r["key"]: r["ref"] for r in definitions}
+    cohort = refs["installed-owned-cohort"]
+    records = []
+    for index, post in enumerate(posts):
+        published = datetime.fromisoformat(post["record"]["published_at"].replace("Z", "+00:00"))
+        records.append(
+            {
+                "record_type": "metric_series",
+                "key": f"installed-retention-{index}",
+                "subject": post["ref"],
+                "definition": refs["demo.retention.owned.v1"],
+                "cohort": cohort,
+                "clock": {
+                    "window_start": published.isoformat(),
+                    "window_end": (published + timedelta(days=7)).isoformat(),
+                    "data_cutoff": (published + timedelta(days=7)).isoformat(),
+                    "collected_at": datetime.now(UTC).isoformat(),
+                },
+                "coordinate_kind": "normalized_progress",
+                "resolution": "Two source half-video bins",
+                "convention": "half_open_intervals",
+                "completeness": "complete_for_declared_grid",
+                "expected_bins": 2,
+                "bins": [
+                    {"ordinal": 0, "start": 0, "end": 0.5, "measurement": {"value": 1.2}},
+                    {"ordinal": 1, "start": 0.5, "end": 1, "measurement": {"value": 0.8}},
+                ],
+            }
+        )
+    for key, when, value in [
+        ("first", "2026-01-01T00:00:00Z", 100),
+        ("last", "2026-01-09T00:00:00Z", 95),
+    ]:
+        records.append(
+            {
+                "record_type": "metric_measurement",
+                "key": "installed-followers-" + key,
+                "subject": account,
+                "definition": refs["demo.followers.owned.v1"],
+                "cohort": cohort,
+                "clock": {
+                    "window_start": when,
+                    "window_end": when,
+                    "data_cutoff": when,
+                    "collected_at": datetime.now(UTC).isoformat(),
+                },
+                "measurement": {"value": value},
+            }
+        )
+    imported = import_records(records)["records"]
+    curves = [r for r in imported if r["ref"]["kind"] == "metric_series"]
+    result = cli(
+        "analyze",
+        "retention",
+        "--series",
+        curves[0]["ref"]["id"],
+        "--compare-series",
+        curves[1]["ref"]["id"],
+    )
+    if (
+        result["comparison"]["status"] != "available"
+        or result["series"]["bins"][0]["result"]["value"] != 1.2
+    ):
+        raise RuntimeError("Installed repeat-inclusive retention comparison failed")
+    if not cli("evidence", "resolve", result["series"]["bins"][0]["evidence"]["id"])["eligible"]:
+        raise RuntimeError("Installed exact behavioral bin citation failed")
+    if (
+        cli("report", "generate", "--run", result["run_id"])["content"]["comparison"]
+        != result["comparison"]
+    ):
+        raise RuntimeError("Installed behavioral report did not survive restart")
+    specification = isolated / "account-outcomes.json"
+    specification.write_text(
+        json.dumps(
+            {
+                "schema_version": "1.0",
+                "definition": refs["demo.followers.owned.v1"],
+                "cohort": cohort,
+                "start": "2026-01-01T00:00:00Z",
+                "end": "2026-01-09T00:00:00Z",
+            }
+        )
+    )
+    outcomes = cli("analyze", "outcomes", account_id, "--spec", str(specification))
+    if (
+        outcomes["net_change"]["value"] != -5
+        or outcomes["attribution"]["causal_effect"] is not None
+    ):
+        raise RuntimeError("Installed signed account outcome/attribution semantics failed")
+    cli("report", "generate", "--run", outcomes["run_id"])
     cli("storage", "verify")
 
 
@@ -499,6 +651,11 @@ def main() -> None:
                     f"PASS: {distribution.name} installed creative import, recipe, "
                     "citation and report restart"
                 )
+            behavioral_smoke(base, isolated, account_id, audience_posts)
+            print(
+                f"PASS: {distribution.name} installed retention comparison, "
+                "exact bins and signed account outcomes"
+            )
             audience_smoke(base, isolated, audience_posts)
             print(
                 f"PASS: {distribution.name} installed audience review, citation, report and erasure"

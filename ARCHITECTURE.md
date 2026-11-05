@@ -1,6 +1,6 @@
 # SocialDNA architecture
 
-Revised: 2026-11-05. Implementation: **0.0.8**, database head **0008_audience**. R1's evidence/registration foundation, R2's statistical corrections, R3's creative-event/recipe slice and R4's source-qualified audience workflow are completed and verified; **R5–R10 and U1/U2 remain planned**. The architecture incorporates the approved [intelligence audit](docs/architecture-audit.md). See [R1 operations](docs/research-foundation.md), [versioned analytics](docs/versioned-analytics.md), [creative analysis](docs/creative-analysis.md) and [audience analysis](docs/audience-analysis.md) for the exact available surface and limitations.
+Revised: 2026-11-05. Implementation: **0.0.9**, database head **0009_behavioral**. R1–R5 are completed and verified; results are recorded in [PLAN.md](PLAN.md). **R6–R10 and U1/U2 remain planned**. The architecture incorporates the approved [intelligence audit](docs/architecture-audit.md). See [R1 operations](docs/research-foundation.md), [versioned analytics](docs/versioned-analytics.md), [creative analysis](docs/creative-analysis.md), [audience analysis](docs/audience-analysis.md) and [behavioral analysis](docs/behavioral-analysis.md) for actual commands and limits.
 
 The [implementation plan](PLAN.md) defines delivery and acceptance gates. Detailed contracts live in [research contracts](docs/research-contracts.md), [statistical design](docs/statistical-design.md), [migration strategy](docs/migration-strategy.md), and the [twelve-step cooking use case](docs/research-use-case.md). The [previous architecture](docs/history/ARCHITECTURE.pre-research-revision.md) is a historical record, not a competing specification. Architecture/plan line references inside the unchanged audit refer to those pre-revision documents.
 
@@ -562,5 +562,37 @@ bytes automatically. These boundaries avoid silently expanding deletion scope.
 
 Controlled fixtures test production import/revision/evidence/report/media/restore
 paths, Unicode and uncertainty behavior, not annotation accuracy or psychological
-validity. Behavioral series/retention/outcome semantics remain R5; full mechanism
-investigation remains R7 and later.
+validity. Behavioral series/retention/outcome semantics are delivered below; full
+mechanism investigation remains R7 and later.
+
+## 21. Behavioral implementation decisions
+
+R5 is implemented in `0.0.9` / `0009_behavioral`; the actual operational contract is
+[behavioral analysis](docs/behavioral-analysis.md). No dependency, server, model or
+private-platform connector is added.
+
+| Decision | Implementation and justification |
+|---|---|
+| Explicit rich imports, unchanged scalar contracts | `import behavioral` accepts schema 2.0 JSON through `ingestion/tabular.parse_behavioral`; v1 CSV/JSON definitions, nonnegative snapshots, old methods and report bytes retain their meaning. New structured domain models live in `domain/behavioral.py` rather than making the scalar parser a second statistics engine. |
+| Actual subject discovery before references | `behavioral subject` returns captured account/post/media refs. Definitions and cohorts are imported first, then referenced exactly by observations. No fake intra-document IDs, media or tasks are generated. Actual ownership, platform, source permission and media association are validated before raw-source artifact retention. |
+| Metric meaning precedes numerical operations | Immutable semantic definitions declare units/domains, population basis, numerator/denominator, replay, measurement and aggregation rules. Probabilities are bounded; replay-inclusive ratios may exceed one; completion needs its own threshold. Same-key semantic/cohort changes require new version keys. |
+| Preserve clocks rather than infer freshness | Reporting windows, effective data cutoff, source generation/lag, collection and actual engine availability stay distinct. A late export supports a qualified retrospective description, not a historical predictor. Comparisons require known source data through the window end and aligned post ages. |
+| Derive only compatible rates | Supplied aggregate components retain definitions, cohort, window and basis. Missing/suppressed/forbidden components stay unavailable; zero denominator is not zero rate. Source-reported values can remain descriptive with unknown numeric denominators. No bins-as-viewers uncertainty is produced. |
+| Keep coarse grids coarse | Points, half-open bins and provider indexes preserve source convention/resolution; unmarked overlap is rejected. Normalized-to-media display mappings require exact actual media/duration and do not interpolate values or invent frame-level observations. Comparisons require an exact complete compatible grid/cohort and return explicit incompatibility instead of implicit rebinning. |
+| Use current canonical creative memberships | R3 annotation-set selection supplies optional event context; removed events do not leak from old per-event rows. Behavioral analyses pin set/event refs and citations. New annotations change a new analysis fingerprint, while permitted historical reports remain frozen. Near an event is not caused by that event. |
+| Separate account change from post performance | Account-outcome orchestration remains in `performance_service.py`. Exact compatible follower endpoints or an actual signed period observation produce `signed_metric_changes`; no old nonnegative CHECK is relaxed. Publication-time context uses real knowledge cutoffs. Neither nearest posts nor view counts receive inferred growth credit. |
+| Attribute only what the source supplied | Conversion observations preserve source model/lookback, aggregate dedup keys and actual supplied credits. Conflicts, overlapping conversion periods, unknown scope/models, partial periods and nonadditive multi-touch data withhold totals. Disjoint sums require explicit definition authority. Experimentally identified causal effects remain unimplemented. |
+| Reuse one canonical evidence/run path | Immutable definitions/cohorts/measurements/series/bins/attribution/changes/analyses use universal entity revisions and real FK projections/dependencies. Exact `behavioral_record` citations, research reports, cache fingerprints and actual runs share the existing resolver/withdrawal/restore gates. Bin membership is bulk-validated without reparsing a whole curve for every child. |
+
+The evidence-parent CHECK is extended with the existing atomic, FK-checked rebuild;
+released `0001`–`0008` scripts are unchanged. Empty downgrade is supported; populated
+history requires verified separate-directory restore. The R4 erasure journal still
+dominates restored source/evidence eligibility; no new general deletion command or
+future-index purge behavior is claimed.
+
+The required comparison path is bounded and descriptive within one exact account
+cohort. There is no automatic reviewed cross-account metric mapping, rebinning,
+survival fit, independent-viewer confidence interval or insertion of new behavioral
+outcomes into R2 regression specifications. Source assertions and controlled fixtures
+are not empirical platform/annotation/causal validation. R6 memory and R7+ mechanism
+research remain separate deliveries.

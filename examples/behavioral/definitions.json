@@ -1,0 +1,9 @@
+{
+  "schema_version": "2.0",
+  "source": {"dataset_id": "owned-definitions", "source_uri": "urn:REPLACE:owned-analytics", "permission_basis": "creator_owned_export", "analytics_permitted": true},
+  "records": [
+    {"record_type": "behavioral_definition", "key": "demo.retention.v1", "platform": "demo", "subject_type": "post", "meaning": "retention", "semantics": "ratio", "unit": "repeat-inclusive watch ratio", "domain": "nonnegative", "measurement": "series", "numerator_definition": "REPLACE source watch-event definition", "denominator_definition": "REPLACE eligible-play definition", "population_basis": "plays", "replay_policy": "includes_replays", "aggregation": "none", "source_definition_uri": "urn:REPLACE:metric-definition", "description": "REPLACE with actual source semantics; not an invented survival curve"},
+    {"record_type": "behavioral_definition", "key": "demo.followers.behavior.v1", "platform": "demo", "subject_type": "account", "meaning": "followers", "semantics": "count", "unit": "accounts", "domain": "nonnegative", "measurement": "cumulative", "numerator_definition": "REPLACE source follower-count definition", "population_basis": "accounts", "replay_policy": "not_applicable", "source_definition_uri": "urn:REPLACE:metric-definition", "description": "REPLACE with actual source account snapshot semantics"},
+    {"record_type": "audience_cohort", "key": "owned-account-all.v1", "account": {"kind": "account", "id": "REPLACE_ACCOUNT_ID", "revision_id": "REPLACE_ACCOUNT_REVISION"}, "known": false, "eligibility": "REPLACE actual source cohort filters, or leave unknown", "aggregation_limitations": "REPLACE source sampling, privacy and coverage limits"}
+  ]
+}

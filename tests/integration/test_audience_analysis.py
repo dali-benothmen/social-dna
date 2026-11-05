@@ -570,7 +570,7 @@ def test_erasure_removes_unique_text_and_reconciles_restored_checkpoint(
                 assert BODIES[1].encode() not in file.read_bytes(), file
         sanitized = tmp_path / "after-erasure"
         create_backup(app.paths, sanitized)
-        assert verify_backup(sanitized)["database_revision"] == "0008_audience"
+        assert verify_backup(sanitized)["database_revision"] == "0009_behavioral"
     # The old backup remains an external retention obligation; restore gates
     # normal access until terminal erasure authority has been replayed.
     restored = tmp_path / "restored-audience"

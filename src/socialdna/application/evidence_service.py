@@ -13,6 +13,7 @@ from socialdna.core.ids import stable_id
 from socialdna.core.time import utc_now
 from socialdna.domain.evidence import (
     AudienceLocator,
+    BehavioralLocator,
     CommentLocator,
     CreativeEventLocator,
     EntityRef,
@@ -149,7 +150,14 @@ class EvidenceResolver:
             raise ConfigurationError("Evidence belongs to different media")
         if post_id:
             actual_post: str | None
-            if isinstance(locator, CommentLocator):
+            if isinstance(locator, BehavioralLocator):
+                data = json.loads(entities[0]["payload_json"])
+                if locator.subject.kind == "metric_bin":
+                    parent_row = self.repository.entity(EntityRef.model_validate(data["series"]))
+                    data = json.loads(parent_row["payload_json"])
+                measured = data.get("spec", {}).get("subject")
+                actual_post = measured["id"] if measured and measured["kind"] == "post" else None
+            elif isinstance(locator, CommentLocator):
                 actual_post = locator.post.id
             elif isinstance(locator, PostTextLocator):
                 actual_post = locator.subject.id
@@ -263,6 +271,48 @@ class EvidenceResolver:
                 )
                 if not resolved.eligible:
                     limitations.append("Creative input is ineligible: " + resolved.ref.id)
+        if isinstance(locator, BehavioralLocator):
+            from socialdna.storage import behavioral_repository as behavioral
+
+            document = json.loads(entities[0]["payload_json"])
+            try:
+                behavioral.active(self.connection, locator.subject, as_of)
+                if locator.subject.kind == "metric_bin":
+                    parent = EntityRef.model_validate(document["series"])
+                    if parent.revision_id not in _ancestors:
+                        behavioral.active(self.connection, parent, as_of)
+                    assert_active_inputs(
+                        self.connection,
+                        evidence_ids=(behavioral.evidence_ref(self.connection, parent).id,),
+                    )
+            except ConfigurationError as exc:
+                limitations.append("Behavioral input is ineligible: " + str(exc))
+            dependency_refs = list(document["evidence_inputs"])
+            if locator.subject.kind == "metric_series":
+                table = metadata.tables["metric_bins"]
+                bin_revisions: list[str] = list(
+                    self.connection.scalars(
+                        select(table.c.revision_id).where(
+                            table.c.series_revision_id == locator.subject.revision_id
+                        )
+                    )
+                )
+                for revision in bin_revisions:
+                    child = self.repository.ref(self.repository.get("entity_revisions", revision))
+                    dependency_refs.append(
+                        behavioral.evidence_ref(self.connection, child).model_dump()
+                    )
+            for item in dependency_refs:
+                dependency = self.resolve(
+                    EvidenceRef.model_validate(item),
+                    as_of=as_of,
+                    _ancestors=_ancestors | {row["id"]},
+                    _memo=memo,
+                )
+                if not dependency.eligible:
+                    limitations.append(
+                        "Behavioral input citation is ineligible: " + dependency.ref.id
+                    )
         if isinstance(locator, AudienceLocator):
             from socialdna.storage.audience_repository import entity_active
 
@@ -329,7 +379,8 @@ class EvidenceResolver:
         | StatisticalLocator
         | PostTextLocator
         | CreativeEventLocator
-        | AudienceLocator,
+        | AudienceLocator
+        | BehavioralLocator,
     ) -> None:
         counts = {}
         for name in (
@@ -339,6 +390,7 @@ class EvidenceResolver:
             "statistical_evidence_bindings",
             "direct_media_evidence_bindings",
             "audience_evidence_bindings",
+            "behavioral_evidence_bindings",
             "post_text_evidence_bindings",
             "creative_evidence_bindings",
         ):
@@ -353,7 +405,19 @@ class EvidenceResolver:
         if sum(value is not None for value in counts.values()) != 1:
             raise StorageIntegrityError("Evidence requires exactly one typed locator binding")
         subject = json.loads(self.repository.entity(locator.subject)["payload_json"])
-        if isinstance(locator, AudienceLocator):
+        if isinstance(locator, BehavioralLocator):
+            from socialdna.storage.behavioral_repository import KINDS
+
+            binding = counts["behavioral_evidence_bindings"]
+            if (
+                not binding
+                or locator.subject.kind not in KINDS
+                or binding["subject_revision_id"] != locator.subject.revision_id
+            ):
+                raise StorageIntegrityError(
+                    "Behavioral citation has a wrong-kind or mismatched binding"
+                )
+        elif isinstance(locator, AudienceLocator):
             from socialdna.storage.audience_repository import KINDS
 
             binding = counts["audience_evidence_bindings"]

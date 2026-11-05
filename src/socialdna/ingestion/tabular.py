@@ -10,7 +10,7 @@ import json
 import math
 from datetime import datetime
 from pathlib import Path
-from typing import Annotated, Any, Literal
+from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 from pydantic import (
     BaseModel,
@@ -25,6 +25,9 @@ from pydantic import (
 from socialdna.core.exceptions import ConfigurationError
 from socialdna.core.time import format_utc
 
+if TYPE_CHECKING:
+    from socialdna.domain.behavioral import BehavioralExport
+
 Key = Annotated[str, Field(min_length=1, max_length=256)]
 Platform = Annotated[str, Field(pattern=r"^[a-z][a-z0-9_-]{0,63}$")]
 Timestamp = Annotated[str, Field(min_length=1)]
@@ -38,6 +41,26 @@ def timestamp(value: str) -> str:
     if "T" not in value:
         raise ValueError("Timestamp must be ISO 8601 with T and an explicit UTC offset")
     return format_utc(datetime.fromisoformat(value.replace("Z", "+00:00")))
+
+
+def parse_behavioral(path: Path) -> "BehavioralExport":
+    """Explicit v2 JSON contract; never relax or reinterpret the scalar v1 parser."""
+    from socialdna.domain.behavioral import BehavioralExport
+
+    try:
+        with path.open("rb") as stream:
+            raw = stream.read(4_000_001)
+        if len(raw) > 4_000_000:
+            raise ValueError("Behavioral exports are limited to 4 MB")
+        value = json.loads(
+            raw,
+            parse_constant=_bad_constant,
+            parse_float=_finite_float,
+            object_pairs_hook=_unique_keys,
+        )
+        return BehavioralExport.model_validate(value)
+    except (OSError, ValueError, UnicodeError) as exc:
+        raise ConfigurationError(f"Invalid behavioral export: {exc}") from exc
 
 
 class Record(BaseModel):

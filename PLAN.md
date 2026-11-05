@@ -1,8 +1,8 @@
 # SocialDNA implementation plan
 
-Revised: 2026-11-05. Scope: R1–R4 completed and verified. No R5 or later implementation is claimed.
+Revised: 2026-11-05. Scope: R1–R5 completed and verified. No R6 or later implementation is claimed.
 
-Runtime: package `0.0.8`, SQLite head `0008_audience`. Released migrations `0001_foundation`–`0007_creative` remain unchanged. Legacy Milestones 0, 1, 3 and 4 are completed deliveries; their limitations remain visible. Legacy Milestones 2, 5 and 6 are **superseded, not completed**. **R5–R10 and U1/U2 remain planned and unimplemented**.
+Runtime: package `0.0.9`, SQLite head `0009_behavioral`. Released migrations `0001_foundation`–`0008_audience` remain unchanged. Legacy Milestones 0, 1, 3 and 4 are completed deliveries; their limitations remain visible. Legacy Milestones 2, 5 and 6 are **superseded, not completed**. **R6–R10 and U1/U2 remain planned and unimplemented**.
 
 Authoritative design: [ARCHITECTURE.md](ARCHITECTURE.md), [research contracts](docs/research-contracts.md), [statistical design](docs/statistical-design.md), [migration strategy](docs/migration-strategy.md), and [reference use case](docs/research-use-case.md). The [audit](docs/architecture-audit.md) records the reasons for this revision; the [previous roadmap](docs/history/PLAN.pre-research-revision.md) is historical, not an alternative active plan.
 
@@ -20,7 +20,7 @@ Delivery rules:
 - Keep basic media/account analysis fast: do not register a research question, load a graph, index embeddings or invoke a reasoner merely to describe a video.
 - Missing data is not zero; absent detection under sparse sampling is not demonstrated absence; expressed intention is not behavior; association is not causation.
 - Every research result declares its population, availability, estimand, evidence version, uncertainty, alternatives and limitations. `insufficient_data`, rejected and inconclusive results are successful research outcomes when honestly supported.
-- Implementation changes require unit/integration/contract/end-to-end verification, migration/compatibility checks, documentation updates and a scoped working commit when authorized. Implementation authority currently extends through R4 only. Commit messages describe the engineering change without type prefixes or milestone labels.
+- Implementation changes require unit/integration/contract/end-to-end verification, migration/compatibility checks, documentation updates and a scoped working commit when authorized. Implementation authority currently extends through R5 only. Commit messages describe the engineering change without type prefixes or milestone labels.
 
 ## 2. Preserved implementation and historical deliveries
 
@@ -43,7 +43,7 @@ M4 delivered its scoped implementation, but its retrospective baseline, same-cre
 | R2 | Correct historical baselines, comparison designs, feature timing and actual-pipeline validation | R1 | Completed and verified, `0.0.6` |
 | R3 | Semantic creative events and reproducible multimodal feature recipes | R1; R2 for analytics joins | Completed and verified, `0.0.7` |
 | R4 | Audience collection provenance, reaction annotations and qualified content links | R1, R3 | Completed and verified, `0.0.8` |
-| R5 | Behavioral metric series, denominators, attribution and account outcomes | R1, R2; R3 for event overlays | Planned |
+| R5 | Behavioral metric series, denominators, attribution and account outcomes | R1, R2; R3 for event overlays | Completed and verified, `0.0.9` |
 | R6 | Persistent SQL/FTS/Qdrant/SQLite-backed NetworkX research memory | R1–R4; R5 for behavioral projections | Planned |
 | R7 | First complete, literature-backed psychological research vertical slice | R2–R6 | Planned |
 | R8 | Incremental hypothesis reevaluation and preserved contradiction history | R7 | Planned |
@@ -316,7 +316,57 @@ Import a permitted comment collection with known sampling method → review expr
 
 ## 9. R5 — Behavioral metrics and account outcomes
 
-Status: **planned, unimplemented**.
+Status: **completed and verified in `0.0.9` / `0009_behavioral`**, 2026-11-05.
+
+Delivered: explicit v2 authorized behavioral JSON imports, frozen semantic metric
+definitions and aggregate cohorts, original-grid series/bin evidence, actual source/
+world/collection/import clocks, compatible component rates and descriptive retention
+comparisons, coarse media mappings with pinned R3 event context, exact-endpoint or
+supplied signed account changes, publication-time account-size knowledge gates,
+conservative conversion-attribution/deduplication rules, frozen analyses/reports,
+research citations and thin CLI adapters. V1 scalar schemas/statistics remain unchanged.
+See [operations and templates](docs/behavioral-analysis.md) and
+[decisions](ARCHITECTURE.md#21-behavioral-implementation-decisions).
+
+Implementation map: `domain/behavioral.py`, `ingestion/tabular.parse_behavioral`,
+`analytics/{metrics,retention,attribution}.py`, `storage/behavioral_repository.py`,
+`application/behavioral_service.py`, account orchestration in
+`application/performance_service.py`, `cli/behavioral_commands.py`,
+`reporting/behavioral.py`, `0009_behavioral`, and focused evidence/report/timeline/
+backup extensions. Examples live in `examples/behavioral/`.
+
+Boundaries: no platform API access, model/embedding dependency, automatic metric or
+cohort harmonization, interpolated retention, invented viewer sample sizes, causal
+attribution, or growth assigned to a nearby post. The first retention comparison
+requires an exact within-account cohort and source grid; R2 legacy/corrected
+statistical designs do not silently acquire new behavioral outcomes. Unknown private
+analytics stays unavailable. Persistent research memory remains R6.
+
+Verification record (Linux/Python 3.11):
+
+- Full `pytest -q`: **337 passed, 2 skipped** in 893 seconds. The skips require
+  explicitly prepared optional model runtimes/weights; no download was attempted.
+- Final behavioral/unit/migration/backup suite: **62 passed**; final behavioral
+  unit suite: **23 passed**. Five cases added after full-suite collection cover
+  known/unknown as-of joins, conflicting endpoints, templates, post-only historical
+  selection and oversized-integer rejection. **342 distinct passing cases**, two
+  optional skips, are covered overall; this is software validation, not evidence
+  of empirical platform/causal validity.
+- Real SQLite/FFmpeg and cross-process CLI workflows cover original coarse/relative
+  bins, repeat ratios above one, unavailable/suppressed/zero-denominator components,
+  compatibility refusal, source freshness, negative endpoint/supplied changes,
+  attribution overlaps/deduplication, unknown cohorts, delayed corrections/as-of
+  selection, research/bin citations and frozen report restart. Event-set changes
+  affect new context without rewriting previous reports.
+- Upgrades from all eight released heads preserve IDs/report bytes; injected
+  populated `0009` rebuild failure rolls back and restores FK enforcement.
+  Existing R4 withdrawal/erasure/backup/restore regressions pass. Released
+  `0001`–`0008` files and old scalar constraints remain unchanged.
+- Ruff lint/format, strict mypy (121 source files), local documentation links,
+  `git diff --check`, offline locked resolution and wheel/sdist builds pass.
+  Isolated offline wheel/sdist installs exercise existing analytics/video/creative/
+  audience workflows plus new retention comparisons, exact bin evidence, signed
+  account outcomes, report restart and storage verification.
 
 ### Objective
 

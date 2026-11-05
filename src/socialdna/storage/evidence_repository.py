@@ -12,6 +12,7 @@ from socialdna.core.ids import stable_id
 from socialdna.core.time import MediaInterval, utc_now
 from socialdna.domain.evidence import (
     AudienceLocator,
+    BehavioralLocator,
     CommentLocator,
     CreativeEventLocator,
     EntityRef,
@@ -38,6 +39,14 @@ LEGACY_KINDS = {
     "ocr_box": ("ocr_boxes", "id"),
 }
 AUTHORED_KINDS = {
+    "behavioral_metric_definition",
+    "audience_cohort",
+    "metric_measurement",
+    "metric_series",
+    "metric_bin",
+    "attribution_observation",
+    "signed_metric_change",
+    "behavioral_analysis",
     "reaction_rubric",
     "audience_collection",
     "audience_annotation_set",
@@ -135,6 +144,21 @@ class EvidenceRepository:
             from socialdna.storage.audience_repository import validate_projection
 
             validate_projection(self, ref, json.loads(row["payload_json"]))
+        if row["kind"] in (
+            "behavioral_metric_definition",
+            "audience_cohort",
+            "metric_measurement",
+            "metric_series",
+            "metric_bin",
+            "attribution_observation",
+            "signed_metric_change",
+            "behavioral_analysis",
+        ):
+            from socialdna.storage.behavioral_repository import (
+                validate_projection as validate_behavioral,
+            )
+
+            validate_behavioral(self, ref, json.loads(row["payload_json"]))
         provenance = self.get("provenance_records", row["provenance_id"])
         if provenance["source_record_id"] != row["source_id"]:
             raise StorageIntegrityError("Entity provenance/source mismatch")
@@ -321,7 +345,8 @@ class EvidenceRepository:
         | StatisticalLocator
         | PostTextLocator
         | CreativeEventLocator
-        | AudienceLocator,
+        | AudienceLocator
+        | BehavioralLocator,
         provenance_id: str,
         *,
         task_id: str | None = None,

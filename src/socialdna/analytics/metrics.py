@@ -69,3 +69,43 @@ def outcome(
             return None, "nonpositive_denominator"
         return total / denominator, "available"
     return total, "available"
+
+
+def account_size_as_of(
+    measurements: list[dict[str, Any]],
+    world_cutoff: str,
+    knowledge_cutoff: str,
+    *,
+    exact: bool = False,
+) -> dict[str, Any]:
+    """Actual known follower snapshot, never a later/nearest-post proxy."""
+    candidates = [
+        row
+        for row in measurements
+        if row["available_at"] <= knowledge_cutoff
+        and row["spec"]["clock"]["data_cutoff"] is not None
+        and row["spec"]["clock"]["data_cutoff"] == row["spec"]["clock"]["window_end"]
+        and (
+            row["spec"]["clock"]["data_cutoff"] == world_cutoff
+            if exact
+            else row["spec"]["clock"]["data_cutoff"] <= world_cutoff
+        )
+    ]
+    if not candidates:
+        return {
+            "value": None,
+            "availability": "not_supplied",
+            "reason": "No genuinely known matching account snapshot",
+            "measurement": None,
+        }
+    latest = max(row["spec"]["clock"]["data_cutoff"] for row in candidates)
+    peers = [row for row in candidates if row["spec"]["clock"]["data_cutoff"] == latest]
+    if len({(row["result"]["value"], row["result"]["availability"]) for row in peers}) != 1:
+        return {
+            "value": None,
+            "availability": "unavailable",
+            "reason": "conflicting_endpoint_sources",
+            "measurement": None,
+        }
+    row = peers[0]
+    return {**row["result"], "measurement": row["ref"], "data_cutoff": latest}

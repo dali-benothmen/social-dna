@@ -180,6 +180,17 @@ def generate_report(
         with application.database.transaction() as connection:
             runs = metadata.tables["analysis_runs"]
             target = connection.scalar(select(runs.c.target_type).where(runs.c.id == run_id))
+        if target == "behavioral":
+            from socialdna.application.behavioral_service import load_analysis as load_behavioral
+            from socialdna.reporting.behavioral import render_behavioral
+
+            behavioral = load_behavioral(application, run_id)
+            content = (
+                json.dumps(behavioral, indent=2, ensure_ascii=False, allow_nan=False)
+                if report_format == "json"
+                else render_behavioral(behavioral)
+            )
+            return _save_performance_report(application, behavioral, content, report_format)
         if target == "audience":
             from socialdna.application.audience_service import load_analysis
             from socialdna.reporting.audience import render_audience

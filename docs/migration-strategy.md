@@ -1,6 +1,6 @@
 # Migration, compatibility and retention strategy
 
-Status: R1 backup/restricted-restore, R2 statistical/feature/ledger, R3 creative-event/recipe and R4 audience/retention migrations are implemented in `0.0.8` / `0008_audience`; later migration work remains planned. Date: 2026-11-05. See [R1 operations](research-foundation.md), [versioned analytics](versioned-analytics.md), [creative analysis](creative-analysis.md), [audience analysis](audience-analysis.md), [architecture](../ARCHITECTURE.md), [roadmap](../PLAN.md) and [research contracts](research-contracts.md). Released migrations `0001`–`0007` remain unchanged. Extending evidence locator kinds or media-only feature subjects requires data-preserving SQLite table rebuilds; they are atomic, FK-checked and preceded by a verified backup, not edits to released migrations.
+Status: R1–R5 canonical/evidence, statistics, creative, audience/erasure and behavioral/account-outcome migrations are implemented in `0.0.9` / `0009_behavioral`; later work remains planned. Date: 2026-11-05. See [R1 operations](research-foundation.md), [versioned analytics](versioned-analytics.md), [creative analysis](creative-analysis.md), [audience analysis](audience-analysis.md), [behavioral analysis](behavioral-analysis.md), [architecture](../ARCHITECTURE.md), [roadmap](../PLAN.md) and [research contracts](research-contracts.md). Released migrations `0001`–`0008` remain unchanged. Evidence CHECK changes use atomic FK-checked parent rebuilds and verified backups, not edits to released migrations.
 
 ## 1. Compatibility contract
 
@@ -153,6 +153,14 @@ before backfill and does not create another forbidden pre-upgrade backup. Extern
 backup/export bytes are not silently deleted or represented as globally erased.
 
 ## 8. Rollback and forward recovery
+
+Implemented `0009_behavioral` adds only exercised behavioral definition/cohort,
+observation, series/bin, attribution, signed-change, analysis and dependency/binding
+projections. Negative account changes live outside old nonnegative scalar tables.
+Its only parent rebuild extends the evidence locator CHECK with `behavioral_record`;
+old IDs, child bindings, constraints and permitted reports remain intact. Upgrades
+from all eight released heads and injected populated-rebuild rollback are tested.
+Restore authority recognizes the new head and retains R4 terminal-erasure replay.
 
 Before new-format writes, an additive migration may have a tested safe downgrade only if it drops no valuable data and preserves invariants. Do not assume every later revision can be reversed.
 

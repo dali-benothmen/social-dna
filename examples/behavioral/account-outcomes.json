@@ -1,0 +1,7 @@
+{
+  "schema_version": "1.0",
+  "definition": {"kind": "behavioral_metric_definition", "id": "REPLACE_FOLLOWER_DEFINITION_ID", "revision_id": "REPLACE_DEFINITION_REVISION"},
+  "cohort": {"kind": "audience_cohort", "id": "REPLACE_COHORT_ID", "revision_id": "REPLACE_COHORT_REVISION"},
+  "start": "2026-10-01T00:00:00Z", "end": "2026-10-08T00:00:00Z",
+  "mode": "endpoint_difference"
+}
