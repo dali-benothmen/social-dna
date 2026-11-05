@@ -671,6 +671,11 @@ def compare(
         stable_id("comparison", kind, canonical_json(roles)),
         comparing=True,
         history=history,
+        population_selector={
+            "account_ids": left + right if kind == "accounts" else None,
+            "post_ids": left + right if kind == "posts" else None,
+            "roles": roles,
+        },
     )
 
 
@@ -797,6 +802,7 @@ def _persist_analysis(
     reproduced_from: str | None = None,
     history: list[dict[str, Any]] | None = None,
     expected_results: dict[str, Any] | None = None,
+    population_selector: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if isinstance(spec, CorrectedPerformanceSpec):
         from socialdna.application.statistical_service import persist_designed_analysis
@@ -813,6 +819,7 @@ def _persist_analysis(
             history=history or [],
             reproduced_from=reproduced_from,
             expected_results=expected_results,
+            population_selector=population_selector,
         )
     with application.database.transaction() as connection:
         assert_context_active(
@@ -1004,11 +1011,12 @@ def reproduce(
         or (
             method == "performance-1"
             and configuration["engine_version"]
-            in ("0.0.4", "0.0.5", "0.0.6", "0.0.7", "0.0.8", "0.0.9")
+            in ("0.0.4", "0.0.5", "0.0.6", "0.0.7", "0.0.8", "0.0.9", "0.0.10", "0.0.11")
         )
         or (
             method == "performance-2"
-            and configuration["engine_version"] in ("0.0.6", "0.0.7", "0.0.8", "0.0.9")
+            and configuration["engine_version"]
+            in ("0.0.6", "0.0.7", "0.0.8", "0.0.9", "0.0.10", "0.0.11")
         )
     )
     if not compatible_engine or any(
@@ -1030,6 +1038,7 @@ def reproduce(
         reproduced_from=run_id,
         history=report.get("reference_population"),
         expected_results=report["results"],
+        population_selector=report.get("population_selector"),
     )
 
 

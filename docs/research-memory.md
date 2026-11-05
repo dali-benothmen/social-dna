@@ -212,3 +212,11 @@ automatic discoveries/reevaluation, graph servers or multi-writer indexing.
 Implementation references: [Sentence Transformers local loading/encoding](https://sbert.net/docs/package_reference/sentence_transformer/model.html),
 [Qdrant Python Local Mode](https://github.com/qdrant/qdrant-client),
 and [SQLite FTS5 deletion/rebuild behavior](https://www.sqlite.org/fts5.html).
+
+R8 integration (`0.0.12`): [incremental research](incremental-research.md) adds
+current-retrieval freshness gates for stale/superseded assessment-derived documents.
+The R6 `memory_changes` queue is still drained; a distinct deduplicated
+`research_changes` journal preserves research invalidation history. Index rebuilds
+do not constitute new evidence. Existing SQL/FTS/graph/vector hydration gates
+exclude obsolete current findings even if an old indexing job finishes late.
+Explicit historical retrieval still enforces source eligibility and erasure.

@@ -1,6 +1,7 @@
 # Literature-backed, bounded psychological research
 
-Available in `0.0.11`, database head `0011_research`. R7 adds one complete **offline,
+Introduced in `0.0.11` / `0011_research`, preserved in `0.0.12` / `0012_reevaluation`.
+R7 adds one complete **offline,
 human-specified assessment path**, not autonomous psychological discovery. It reuses
 [creative annotations](creative-analysis.md), [audience evidence](audience-analysis.md),
 [behavioral metrics](behavioral-analysis.md), [version-2 analytics](versioned-analytics.md)
@@ -206,7 +207,7 @@ tests directional association and an opposing prediction; small/noisy/null fixtu
 must withhold unsupported conclusions. These verify software behavior, not real-world
 psychological validity, representative audience inference or model-label accuracy.
 
-R8 will add population/dependency staleness, successive assessment histories and explicit
-reevaluation. R9 owns broader discovery/transfer; R10 owns actual experiment registration,
+[R8 now adds](incremental-research.md) population/dependency staleness, successive
+assessment histories and explicit reevaluation. R9 owns broader discovery/transfer; R10 owns actual experiment registration,
 outcomes and qualified recommendations. C1 and U1/U2 remain separately planned. No
 background researcher, autonomous literature validation or creator-account action is added.

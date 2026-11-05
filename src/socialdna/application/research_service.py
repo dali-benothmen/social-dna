@@ -171,7 +171,10 @@ def show_research(
 
         if ref.kind in KINDS:
             from socialdna.application.investigation_service import show_record
+            from socialdna.storage.reevaluation_repository import head
 
+            if ref.kind == "research_assessment" and not revision_id:
+                ref = head(connection, ref)
             return show_record(application, ref)
         if ref.kind not in ("research_question", "hypothesis", "citation_report"):
             raise ConfigurationError("Not a registered research entity")

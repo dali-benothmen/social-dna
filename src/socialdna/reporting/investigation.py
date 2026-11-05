@@ -54,6 +54,15 @@ def render_assessment(report: dict[str, Any]) -> str:
         ("Production, distribution, publishing and profile context", "context"),
     ):
         lines.extend(["## " + title, "", _safe(report[key]), ""])
+    if "reevaluation" in report:
+        lines.extend(
+            [
+                "## Revision comparison and repeated-look limits",
+                "",
+                _safe(report["reevaluation"]),
+                "",
+            ]
+        )
     lines.extend(["## Exact citations", ""])
     for citation in report["citations"]:
         lines.extend(["- " + _safe(citation["ref"]) + ": " + _safe(citation["locator"]), ""])

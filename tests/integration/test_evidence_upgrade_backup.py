@@ -106,6 +106,7 @@ def released_library(settings: Settings, head: str) -> tuple[str, bytes]:
         "0008_audience",
         "0009_behavioral",
         "0010_memory",
+        "0011_research",
     ],
 )
 def test_released_upgrade_keeps_ids_and_report_bytes_and_makes_verified_backup(
@@ -116,7 +117,7 @@ def test_released_upgrade_keeps_ids_and_report_bytes_and_makes_verified_backup(
     evidence_id, archived = released_library(settings, head)
     with open_application(settings) as application:
         with application.database.transaction() as connection:
-            assert current_revision(connection) == "0011_research"
+            assert current_revision(connection) == "0012_reevaluation"
             assert (
                 connection.scalar(select(metadata.tables["creators"].c.display_name)) == "Keep me"
             )
@@ -312,7 +313,7 @@ def test_creative_upgrade_preserves_populated_features_and_analysis_links(
                 assert not connection.exec_driver_sql("PRAGMA foreign_key_check").all()
         migrate(database)
         with database.transaction() as connection:
-            assert current_revision(connection) == "0011_research"
+            assert current_revision(connection) == "0012_reevaluation"
             assert (
                 connection.exec_driver_sql("SELECT * FROM evidence_revisions ORDER BY id").all()
                 == evidence_before
@@ -385,7 +386,7 @@ def test_downgrade_refuses_to_discard_registered_revisions(
                 config.attributes["connection"] = connection
                 command.downgrade(config, "0004_analytics")
         with application.database.transaction() as connection:
-            assert current_revision(connection) == "0011_research"
+            assert current_revision(connection) == "0012_reevaluation"
             assert (
                 connection.scalar(
                     select(func.count()).select_from(metadata.tables["entity_revisions"])
@@ -433,7 +434,7 @@ def test_restore_replays_later_withdrawals_and_keeps_absent_target_tombstones(
                 )
                 == "Also revoked"
             )
-    assert verify_backup(checkpoint)["database_revision"] == "0011_research"
+    assert verify_backup(checkpoint)["database_revision"] == "0012_reevaluation"
 
 
 def test_restore_without_latest_authority_is_restricted_and_never_overwrites(

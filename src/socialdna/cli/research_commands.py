@@ -5,7 +5,7 @@ from typing import Annotated, Any
 
 import typer
 
-from socialdna.application import investigation_service, literature_service
+from socialdna.application import investigation_service, literature_service, reevaluation_service
 from socialdna.application.bootstrap import open_application
 from socialdna.application.evidence_service import EvidenceResolver, withdraw
 from socialdna.application.research_service import (
@@ -17,6 +17,7 @@ from socialdna.cli.common import ConfigFile, DataDir, Format, execute
 from socialdna.config.settings import Settings
 from socialdna.core.exceptions import ConfigurationError
 from socialdna.domain.investigation import EvaluationSpec, LiteratureCorpus, ResearchProtocol
+from socialdna.research.reevaluation import ReevaluationSpec
 from socialdna.storage.backup import backup_library, restore_library
 from socialdna.storage.evidence_repository import EvidenceRepository
 
@@ -28,6 +29,53 @@ def register(app: typer.Typer, storage: typer.Typer) -> None:
     )
     app.add_typer(evidence, name="evidence")
     app.add_typer(research, name="research")
+
+    @research.command("reevaluate")
+    def reevaluate_command(
+        ctx: typer.Context,
+        identity: str,
+        spec: Annotated[Path | None, typer.Option("--spec")] = None,
+        revision: str | None = None,
+        data_dir: DataDir = None,
+        config: ConfigFile = None,
+        output_format: Format = None,
+    ) -> None:
+        def operation(settings: Settings) -> dict[str, Any]:
+            options = literature_service.read_spec(spec, ReevaluationSpec) if spec else None
+            with open_application(settings) as application:
+                return reevaluation_service.reevaluate(
+                    application, identity, options, revision=revision
+                )
+
+        execute(ctx, "research.reevaluate", operation, data_dir, config, output_format)
+
+    @research.command("history")
+    def history_command(
+        ctx: typer.Context,
+        identity: str,
+        data_dir: DataDir = None,
+        config: ConfigFile = None,
+        output_format: Format = None,
+    ) -> None:
+        def operation(settings: Settings) -> dict[str, Any]:
+            with open_application(settings) as application:
+                return reevaluation_service.history(application, identity)
+
+        execute(ctx, "research.history", operation, data_dir, config, output_format)
+
+    @research.command("status")
+    def status_command(
+        ctx: typer.Context,
+        limit: int = 100,
+        data_dir: DataDir = None,
+        config: ConfigFile = None,
+        output_format: Format = None,
+    ) -> None:
+        def operation(settings: Settings) -> dict[str, Any]:
+            with open_application(settings) as application:
+                return reevaluation_service.status(application, limit=limit)
+
+        execute(ctx, "research.status", operation, data_dir, config, output_format)
 
     @research.command("import-literature")
     def literature_command(

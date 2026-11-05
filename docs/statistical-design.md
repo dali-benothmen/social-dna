@@ -231,3 +231,14 @@ These are additional gates for C1-backed R9/R10 branches, not claims that curren
 - **Experiment units:** post/creator creative assignment, actual native impression-level assignment when supplied, and profile/schedule account-period interventions have different dependence and spillover structures. Record carryover, concurrent changes, time trends, exposure/attrition and cluster counts. Sequential variants and uncontrolled pre/post observations cannot pass randomized-effect gates. A creative lift does not identify a mediator or guarantee business value.
 
 Required fixtures for each delivered branch include compatible and incompatible platform/surface metrics, same-window feedback leakage, incomplete posting windows, DST ambiguity, retroactive metadata/profile edits, unmatched funnel cohorts/denominators, repeated attribution credits and account-period carryover. Recommendations must retain objective, applicable platform/surface/niche/language/audience, evidence date, tested scope, uncertainty and counterevidence. Official guidance, empirical association, craft heuristic and eligible experiment conclusions are labeled separately. Independent real-source validation remains necessary after software tests.
+
+Implemented R8 refinement (`0.0.12`): [incremental research](incremental-research.md)
+reruns this same frozen-design pipeline on saved SQL selectors. It preserves family,
+declared terms, split and holdout identity, records every executed/refused attempt,
+and marks cumulative comparisons exploratory rather than independent confirmation.
+Fixed-family adjustment does not correct repeated looks. Newly added/reused/removed
+post and creator IDs and content duplicates are disclosed separately; estimate and
+interval changes are descriptive, not hypothesis tests of change. Consumed holdouts
+still refuse reuse. The numerical engine is unchanged from `0.0.10`/`0.0.11`;
+exact reproduction remains permitted only with compatible library versions and
+matching frozen results, without rebuilding old inputs from current data.

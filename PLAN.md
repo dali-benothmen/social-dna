@@ -1,8 +1,8 @@
 # SocialDNA implementation plan
 
-Revised: 2026-11-05. Scope: R1–R7 delivered and verified. Prepared-real-model acceptance remains opt-in and was not run without supplied weights; no R8 or later implementation is claimed.
+Revised: 2026-11-05. Scope: R1–R8 completed and verified; R8 verification is recorded in §12. Prepared-real-model acceptance remains opt-in and was not run without supplied weights; no later milestone implementation is claimed.
 
-Runtime: package `0.0.11`, SQLite head `0011_research`. Released migrations `0001_foundation`–`0010_memory` remain unchanged; `0011_research` is now frozen too. Legacy Milestones 0, 1, 3 and 4 are completed deliveries; their limitations remain visible. Legacy Milestones 2, 5 and 6 are **superseded, not completed**. **R8–R10, C1 and U1/U2 remain planned and unimplemented**.
+Runtime: package `0.0.12`, SQLite head `0012_reevaluation`. Released migrations `0001_foundation`–`0011_research` remain unchanged. Legacy Milestones 0, 1, 3 and 4 are completed deliveries; their limitations remain visible. Legacy Milestones 2, 5 and 6 are **superseded, not completed**. **R9–R10, C1 and U1/U2 remain planned and unimplemented**.
 
 Authoritative design: [ARCHITECTURE.md](ARCHITECTURE.md), [research contracts](docs/research-contracts.md), [statistical design](docs/statistical-design.md), [migration strategy](docs/migration-strategy.md), and [reference use case](docs/research-use-case.md). The [audit](docs/architecture-audit.md) records the reasons for this revision; the [previous roadmap](docs/history/PLAN.pre-research-revision.md) is historical, not an alternative active plan.
 
@@ -24,7 +24,7 @@ Delivery rules:
 - Keep basic media/account analysis fast: do not register a research question, load a graph, index embeddings or invoke a reasoner merely to describe a video.
 - Missing data is not zero; absent detection under sparse sampling is not demonstrated absence; expressed intention is not behavior; association is not causation.
 - Every research result declares its population, availability, estimand, evidence version, uncertainty, alternatives and limitations. `insufficient_data`, rejected and inconclusive results are successful research outcomes when honestly supported.
-- Implementation changes require unit/integration/contract/end-to-end verification, migration/compatibility checks, documentation updates and a scoped working commit when authorized. R7 is the currently authorized implementation; R8/C1 and later work require separate authority. Commit messages describe the engineering change without type prefixes or milestone labels.
+- Implementation changes require unit/integration/contract/end-to-end verification, migration/compatibility checks, documentation updates and a scoped working commit when authorized. R8 is the currently authorized implementation; C1 and later work require separate authority. Commit messages describe the engineering change without type prefixes or milestone labels.
 
 ## 2. Preserved implementation and historical deliveries
 
@@ -50,7 +50,7 @@ M4 delivered its scoped implementation, but its retrospective baseline, same-cre
 | R5 | Behavioral metric series, denominators, attribution and account outcomes | R1, R2; R3 for event overlays | Completed and verified, `0.0.9` |
 | R6 | Persistent SQL/FTS/Qdrant/SQLite-backed NetworkX research memory | R1–R4; R5 for behavioral projections | Delivered `0.0.10`; real-model acceptance opt-in |
 | R7 | First complete, literature-backed psychological research vertical slice | R2–R6 | Completed and verified, `0.0.11` |
-| R8 | Incremental hypothesis reevaluation and preserved contradiction history | R7 | Planned |
+| R8 | Incremental hypothesis reevaluation and preserved contradiction history | R7 | Completed and verified, `0.0.12` |
 | C1 | Versioned production and growth-context evidence, four independent deliveries | R1–R6; after R7; U1 for static visual branches | Planned extension track; see §19 |
 | R9 | Bounded nonlinear, cross-creator and cross-niche discovery, including delivered C1 dimensions | R2, R3, R6–R8; respective C1 slice for a new domain branch | Planned |
 | R10 | Registered experiment outcomes and evidence-qualified creative/distribution/publishing/profile recommendations | R7–R9; respective C1 slice for a new domain branch | Planned |
@@ -471,7 +471,7 @@ Delivered operations and source-review limits: [psychological research](docs/psy
 - Typed construct/operationalization plans, applicability reviews and prepared rival protocols. All registered rivals must be retained; contextual explanations need no fictitious psychological construct. R1 draft registration/report contracts remain unchanged through an additive `research prepare` step.
 - `application/{literature_service,investigation_service}.py`, `domain/investigation.py`, `psychology/{constructs,operationalizations,hypotheses}.py`, exact study/research evidence bindings and protocol/assessment/dependency projections. Migration `0011_research` preserves prior migrations and the R6 evidence-insert journal.
 - Deterministic evaluation over original frozen version-2 analyses: actual feature coverage/blinding, reviewed applicability, statistical terms/intervals/family-adjusted p-values and ledger, within/cross-creator overlap or honest insufficiency, unsuccessful uses/alternative-success exemplars and four-domain contextual unknowns. Findings persist question-scoped supporting/contradicting/non-discriminating citations for local predictions, not psychological mediation. No second statistical engine or search-defined population.
-- Immutable assessments and scoped findings, proposed-not-executed discriminating experiment briefs, escaped JSON/Markdown artifacts, process-restart reproduction and R6 canonical producer builders. Withdrawal/retraction and authorized audience erasure propagate; R8 staleness/reevaluation/history is not implemented.
+- Immutable assessments and scoped findings, proposed-not-executed discriminating experiment briefs, escaped JSON/Markdown artifacts, process-restart reproduction and R6 canonical producer builders. Withdrawal/retraction and authorized audience erasure propagate; staleness/reevaluation/history was not part of that R7 delivery (see R8 below).
 - Actual CLI: `research import-literature|prepare|evaluate`, extended `research show`, and `research report ASSESSMENT_ID`. No model/provider or new dependency is required. Associations do not identify a mediator; unmeasured mechanisms stay unsupported/non-discriminating.
 
 ### Verification record
@@ -517,7 +517,19 @@ Authorized video/event evidence → rival mechanism predictions and reviewed lit
 
 ## 12. R8 — Incremental hypothesis reevaluation
 
-Status: **planned, unimplemented**.
+Status: **completed and verified in `0.0.12`, migration `0012_reevaluation`**. See [operations and limits](docs/incremental-research.md).
+
+Delivered functionality:
+
+- Independent append-only, deduplicated SQLite change journal mirrored from existing producers, plus media-association/completion events. R6's indexing queue remains drainable. Immutable selection manifests and bounded operational freshness watches detect changed dependencies and new account-selected posts; unrelated imports do not refit assessments.
+- `research status`, `research reevaluate ASSESSMENT_ID [--spec FILE]`, and `research history QUESTION_OR_HYPOTHESIS_OR_ASSESSMENT_ID`. Explicit reevaluation rebuilds the original SQL selectors using R2 feature timing and analytics; publication cutoffs, recipe pins, families and holdout declarations are not silently changed. Pre-upgrade comparisons without saved groups conservatively retain fixed post membership.
+- Frozen request plans, atomic per-analysis checkpoints, failed-request records and restart recovery. Unchanged inputs do not refit; supplementary/literature changes needing human review return `review_required`. Corrected literature can be explicitly re-reviewed through a replacement prepared protocol.
+- Immutable predecessor/successor links and assessment comparisons: added/reused/removed posts and creator IDs, reused content, changed snapshots/features/references, original test ledgers, scoped support transitions and descriptive effect/interval changes. Null/reversed results can weaken or contradict a previously supported prediction; they never automatically reject a psychological mechanism.
+- Current retrieval excludes stale/superseded assessment-derived memory; exact historical reports remain available subject to eligibility/erasure. `research show/report` without `--revision` follows the assessment's successor; pinned revisions retain their original bytes. No daemon, dependency or new vector collection.
+
+Verification: **440 collected tests covered; 437 passed, 3 optional real-model checks skipped** across isolated full-suite partitions and final affected-module reruns. The 28 new reevaluation-focused unit/contract/integration cases pass, including real annotation edits, positive→weakened/contradicted statistics, metric/literature corrections, exact earlier-citation withdrawal, audience erasure, restart checkpoints, source timing gaps and frozen prior-release reproduction. Ruff, changed-file formatting, strict mypy over 149 modules, offline lock/build and installed-wheel workflow checks pass. Optional embeddings/native model assets were not supplied; no empirical psychological or model-quality validation is claimed.
+
+The approved acceptance contract below is retained. Actual bounded limits and conservative cases are explicit in the operations guide: cumulative looks remain exploratory, consumed holdouts are not reused as fresh confirmation, and C1/R9/R10/U1/U2 are not implemented here.
 
 ### Objective
 
@@ -531,7 +543,7 @@ R1 registration, R7 assessment services, import/task completion hooks, evidence 
 
 Add `research/reevaluation.py`, dependency/invalidation service and comparison/history rendering. Extend canonical dependencies from hypothesis/specification/assessment to data versions, features, population, model, literature and source eligibility. Store reevaluation requests, immutable assessment inputs/results, new-versus-reused evidence membership, supersession/contradiction links, reasons and scoped status transitions. A stale marker is mutable operational state; published assessments are immutable records.
 
-Proposed interfaces: `research reevaluate <id>`, `research history <id>`, and revision-specific retrieval. New data can enqueue eligible work; costly reevaluation is explicit or subject to a user-set budget, never an unbounded background agent.
+Implemented interfaces: `research reevaluate ASSESSMENT_ID`, `research history QUESTION_OR_HYPOTHESIS_OR_ASSESSMENT_ID`, `research status` and revision-specific retrieval. New data queues stale watches; costly reevaluation is explicit and bounded, never an unbounded background agent.
 
 Once C1 writers exist, register their production/context/metadata/profile/platform-document dependencies and population selectors through this same mechanism. New guidance requests applicability review; it is not proof of an algorithm change. Do not replace historical context with today's snapshot or make C1 a prerequisite for initial cooking reevaluation.
 
@@ -714,7 +726,7 @@ Official platform adapters are optional, permission-aware additions after export
 
 Data-access, self-selected comments, small creator/niche counts, paid distribution, unavailable historical covariates, measurement error and hidden confounding can make a question unanswerable. More embeddings, larger reasoners or more posts from the same few creators do not remove these limits. A psychological mechanism remains a hypothesis unless a justified measurement/experimental identification supports it; randomized creative effects alone do not establish mediation.
 
-The next research implementation milestone is **R8**. No R8/C1 or later R/C/U implementation was started as part of R7; each remains separately authorized work.
+The next numbered research milestone is **R9**; C1 and U1/U2 remain separately authorized extension/usability tracks. R8 does not start any of them.
 
 ## 19. C1 — Versioned production and growth-context evidence
 

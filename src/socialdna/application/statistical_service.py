@@ -5,6 +5,7 @@ snapshots and universal citations; legacy performance-1 execution is unchanged.
 """
 
 import importlib.metadata
+from collections.abc import Callable
 from typing import Any
 
 from sqlalchemy import Connection, or_, select
@@ -172,6 +173,8 @@ def persist_designed_analysis(
     history: list[dict[str, Any]],
     reproduced_from: str | None,
     expected_results: dict[str, Any] | None = None,
+    population_selector: dict[str, Any] | None = None,
+    on_saved: Callable[[Connection, dict[str, Any]], None] | None = None,
 ) -> dict[str, Any]:
     with application.database.transaction() as connection:
         assert_design_inputs(connection, rows + history)
@@ -194,6 +197,8 @@ def persist_designed_analysis(
             attempt_id,
             ledger,
             expected_results,
+            population_selector,
+            on_saved,
         )
     except Exception as exc:
         # Deliberately catch to record a failed attempt, then re-raise unchanged.
@@ -229,6 +234,8 @@ def _save(
     attempt_id: str,
     ledger: dict[str, Any],
     expected_results: dict[str, Any] | None,
+    population_selector: dict[str, Any] | None,
+    on_saved: Callable[[Connection, dict[str, Any]], None] | None,
 ) -> dict[str, Any]:
     run_id, now = new_id(), utc_now()
     analysis_id, cohort_id = stable_id("statistics", run_id), stable_id("cohort", run_id)
@@ -261,6 +268,8 @@ def _save(
         "batch": batch,
         "limitations": results["limitations"],
     }
+    if population_selector is not None:
+        report["population_selector"] = population_selector
     if any(r["creator_identity"] == "account_proxy" for r in rows):
         results["limitations"].append("Account proxies can overcount independent creator clusters.")
     if spec.creative_recipes:
@@ -425,6 +434,8 @@ def _save(
                 .insert()
                 .values(account_run_id=run_id, **entry)
             )
+        if on_saved:
+            on_saved(connection, report)
     return report
 
 

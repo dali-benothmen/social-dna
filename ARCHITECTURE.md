@@ -1,6 +1,6 @@
 # SocialDNA architecture
 
-Revised: 2026-11-05. Implementation: **0.0.11**, database head **0011_research**. R1–R7 are delivered and verified. Results and optional verification limits are recorded in [PLAN.md](PLAN.md). **R8–R10, C1 and U1/U2 remain planned**. The architecture incorporates the approved [intelligence audit](docs/architecture-audit.md) and the additional [production and growth capability audit](docs/intelligence-capability-audit.md). See [R1 operations](docs/research-foundation.md), [versioned analytics](docs/versioned-analytics.md), [creative analysis](docs/creative-analysis.md), [audience analysis](docs/audience-analysis.md), [behavioral analysis](docs/behavioral-analysis.md), [research memory](docs/research-memory.md) and [psychological research](docs/psychological-research.md) for actual commands and limits.
+Revised: 2026-11-05. Implementation: **0.0.12**, database head **0012_reevaluation**. R1–R8 are completed and verified. Results and optional verification limits are recorded in [PLAN.md](PLAN.md). **R9–R10, C1 and U1/U2 remain planned**. The architecture incorporates the approved [intelligence audit](docs/architecture-audit.md) and the additional [production and growth capability audit](docs/intelligence-capability-audit.md). See [R1 operations](docs/research-foundation.md), [versioned analytics](docs/versioned-analytics.md), [creative analysis](docs/creative-analysis.md), [audience analysis](docs/audience-analysis.md), [behavioral analysis](docs/behavioral-analysis.md), [research memory](docs/research-memory.md) and [psychological research](docs/psychological-research.md) for actual commands and limits.
 
 The [implementation plan](PLAN.md) defines delivery and acceptance gates. Detailed contracts live in [research contracts](docs/research-contracts.md), [statistical design](docs/statistical-design.md), [migration strategy](docs/migration-strategy.md), and the [twelve-step cooking use case](docs/research-use-case.md). The [previous architecture](docs/history/ARCHITECTURE.pre-research-revision.md) is a historical record, not a competing specification. Architecture/plan line references inside the unchanged audit refer to those pre-revision documents.
 
@@ -30,7 +30,7 @@ Scientific boundaries are architectural invariants: missing data is not zero; ex
 
 The current repository delivers deterministic local video processing, supplied subtitles, optional prepared local-model enrichment, strict account/post/comment/tag/metric imports, account media batches, descriptive/model-based comparisons and immutable analysis/report artifacts. R1 additionally supplies universal revisioned citations and draft registration. R3–R5 add qualified creative/audience/behavioral producers. R6 provides persistent citation-backed SQL/FTS, optional immutable-space Qdrant retrieval and qualified SQLite-backed NetworkX views. Actual pretrained-model/corpus relevance is not inferred from controlled storage tests.
 
-The unversioned legacy path retains retrospective baselines, same-creator matching and auxiliary Ridge checks for exact reproduction. The explicit version 2 path corrects time-aware references, matching, lineage and selected OLS/Poisson validation; it withholds unidentifiable niche/between-creator effects and unseen-creator predictions. R4 supplies qualified reaction analysis, R5 source-defined behavioral series/account outcomes and R6 persistent retrieval. R7 adds a bounded reviewed-literature/rival-protocol assessment path over actual frozen analyses, not identified psychological mediators. R8 reevaluation remains future work. Existing descriptive reasoners retain their no-psychology/performance boundary.
+The unversioned legacy path retains retrospective baselines, same-creator matching and auxiliary Ridge checks for exact reproduction. The explicit version 2 path corrects time-aware references, matching, lineage and selected OLS/Poisson validation; it withholds unidentifiable niche/between-creator effects and unseen-creator predictions. R4 supplies qualified reaction analysis, R5 source-defined behavioral series/account outcomes and R6 persistent retrieval. R7 adds a bounded reviewed-literature/rival-protocol assessment path over actual frozen analyses, not identified psychological mediators. R8 adds explicit incremental reevaluation and immutable contradiction history. Existing descriptive reasoners retain their no-psychology/performance boundary.
 
 ### 2.2 Components to preserve, adapt and add
 
@@ -690,3 +690,50 @@ adequate independent real datasets and psychological identification remain empir
 obligations. Generated media labels and positive/negative/null statistical fixtures
 test the software pipeline, not those scientific claims. Optional model/corpus-quality
 acceptance is not inferred from storage, schema or statistical tests.
+
+## 25. Incremental reevaluation delivery decisions (`0.0.12`)
+
+Actual interfaces, conservative cases and budgets are documented in
+[incremental research](docs/incremental-research.md). Prior delivery records above
+remain historical descriptions of their own scope.
+
+- Reuse R2's population/feature/model pipeline and R7's evaluator. Reevaluation
+  rebuilds saved SQL selectors, not nearest-neighbor samples or caller-picked new
+  reports. New comparisons save explicit groups; older comparisons retain their
+  frozen post membership because original account selection cannot be recovered.
+  The numerical engine has not changed: `0.0.10`/`0.0.11` frozen runs can reproduce
+  with matching libraries and exact result checks, retaining original input bytes.
+- `research_changes` is a small append-only deduplicated SQLite journal mirrored
+  from existing producer events. Inspection established that R6 drains its indexing
+  queue, so sharing a cursor on that queue would lose invalidation events. No new
+  server or scheduler is needed. Migration backfills canonical event order and adds
+  missing media-association/completion events without editing released migrations.
+- `assessment_watches` freezes selector manifests and tracks bounded operational
+  freshness separately. Scans start at frozen analysis knowledge cutoffs, not
+  assessment publication time, to catch arrivals during delayed evaluation/restart.
+  Existing frozen revisions are not new evidence; index rebuilds do not retrigger them.
+  Selector identity is retained even for empty populations; same-creator historical
+  reference accounts are tracked as well as target accounts/posts.
+- Immutable request plans and hashes pin resumed inputs. An optional transactional
+  `on_saved` callback in the existing statistical persistence path checkpoints a
+  completed slot atomically with its analysis. This avoids a second analytics
+  engine, ambiguous crash recovery or silently duplicating a completed fit.
+- `assessment_transitions` has real prior/next/request FKs, immutable history and
+  one successor per predecessor. Assessments/findings remain canonical immutable
+  documents with their existing R7 identities. Lineage links join successive
+  assessment identities rather than retroactively changing R7 identity rules.
+- Comparisons retain changed data/feature/reference identifiers, descriptive
+  effects/intervals, added/reused/removed units and original families/holdouts.
+  Cumulative looks are exploratory, never independent confirmation. No inferred
+  sequential error control, global mechanism rejection or causal effect is added.
+  Statistical citations used for earlier displayed results remain explicit
+  comparison dependencies; exact-citation withdrawal cannot leave those numbers
+  usable in a successor report. Corrected literature still requires new review.
+- Freshness and permission are separate: current hydration gates exclude stale or
+  superseded assessment-derived SQL/FTS/vector/graph results; pinned history remains
+  subject to withdrawal/retraction/erasure. Archived report bytes are not rewritten
+  merely to show current operational state. Human review is required to repin
+  corrected literature or semantic evidence; imports never fit models automatically.
+
+R9/R10, C1 and U1/U2 remain unimplemented; no live adapter, model dependency,
+additional vector collection or infrastructure is introduced by this delivery.

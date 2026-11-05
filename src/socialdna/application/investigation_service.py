@@ -16,6 +16,9 @@ from socialdna.domain.evidence import EntityRef, EvidenceRef
 from socialdna.domain.investigation import EvaluationSpec, ResearchProtocol
 from socialdna.domain.research import CorrectedPerformanceSpec
 from socialdna.psychology import constructs, hypotheses, operationalizations
+from socialdna.research.reevaluation import ReevaluationContext
+from socialdna.research.reevaluation import compare as compare_assessments
+from socialdna.storage import reevaluation_repository as reevaluations
 from socialdna.storage import research_repository as research
 from socialdna.storage.evidence_repository import EvidenceRepository
 from socialdna.storage.schema import metadata
@@ -149,7 +152,12 @@ def _scope_evidence(
     }
 
 
-def evaluate(application: Application, spec: EvaluationSpec) -> dict[str, Any]:
+def evaluate(
+    application: Application,
+    spec: EvaluationSpec,
+    *,
+    reevaluation: ReevaluationContext | None = None,
+) -> dict[str, Any]:
     reports = [load_performance_report(application, run_id=run) for run in spec.analysis_run_ids]
     for report in reports:
         if report.get("schema_version") != "2.0":
@@ -159,6 +167,9 @@ def evaluate(application: Application, spec: EvaluationSpec) -> dict[str, Any]:
             raise ConfigurationError("Research evaluation exceeds the 10,000-row budget")
     with application.database.transaction() as connection:
         repo = EvidenceRepository(connection)
+        previous = (
+            json.loads(repo.entity(reevaluation.previous)["payload_json"]) if reevaluation else None
+        )
         protocol_row = repo.entity(spec.protocol)
         protocol_citations = research.active(connection, spec.protocol)
         for citation in protocol_citations:
@@ -193,6 +204,22 @@ def evaluate(application: Application, spec: EvaluationSpec) -> dict[str, Any]:
                 raise ConfigurationError(
                     "Research requires the completed original test-family attempt"
                 )
+        historical_refs = []
+        if previous:
+            analyses = metadata.tables["statistical_analyses"]
+            for manifest in previous["population_manifests"]:
+                historical = json.loads(
+                    connection.execute(
+                        select(analyses.c.result_json).where(
+                            analyses.c.run_id == manifest["run_id"]
+                        )
+                    ).scalar_one()
+                )
+                for citation in historical["statistical_evidence"]:
+                    ref = EvidenceRef.model_validate(citation["ref"])
+                    EvidenceResolver(connection).resolve(ref, purpose="new_claim")
+                    refs.append(ref)
+                    historical_refs.append(ref.model_dump())
         supplements = [_scope_evidence(connection, r, rows) for r in spec.evidence]
         judgments: list[dict[str, Any]] = []
         for plan in protocol.hypotheses:
@@ -327,9 +354,38 @@ def evaluate(application: Application, spec: EvaluationSpec) -> dict[str, Any]:
                 "Analysis attempts/holdouts are reused, not new independent confirmation.",
                 "Unavailable owner analytics are not inferred from comments or public counters.",
                 "Context/applicability are human-supplied, not automatically verified.",
-                "R7 freezes one assessment path; incremental reevaluation belongs to R8.",
+                "Assessment inputs are frozen; freshness is tracked separately from this report.",
             ],
         }
+        if reevaluation:
+            assert previous is not None
+            if previous["question"] != payload["question"] or {
+                j["hypothesis"]["id"] for j in previous["judgments"]
+            } != {j["hypothesis"]["id"] for j in judgments}:
+                raise ConfigurationError(
+                    "Reevaluation must retain the exact question and rival identities"
+                )
+            payload["reevaluation"] = compare_assessments(previous, payload, reevaluation)
+            old_refs = {r["revision_id"] for r in previous["evidence_inputs"]}
+            current_refs = {r.revision_id for r in refs}
+            payload["reevaluation"]["evidence_revisions"] = {
+                "reused": sorted(old_refs & current_refs),
+                "new": sorted(current_refs - old_refs),
+                "removed": sorted(old_refs - current_refs),
+                "historical_comparison_inputs": historical_refs,
+                "qualification": "New citation revisions are not independent new observations.",
+            }
+            for judgment, transition in zip(
+                judgments, payload["reevaluation"]["transitions"], strict=True
+            ):
+                judgment["assessment_disposition"] = transition["disposition"]
+            payload["input_hash"] = hash_config(
+                {
+                    "spec": spec.model_dump(mode="json"),
+                    "request_id": reevaluation.request_id,
+                }
+            )
+            payload["limitations"].extend(payload["reevaluation"]["limitations"])
         provenance = research.provenance(connection, "evaluation", payload)
         assessment = research.save(
             connection,
@@ -415,6 +471,11 @@ def evaluate(application: Application, spec: EvaluationSpec) -> dict[str, Any]:
             evidence=(assessment_citation,),
         )
         research.cite(connection, brief)
+        reevaluations.track(connection, assessment, payload, reports)
+        if reevaluation:
+            reevaluations.complete(
+                connection, reevaluation.request_id, reevaluation.previous, assessment
+            )
         return {
             "assessment": assessment.model_dump(),
             "findings": findings,
@@ -440,11 +501,17 @@ def show_record(application: Application, ref: EntityRef) -> dict[str, Any]:
                 "limitations": [str(exc)],
                 "freshness": "ineligible",
             }
+        freshness = {"state": "pinned_inputs", "reasons": [], "pending_changes": False}
+        if ref.kind == "research_assessment":
+            freshness = reevaluations.refresh(connection, ref.revision_id)
+        elif ref.kind in ("research_finding", "experiment_brief"):
+            freshness = reevaluations.refresh(connection, payload["assessment"]["revision_id"])
         return {
             "ref": ref.model_dump(),
             "status": "success",
             "content": payload,
-            "freshness": "pinned_inputs; automatic staleness/reevaluation deferred to R8",
+            "freshness": freshness["state"],
+            "freshness_details": freshness,
         }
 
 
@@ -535,6 +602,8 @@ def assessment_report(
         "ref": ref.model_dump(),
         "status": "success",
         "format": report_format,
+        "freshness": record["freshness"],
+        "freshness_details": record.get("freshness_details"),
         "content": content if report_format == "json" else render_assessment(content),
         "artifact": result[report_format],
         "limitations": payload["limitations"],

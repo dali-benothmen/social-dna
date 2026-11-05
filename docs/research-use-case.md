@@ -1,6 +1,6 @@
 # Reference research flow: result-first cooking videos
 
-Status: **R7's bounded offline fixture represents steps 1–11 in `0.0.11`; step 12 remains planned in R8**. This is a software acceptance scenario, not an empirical psychological result. Date: 2026-11-05. See [actual operations and limits](psychological-research.md); the broader target below is not a claim of scientific validation.
+Status: **R7 represents steps 1–11 in `0.0.11`; R8 adds step 12's cumulative reevaluation in `0.0.12`**. These are software acceptance scenarios, not empirical psychological results. Date: 2026-11-05. See [initial assessments](psychological-research.md) and [reevaluation operations and limits](incremental-research.md); the broader target below is not a claim of scientific validation.
 
 Question: **Why might showing a finished meal during the first seconds of a cooking video be associated with better performance?**
 
@@ -156,7 +156,7 @@ These tests may be infeasible in ordinary account exports. Absence of their addi
 
 **Inputs/access:** new representative P/M/O posts, corrected definitions/annotations, a reviewed contradictory study, or permitted experiment outcomes. Include ordinary/failure posts rather than only additional successes.
 
-**Representation/services:** dependency and population-selection manifests identify affected hypotheses; R8 marks prior projections stale, then `ResearchService.reevaluate` creates a new frozen assessment and finding revision. Persist history, reused/new independent units, prior exploratory decisions, stopping/confirmation policy, and the exact reason support changed.
+**Representation/services:** dependency and population-selection manifests identify affected assessments; `application.reevaluation_service.reevaluate` creates new frozen assessments/findings and immutable predecessor/successor links. Persist history, reused/new post and creator IDs (not proof of independence), prior attempts/holdouts, exploratory repeat-look qualification and the exact reason support changed.
 
 **Output/limit:** a supported finding may become weaker, niche-limited, inconclusive, or rejected in scope. For example, additional comparable failures or an adjusted near-null effect can weaken the earlier association, while a generic performance lift still fails to resolve its mechanism. Do not rewrite history or call overlapping-data reanalysis independent confirmation.
 

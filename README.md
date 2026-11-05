@@ -1,7 +1,9 @@
 # SocialDNA
 
 SocialDNA is a local-first social-media research engine. The implemented release is
-`0.0.11`: an offline literature-backed psychological research slice with reviewed
+`0.0.12`: incremental hypothesis reevaluation with immutable contradiction history,
+bounded change tracking, restart checkpoints and preserved historical reports. See
+[incremental research](docs/incremental-research.md). It extends `0.0.11`'s reviewed
 source excerpts, competing predictions, immutable assessments, scoped findings and
 proposed discriminating experiments. See [psychological research](docs/psychological-research.md).
 It builds on `0.0.10`'s persistent citation-backed SQL/FTS memory, qualified graph
@@ -94,9 +96,9 @@ availability. See [versioned analytics](docs/versioned-analytics.md) and
 The target product supports individual videos and photos, complete accounts,
 captions/hashtags, within- and cross-niche research, original experiments, and durable
 hypothesis revision. Photos/carousels (U1), portable Agent Skills-compatible
-instructions for Codex, Claude Code, and OpenCode (U2), incremental reevaluation,
-broader discovery and registered experiment outcomes (R8–R10), and production/growth
-context extensions (C1) remain planned. The bounded R7 assessment path is implemented.
+instructions for Codex, Claude Code, and OpenCode (U2), broader discovery and
+registered experiment outcomes (R9–R10), and production/growth context extensions
+(C1) remain planned. The bounded R7 assessment and R8 reevaluation paths are implemented.
 The shared Python CLI already works independently of an
 agent; compatibility with those three agent hosts has not been validated.
 

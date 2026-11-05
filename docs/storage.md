@@ -1,10 +1,11 @@
 # Local storage
 
 This page describes the preserved storage foundation through R1 and current R6
-lifecycle boundaries (preserved in `0.0.11`, head `0011_research`). R1 adds universal citation/
+lifecycle boundaries (preserved in `0.0.12`, head `0012_reevaluation`). R1 adds universal citation/
 registration storage; R6 delivers semantic/lexical/graph memory. See
 [research memory](research-memory.md) for the complete newer schema/operations,
 [psychological research](psychological-research.md) for R7 literature/assessment storage,
+[incremental research](incremental-research.md) for R8 journals, watches, checkpoints and lineage,
 [R1 operations](research-foundation.md),
 [research contracts](research-contracts.md), [migration strategy](migration-strategy.md),
 and the [roadmap](../PLAN.md) for planned changes.

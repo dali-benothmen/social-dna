@@ -78,6 +78,7 @@ TEXT_KEYS = {
     "falsifier",
     "discriminating_measurement",
     "mechanism_status",
+    "assessment_disposition",
     "causal_identification",
     "production_context",
     "distribution_context",
@@ -131,6 +132,11 @@ def text_fields(value: dict[str, Any]) -> str:
 
 
 def current_revision(connection: Connection, ref: EntityRef, as_of: str | None = None) -> bool:
+    if ref.kind in ("research_assessment", "research_finding", "experiment_brief"):
+        from socialdna.storage.reevaluation_repository import current
+
+        if not current(connection, ref, as_of):
+            return False
     table = metadata.tables["entity_revisions"]
     statement = select(table.c.id).where(table.c.kind == ref.kind, table.c.entity_id == ref.id)
     if as_of:
@@ -327,6 +333,17 @@ def build(connection: Connection, kind: str, identity: str) -> dict[str, Any] | 
         text = locator["quote"]  # Index only the permitted exact cited span.
     else:
         text = text_fields(payload)
+        if owner.kind == "research_assessment" and "reevaluation" in payload:
+            text += "\nCumulative exploratory reevaluation; not independent confirmation."
+            for transition in payload["reevaluation"]["transitions"]:
+                text += (
+                    "\nScoped disposition: "
+                    + transition["disposition"]
+                    + "; current local prediction: "
+                    + transition["current_status"]
+                    + "; comparison: "
+                    + transition["comparison"]
+                )
         if locator.get("excerpt"):
             text += "\n" + locator["excerpt"]
         if owner.kind == "creative_event":
