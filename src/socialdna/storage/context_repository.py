@@ -14,7 +14,16 @@ from socialdna.domain.evidence import ContextLocator, EntityRef, EvidenceRef
 from socialdna.storage.evidence_repository import EvidenceRepository
 from socialdna.storage.schema import metadata
 
-KINDS = {"publication_context", "publishing_window", "trend_context", "context_report"}
+KINDS = {
+    "publication_context",
+    "publishing_window",
+    "trend_context",
+    "context_report",
+    "platform_document",
+    "platform_statement",
+    "platform_capabilities",
+    "distribution_observation",
+}
 
 
 def save(

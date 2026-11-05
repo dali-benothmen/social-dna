@@ -430,37 +430,60 @@ def publication_report(app: Application, spec: PublicationReportSpec) -> dict[st
                 "Static visual interpretation requires U1.",
             ],
         }
-        source, producer = provenance(
+        return freeze_report(
+            app,
             connection,
-            {"spec": spec.model_dump(mode="json"), "result": result},
-            "urn:socialdna:publication-report",
-            "user_authorized_context_analysis",
-        )
-        ref = repository.save(
-            connection,
-            "context_report",
-            hash_config(result),
+            account,
             spec.model_dump(mode="json"),
-            producer,
-            account=account,
-            entities=tuple(inputs),
-            evidence=tuple(citations),
-            result=result,
+            result,
+            tuple(inputs),
+            tuple(citations),
+            uri="urn:socialdna:publication-report",
         )
-        citation = repository.cite(connection, ref)
-        artifact = app.artifacts.put_bytes(
-            connection,
-            canonical_json(result).encode(),
-            kind="context-report",
-            mime_type="application/json",
-        )
-        app.artifacts.add_reference(
-            connection, artifact, owner_type="context", owner_id=ref.revision_id, role="report"
-        )
-        return {
-            "ref": ref.model_dump(),
-            "source_id": source,
-            "evidence": citation.model_dump(),
-            "artifact_id": artifact,
-            "result": result,
-        }
+
+
+def freeze_report(
+    app: Application,
+    connection: Any,
+    account: EntityRef,
+    spec: dict[str, Any],
+    result: dict[str, Any],
+    entities: tuple[EntityRef, ...],
+    evidence: tuple[EvidenceRef, ...],
+    *,
+    uri: str,
+) -> dict[str, Any]:
+    source, producer = provenance(
+        connection,
+        {"spec": spec, "result": result},
+        uri,
+        "user_authorized_context_analysis",
+    )
+    ref = repository.save(
+        connection,
+        "context_report",
+        hash_config(result),
+        spec,
+        producer,
+        account=account,
+        entities=entities,
+        evidence=evidence,
+        result=result,
+    )
+    citation = repository.cite(connection, ref)
+    artifact = app.artifacts.put_bytes(
+        connection,
+        canonical_json(result).encode(),
+        kind="context-report",
+        mime_type="application/json",
+    )
+    app.artifacts.add_reference(
+        connection, artifact, owner_type="context", owner_id=ref.revision_id, role="report"
+    )
+    return {
+        "ref": ref.model_dump(),
+        "source_id": source,
+        "evidence": citation.model_dump(),
+        "artifact_id": artifact,
+        "result": result,
+    }

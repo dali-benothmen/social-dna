@@ -223,6 +223,13 @@ Official [scikit-learn guidance on grouped and time-aware cross-validation](http
 
 These are additional gates for C1-backed R9/R10 branches, not claims that current estimators support all these designs. The [capability audit](intelligence-capability-audit.md) assigns input producers; R7 only lists competing contextual explanations/unknowns in its bounded slice.
 
+Delivered input refinements: C1-A adds reviewed numeric craft recipes that can join
+the original R2 comparison engine. C1-B aligns publication context to frozen R2
+outcomes without fitting a new schedule effect. C1-C preserves separately labeled
+official guidance and source-qualified non-overlapping response/exposure pairs,
+including actual knowledge-availability flags. None recovers hidden ranking weights
+or extends randomized/causal estimands. R9/R10 branches below remain future work.
+
 - **Production techniques:** preserve literal measurements, reviewed semantic labels and subjective rubrics separately. Compare declared shot/edit/subtitle/music combinations at suitable post/creator units, with outcome-blind annotation, coverage/missingness and measurement reliability. Flow is not a camera-movement label; cut proximity is not proof of audiovisual reinforcement. Creator/time/content-duplicate holdouts and failed transfer remain mandatory.
 - **Distribution feedback and timing:** declare platform, surface, policy-source period, format, niche/language/audience, paid/organic context, maturity and estimand. More exposure produces more reactions; same-window shares/retention/engagement can be feedback/outcomes rather than pre-publication predictors. For early-response→later-distribution questions, freeze non-overlapping windows, metric availability/lag and prior exposure. Such association still does not identify a ranking weight or causal effect. Do not condition on a post-treatment mediator/collider as if it were a baseline confounder. Unknown recommendation eligibility or unobserved satisfaction is a limitation, not an inferred penalty.
 - **Search versus recommendations:** use source-specific query/traffic/impression/CTR definitions only where available; restrict comparisons to compatible surfaces and report coverage. A search position is localized/personalized evidence, not a universal rank. Shares, saves and watch measures are not assumed available, comparable or official ranking signals across every platform. Aggregate views alone cannot distinguish Search from Home/For You/Explore exposure.

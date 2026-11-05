@@ -102,6 +102,10 @@ def preview(
                 "publishing_window",
                 "trend_context",
                 "context_report",
+                "platform_document",
+                "platform_statement",
+                "platform_capabilities",
+                "distribution_observation",
             )
             for r in entities
         )

@@ -651,7 +651,7 @@ command. See [operations and verification boundaries](docs/research-memory.md).
 ## 23. Production and growth-context extension decisions
 
 This design follows the [four-area audit](docs/intelligence-capability-audit.md).
-C1-A is implemented in `0.0.13` (details below); B/C/D remain planned. Generic
+C1-A/B/C are implemented in `0.0.13`–`0.0.15` (details below); D remains planned. Generic
 creative annotations, platform metric namespaces and arbitrary profile JSON cannot
 honestly stand in for complete craft, distribution, publishing or conversion intelligence.
 
@@ -794,3 +794,24 @@ actionable strategies remain R9/R10; automatic detector validation is not delive
 See [operations and actual scope](docs/publication-context.md). Bounded asset
 verification/identity is not U1 visual interpretation, and dated trend imports are
 not an autonomous trend detector or evidence of a universal optimal posting time.
+
+## 28. Platform research evidence (`0.0.15`)
+
+- Four exercised context kinds represent official document versions, exact reviewed
+  statements, source capability/mapping manifests and paired distribution observations.
+  They reuse `0013_context` ownership/citation bindings; no DDL or metric reinterpretation.
+  Official publisher origin checks and hashes do not replace human authenticity review.
+- Explicit platform/surface/format/language/market/audience scope and source-native
+  traffic mappings prevent pooling similarly named counters. R5 supplies exact period
+  measures, definitions, cohort and effective/collection clocks. Same-window feedback,
+  suppressed/private metrics and mixed definitions are not usable exposure evidence.
+- Reports preserve official-guidance and local-observation lanes separately. They expose
+  actual early/later values and lag, not a fit of hidden ranking rules. Source availability
+  is separately visible: an early event window imported later is not a historical predictor.
+- Context-report artifact/citation freezing is now a shared helper without changing B's
+  stored payload contract. Current memory rejects superseded context dependencies, while
+  pinned history survives normal version changes. Explicit source corrections/revocation
+  withhold dependent use; confirmed erasure scrubs existing derived copies.
+
+[Operations, trust boundaries and source limits](docs/platform-research.md) distinguish
+these working inputs from R9 discovery and R10 causal experiments/recommendations.

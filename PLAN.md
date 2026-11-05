@@ -730,13 +730,13 @@ The next numbered research milestone is **R9**; C1 and U1/U2 remain separately a
 
 ## 19. C1 — Versioned production and growth-context evidence
 
-Status: **C1-A/B delivered in `0.0.13`/`0.0.14`; C1-C/D pending**. Four bounded deliveries,
+Status: **C1-A/B/C delivered in `0.0.13`–`0.0.15`; C1-D pending**. Four bounded deliveries,
 not one large implementation or a requirement to build live API adapters. Detailed
 boundaries are in the [capability audit](docs/intelligence-capability-audit.md#2-shared-extension-architecture--planned-not-implemented).
 
 Current authorization: implement C1-A through C1-D as four serial deliveries, each
 with working functionality, automated verification and its own professional commit.
-C1-A/B are complete; C1-C/D have not started.
+C1-A/B/C are complete; C1-D has not started.
 This does not authorize R9/R10 or U1/U2.
 
 ### Objective and integration
@@ -790,6 +790,24 @@ Proposed file names below are responsibility boundaries, not scaffolding instruc
   rejected a checksum after the *new, uncommitted* migration was changed during its
   run; all 16 memory tests pass against the final fixed migration. Released migrations
   were never modified. [Actual operations and limits](docs/publication-context.md).
+
+### Delivered platform evidence (`0.0.15`)
+
+- `domain/platform_research.py`, `application/platform_service.py` and
+  `cli/platform_commands.py` implement reviewed official document/statement versions,
+  source capabilities, explicit raw-code/surface/traffic mappings and actual R5
+  early/later distribution observations. Shared context bindings require no new DDL.
+- Independent platform/surface manifests and source-defined scalar comparisons retain
+  event/collection/knowledge times, units, replay/population/cohort context and honest
+  access refusals. Guidance is not a measured effect; no ranking weights, causal fit,
+  executed experiment or guaranteed reach is produced. R9/R10 remain future work.
+- Three real canonical platform fixture workflows cover compatible pairs, failed
+  distribution, overlap leakage, unknown/paid traffic, idempotence, restart, exact
+  official excerpts, qualified memory, document updates/corrections, withdrawal and
+  confirmed erasure. All 477 collected tests covered across regression partitions
+  and final reruns: 474 pass, three optional prepared-model skips. Ruff, strict mypy
+  (160 modules), offline lock/build and installed-wheel/source checks pass.
+  [Operations and limitations](docs/platform-research.md).
 
 ### Acceptance criteria and tests
 

@@ -4,7 +4,8 @@ Delivery update (`0.0.13`): C1-A now implements reviewed professional v2 annotat
 imports and eight craft recipes through existing comparison, evidence and incremental
 research services. See [actual operations and limits](production-evidence.md).
 C1-B (`0.0.14`) adds [publishing-context imports and reports](publication-context.md).
-C1-C/D remain pending. The original audit below records the earlier baseline;
+C1-C (`0.0.15`) adds [platform/source-specific evidence and descriptive reports](platform-research.md).
+C1-D remains pending. The original audit below records the earlier baseline;
 it is not a claim that all four intelligence areas or empirical validity are complete.
 
 Reviewed: 2026-11-05 against package `0.0.10`, SQLite head `0010_memory`, the active roadmap, design documents and implementation. This is a documentation-only revision: R1–R6 remain delivered; R7 remains next. **None of the four requested areas is complete today.** Existing extensibility is not an implemented capability or empirical validation.

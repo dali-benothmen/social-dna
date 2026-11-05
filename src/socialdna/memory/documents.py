@@ -134,6 +134,14 @@ def text_fields(value: dict[str, Any]) -> str:
 
 
 def current_revision(connection: Connection, ref: EntityRef, as_of: str | None = None) -> bool:
+    if ref.kind in ("context_report", "platform_statement"):
+        row = EvidenceRepository(connection).entity(ref)
+        from socialdna.storage.context_repository import KINDS as CONTEXT_KINDS
+
+        for raw in json.loads(row["payload_json"])["entity_inputs"]:
+            child = EntityRef.model_validate(raw)
+            if child.kind in CONTEXT_KINDS and not current_revision(connection, child, as_of):
+                return False
     if ref.kind in ("research_assessment", "research_finding", "experiment_brief"):
         from socialdna.storage.reevaluation_repository import current
 
@@ -337,6 +345,38 @@ def build(connection: Connection, kind: str, identity: str) -> dict[str, Any] | 
         text = locator["quote"]
     else:
         text = text_fields(payload)
+        if owner.kind == "distribution_observation":
+            observed = payload["result"]
+            text = (
+                "Source-qualified local distribution observation; "
+                "not a ranking weight or causal effect.\n"
+                + json.dumps(
+                    {
+                        "scope": observed["scope"],
+                        "mapping": observed["mapping"],
+                        "lag_seconds": observed["lag_seconds"],
+                        "early_known_before_later": observed["early_known_before_later"],
+                        **{
+                            name: {key: observed[name][key] for key in ("value", "role", "unit")}
+                            for name in ("early", "later")
+                        },
+                    },
+                    ensure_ascii=False,
+                )
+            )
+        if owner.kind == "platform_capabilities":
+            manifest = payload["spec"]
+            text = "Reviewed source capability manifest; not algorithm behavior.\n" + json.dumps(
+                {
+                    "scope": manifest["scope"],
+                    "mappings": manifest["mappings"],
+                    "metrics": [
+                        {key: metric[key] for key in ("role", "availability", "reason")}
+                        for metric in manifest["metrics"]
+                    ],
+                },
+                ensure_ascii=False,
+            )
         if owner.kind == "research_assessment" and "reevaluation" in payload:
             text += "\nCumulative exploratory reevaluation; not independent confirmation."
             for transition in payload["reevaluation"]["transitions"]:
@@ -395,6 +435,9 @@ def build(connection: Connection, kind: str, identity: str) -> dict[str, Any] | 
             "experiment_brief",
             "context_report",
             "trend_context",
+            "platform_document",
+            "platform_statement",
+            "platform_capabilities",
         )
         else "content_segments"
     )
@@ -409,5 +452,9 @@ def build(connection: Connection, kind: str, identity: str) -> dict[str, Any] | 
         "payload": payload,
         "claim_level": payload.get("claim_level", "hypothesis")
         if owner.kind in ("hypothesis", "research_assessment", "research_finding")
+        else "official_guidance"
+        if owner.kind == "platform_statement"
+        else "source_document"
+        if owner.kind == "platform_document"
         else "observation",
     }

@@ -42,6 +42,10 @@ LEGACY_KINDS = {
     "ocr_box": ("ocr_boxes", "id"),
 }
 AUTHORED_KINDS = {
+    "platform_document",
+    "platform_statement",
+    "platform_capabilities",
+    "distribution_observation",
     "publication_context",
     "publishing_window",
     "trend_context",
@@ -183,6 +187,10 @@ class EvidenceRepository:
             "publishing_window",
             "trend_context",
             "context_report",
+            "platform_document",
+            "platform_statement",
+            "platform_capabilities",
+            "distribution_observation",
         ):
             from socialdna.storage.context_repository import validate_projection as context_check
 

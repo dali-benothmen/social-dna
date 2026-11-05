@@ -296,6 +296,14 @@ class EvidenceResolver:
             document = json.loads(entities[0]["payload_json"])
             from socialdna.memory.documents import entity_active as memory_entity_active
 
+            if locator.subject.kind == "platform_document":
+                from socialdna.application.platform_service import active_document
+
+                try:
+                    active_document(self.connection, locator.subject)
+                except ConfigurationError as exc:
+                    limitations.append(str(exc))
+
             if locator.artifact_id and is_redacted(
                 self.connection, "artifact", locator.artifact_id
             ):

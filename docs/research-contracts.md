@@ -232,7 +232,10 @@ technique-specific professional definitions and eight pinned recipes. See
 V1 remains frozen. C1-B (`0.0.14`) implements `ContextExport` with publication,
 publishing-window and dated-trend records, exact `ContextLocator` citations and frozen
 `PublicationReportSpec` reports. See [working fields and boundaries](publication-context.md).
-**C/D below remain logical additions, not accepted import fields.** The [four-area audit](intelligence-capability-audit.md#2-shared-extension-architecture--planned-not-implemented)
+C1-C (`0.0.15`) adds `PlatformExport` and `PlatformReportSpec` with distinct official
+document/statement, source-capability and observed-distribution types on the same
+registry. See [source review, time windows and lane boundaries](platform-research.md).
+**D below remains a logical addition, not accepted import fields.** The [four-area audit](intelligence-capability-audit.md#2-shared-extension-architecture--planned-not-implemented)
 defines their coverage; [PLAN.md §19](../PLAN.md#19-c1--versioned-production-and-growth-context-evidence)
 assigns writers, dependencies and tests. Reuse shared revision/evidence identity
 rather than creating a new research engine.
