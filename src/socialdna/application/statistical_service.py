@@ -120,6 +120,14 @@ def _begin_attempt(
                     members.c.member_key.in_([member["member_key"] for member in member_values])
                 )
             )
+            or connection.scalar(
+                select(metadata.tables["discovery_members"].c.member_key).where(
+                    metadata.tables["discovery_members"].c.member_key.in_(
+                        [member["member_key"] for member in member_values]
+                    ),
+                    metadata.tables["discovery_members"].c.role != "purged",
+                )
+            )
         ):
             refusal = (
                 "Consumed holdout cannot support another independent validation; "

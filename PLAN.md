@@ -1,12 +1,12 @@
 # SocialDNA implementation plan
 
-Revised: 2026-11-05. Scope: R1–R8 completed and verified; R8 verification is recorded in §12. Prepared-real-model acceptance remains opt-in and was not run without supplied weights; no later milestone implementation is claimed.
+Revised: 2026-11-06. Scope: R1–R9 and all four C1 deliveries are completed and verified within their documented bounds (§13 records R9 verification). Prepared-real-model acceptance remains opt-in; no supplied weights were downloaded or inferred.
 
-Runtime: package `0.0.12`, SQLite head `0012_reevaluation`. Released migrations `0001_foundation`–`0011_research` remain unchanged. Legacy Milestones 0, 1, 3 and 4 are completed deliveries; their limitations remain visible. Legacy Milestones 2, 5 and 6 are **superseded, not completed**. **R9–R10, C1 and U1/U2 remain planned and unimplemented**.
+Runtime: package `0.0.17`, SQLite head `0015_discovery`. Released migrations `0001_foundation`–`0014_profile` remain unchanged. Legacy Milestones 0, 1, 3 and 4 are completed deliveries; their limitations remain visible. Legacy Milestones 2, 5 and 6 are **superseded, not completed**. **R10 and U1/U2 remain planned and unimplemented**.
 
 Authoritative design: [ARCHITECTURE.md](ARCHITECTURE.md), [research contracts](docs/research-contracts.md), [statistical design](docs/statistical-design.md), [migration strategy](docs/migration-strategy.md), and [reference use case](docs/research-use-case.md). The [audit](docs/architecture-audit.md) records the reasons for this revision; the [previous roadmap](docs/history/PLAN.pre-research-revision.md) is historical, not an alternative active plan.
 
-The [four-area capability audit](docs/intelligence-capability-audit.md) adds explicit production, platform/surface distribution, publishing/discoverability and profile/conversion coverage. These are partially supported foundations today, not delivered intelligence systems. C1 supplies bounded future evidence extensions; its implementation was not added to R7.
+The [four-area capability audit](docs/intelligence-capability-audit.md) adds production, platform/surface distribution, publishing/discoverability and profile/conversion coverage. C1 supplies their delivered canonical evidence; R9 consumes bounded qualified features/outcomes. Full empirical validity, automatic image interpretation and R10 recommendations are not implied.
 
 ## 1. Outcome, limits and delivery rules
 
@@ -24,7 +24,7 @@ Delivery rules:
 - Keep basic media/account analysis fast: do not register a research question, load a graph, index embeddings or invoke a reasoner merely to describe a video.
 - Missing data is not zero; absent detection under sparse sampling is not demonstrated absence; expressed intention is not behavior; association is not causation.
 - Every research result declares its population, availability, estimand, evidence version, uncertainty, alternatives and limitations. `insufficient_data`, rejected and inconclusive results are successful research outcomes when honestly supported.
-- Implementation changes require unit/integration/contract/end-to-end verification, migration/compatibility checks, documentation updates and a scoped working commit when authorized. R8 is the currently authorized implementation; C1 and later work require separate authority. Commit messages describe the engineering change without type prefixes or milestone labels.
+- Implementation changes require unit/integration/contract/end-to-end verification, migration/compatibility checks, documentation updates and a scoped working commit when authorized. R9 is currently authorized; R10/U1/U2 require separate authority. Commit messages describe the engineering change without type prefixes or milestone labels.
 
 ## 2. Preserved implementation and historical deliveries
 
@@ -51,8 +51,8 @@ M4 delivered its scoped implementation, but its retrospective baseline, same-cre
 | R6 | Persistent SQL/FTS/Qdrant/SQLite-backed NetworkX research memory | R1–R4; R5 for behavioral projections | Delivered `0.0.10`; real-model acceptance opt-in |
 | R7 | First complete, literature-backed psychological research vertical slice | R2–R6 | Completed and verified, `0.0.11` |
 | R8 | Incremental hypothesis reevaluation and preserved contradiction history | R7 | Completed and verified, `0.0.12` |
-| C1 | Versioned production and growth-context evidence, four independent deliveries | R1–R6; after R7; U1 for static visual branches | Planned extension track; see §19 |
-| R9 | Bounded nonlinear, cross-creator and cross-niche discovery, including delivered C1 dimensions | R2, R3, R6–R8; respective C1 slice for a new domain branch | Planned |
+| C1 | Versioned production and growth-context evidence, four independent deliveries | R1–R6; after R7; U1 for static visual branches | Completed and verified, `0.0.13`–`0.0.16`; see §19 |
+| R9 | Bounded nonlinear, cross-creator and cross-niche discovery, including delivered C1 dimensions | R2, R3, R6–R8; respective C1 slice for a new domain branch | Completed and verified, `0.0.17` |
 | R10 | Registered experiment outcomes and evidence-qualified creative/distribution/publishing/profile recommendations | R7–R9; respective C1 slice for a new domain branch | Planned |
 | U1 | Individual photo/carousel analysis reusing existing media contracts | R1 | Planned, parallel usability track |
 | U2 | Portable Codex/Claude Code/OpenCode skill and usable reports | U1, R2; capability-gated integration with later R milestones | Planned, parallel usability track |
@@ -565,7 +565,9 @@ Evaluate the cooking hypothesis on the declared initial population → append or
 
 ## 13. R9 — Bounded nonlinear and cross-niche discovery
 
-Status: **planned, unimplemented**.
+Status: **completed and verified in `0.0.17`**. The approved
+acceptance contract below is retained; delivered signatures and deliberately bounded
+limits are specified in [bounded discovery operations](docs/bounded-discovery.md).
 
 ### Objective
 
@@ -600,6 +602,49 @@ For C1-backed branches also test surface incompatibility, early-response/later-d
 ### Demonstrable end-to-end behavior
 
 Register a bounded cooking-pattern search over opening technique × narration × sound timing → discover an exploratory combination → evaluate on untouched creators/time block → test another niche → preserve success, failure or narrower scope with all tested specifications and a qualified assessment history.
+
+### Delivered implementation and verification record
+
+- `research/{candidates,discovery,counterexamples}.py`: frozen candidate grammar,
+  marginal OLS/Ridge main/interaction/quadratic/spline pipeline, three training-only
+  grouped inner folds, creator/time/joint and held-out-niche partitions, exact-content
+  purges, stability and full-population prediction contradictions. No auxiliary model
+  is substituted for validation, and no unseen creator intercept is invented.
+- `application/{discovery_inputs,discovery_service,discovery_confirmation}.py`:
+  canonical R2/C1 adapters, exact frozen registration, durable all-fit ledger,
+  source-aware reads/reproduction and independent fixed-OLS focal replication.
+  CLI: `research discover`, `show-discovery [--reproduce]`, `confirm-discovery`.
+- `0015_discovery`, schema/repository/evidence/memory integration: four small query
+  projections reuse canonical revisions, research locators, test families, attempts
+  and real post/media holdout tables. Source erasure scrubs dependent fit details;
+  structural reservation history remains. Migrations `0001`–`0014` are unchanged.
+- C1-A craft recipes are real joined inputs. C1-B historical publication features
+  enter the actual selected pipeline. C1-C source-qualified response/distribution
+  and C1-D exposed-profile/aggregate-rate adapters use the same model/ledger, with
+  explicit compatibility and missingness refusals. Official guidance, human rubric
+  quality and measured outcomes remain different evidence lanes.
+- Maximum 12 candidates/three alpha values/three inner folds/128 fit attempts.
+  BY covers only the frozen exploratory focal family, not adaptive reruns.
+  Independent replication supports fixed OLS main/product/quadratic contrasts only;
+  tuned/Ridge/spline inferential replication is withheld. Small clusters return
+  descriptive insufficiency, not power or universal transfer claims.
+- Required software verification: `test_discovery_models.py`, `test_discovery.py`,
+  `test_discovery_context.py`, the real craft integration, migration/backup checks,
+  full regression suite, strict typing/lint, offline lock/build and installed-wheel
+  command checks. Verification completed 2026-11-06: **500 collected tests,
+  497 passed and three optional prepared-model skips**, covering the full suite
+  in four partitions plus new/final focused checks (19 passed). Final current-context
+  edits/history/erasure and the supplied-creator identity refusal were rerun after
+  their changes. Ruff, formatting, strict mypy (174 modules), offline lock/build,
+  byte-for-byte wheel/source comparison and real installed-wheel `discover` plus
+  saved-result command reproduction all pass. No provider or model download was used.
+
+Trees/boosting, unrestricted semantic proposal generation, near-duplicate detection,
+online/sequential error guarantees, repeated account-period intervention models,
+R10 recommendations/experiments and independent real-world validity remain outside
+this delivery. R7 mechanism assessments and R8 reevaluation semantics are preserved;
+search results do not silently promote or rewrite those assessments.
+The next numbered research milestone is R10; it is not started by this delivery.
 
 ## 14. R10 — Experiment outcomes and qualified recommendations
 

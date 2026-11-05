@@ -139,6 +139,25 @@ def text_fields(value: dict[str, Any]) -> str:
 
 
 def current_revision(connection: Connection, ref: EntityRef, as_of: str | None = None) -> bool:
+    if ref.kind in ("discovery_search", "creative_pattern"):
+        repository = EvidenceRepository(connection)
+        payload = json.loads(repository.entity(ref)["payload_json"])
+        if ref.kind == "creative_pattern":
+            if not current_revision(connection, EntityRef.model_validate(payload["search"]), as_of):
+                return False
+        else:
+            if "registration" in payload:
+                payload = json.loads(
+                    repository.entity(EntityRef.model_validate(payload["registration"]))[
+                        "payload_json"
+                    ]
+                )
+            from socialdna.storage.context_repository import KINDS as CONTEXT_KINDS
+
+            for raw in payload["snapshot"]["entities"]:
+                child = EntityRef.model_validate(raw)
+                if child.kind in CONTEXT_KINDS and not current_revision(connection, child, as_of):
+                    return False
     if ref.kind in ("context_report", "platform_statement", "profile_review", "funnel_context"):
         row = EvidenceRepository(connection).entity(ref)
         from socialdna.storage.context_repository import KINDS as CONTEXT_KINDS
@@ -328,6 +347,8 @@ def build(connection: Connection, kind: str, identity: str) -> dict[str, Any] | 
             return None
         row = repository.get("entity_revisions", identity)
         if row["kind"] not in (
+            "discovery_search",
+            "creative_pattern",
             "research_question",
             "hypothesis",
             "study_finding",
@@ -470,9 +491,11 @@ def build(connection: Connection, kind: str, identity: str) -> dict[str, Any] | 
         if locator.get("kind") in ("behavioral_record", "metric_snapshot")
         or owner.kind == "funnel_context"
         else "statistical_findings"
-        if owner.kind in ("statistical_analysis", "research_assessment", "research_finding")
+        if owner.kind
+        in ("statistical_analysis", "research_assessment", "research_finding", "discovery_search")
         else "psychological_patterns"
-        if owner.kind in ("hypothesis", "psychological_construct", "operationalization")
+        if owner.kind
+        in ("hypothesis", "psychological_construct", "operationalization", "creative_pattern")
         else "research_knowledge"
         if owner.kind
         in (
@@ -500,7 +523,14 @@ def build(connection: Connection, kind: str, identity: str) -> dict[str, Any] | 
         "locator": locator,
         "payload": payload,
         "claim_level": payload.get("claim_level", "hypothesis")
-        if owner.kind in ("hypothesis", "research_assessment", "research_finding")
+        if owner.kind
+        in (
+            "hypothesis",
+            "research_assessment",
+            "research_finding",
+            "discovery_search",
+            "creative_pattern",
+        )
         else "official_guidance"
         if owner.kind == "platform_statement"
         else "source_document"

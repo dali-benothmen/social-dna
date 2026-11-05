@@ -5,7 +5,12 @@ from typing import Annotated, Any
 
 import typer
 
-from socialdna.application import investigation_service, literature_service, reevaluation_service
+from socialdna.application import (
+    discovery_service,
+    investigation_service,
+    literature_service,
+    reevaluation_service,
+)
 from socialdna.application.bootstrap import open_application
 from socialdna.application.evidence_service import EvidenceResolver, withdraw
 from socialdna.application.research_service import (
@@ -17,6 +22,7 @@ from socialdna.cli.common import ConfigFile, DataDir, Format, execute
 from socialdna.config.settings import Settings
 from socialdna.core.exceptions import ConfigurationError
 from socialdna.domain.investigation import EvaluationSpec, LiteratureCorpus, ResearchProtocol
+from socialdna.research.candidates import ConfirmationSpec, DiscoverySpec
 from socialdna.research.reevaluation import ReevaluationSpec
 from socialdna.storage.backup import backup_library, restore_library
 from socialdna.storage.evidence_repository import EvidenceRepository
@@ -29,6 +35,78 @@ def register(app: typer.Typer, storage: typer.Typer) -> None:
     )
     app.add_typer(evidence, name="evidence")
     app.add_typer(research, name="research")
+
+    @research.command("confirm-discovery")
+    def confirm_discovery_command(
+        ctx: typer.Context,
+        spec: Annotated[Path, typer.Option("--spec")],
+        data_dir: DataDir = None,
+        config: ConfigFile = None,
+        output_format: Format = None,
+    ) -> None:
+        def operation(settings: Settings) -> dict[str, Any]:
+            from socialdna.application.discovery_confirmation import confirm
+
+            options = literature_service.read_spec(spec, ConfirmationSpec)
+            with open_application(settings) as application:
+                return confirm(application, options)
+
+        execute(ctx, "research.confirm-discovery", operation, data_dir, config, output_format)
+
+    @research.command("discover")
+    def discover_command(
+        ctx: typer.Context,
+        spec: Annotated[Path, typer.Option("--spec")],
+        data_dir: DataDir = None,
+        config: ConfigFile = None,
+        output_format: Format = None,
+    ) -> None:
+        def operation(settings: Settings) -> dict[str, Any]:
+            options = literature_service.read_spec(spec, DiscoverySpec)
+            with open_application(settings) as application:
+                return discovery_service.discover(application, options)
+
+        execute(ctx, "research.discover", operation, data_dir, config, output_format)
+
+    @research.command("show-discovery")
+    def show_discovery_command(
+        ctx: typer.Context,
+        key: str,
+        reproduce: bool = False,
+        data_dir: DataDir = None,
+        config: ConfigFile = None,
+        output_format: Format = None,
+    ) -> None:
+        def operation(settings: Settings) -> dict[str, Any]:
+            from sqlalchemy import select
+
+            from socialdna.storage.schema import metadata
+
+            with open_application(settings) as application:
+                with application.database.transaction() as connection:
+                    table = metadata.tables["discovery_rounds"]
+                    row = (
+                        connection.execute(select(table).where(table.c.id == key))
+                        .mappings()
+                        .first()
+                    )
+                    if row is None:
+                        raise ConfigurationError("Unknown discovery search key")
+                    repository = EvidenceRepository(connection)
+                    ref = repository.ref(
+                        repository.get(
+                            "entity_revisions",
+                            row["result_revision_id"] or row["registration_revision_id"],
+                        )
+                    )
+                result = (
+                    discovery_service.reproduce(application, ref)
+                    if reproduce
+                    else discovery_service.show(application, ref)
+                )
+                return result
+
+        execute(ctx, "research.show-discovery", operation, data_dir, config, output_format)
 
     @research.command("reevaluate")
     def reevaluate_command(

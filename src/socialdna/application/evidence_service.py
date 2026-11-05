@@ -516,7 +516,13 @@ class EvidenceResolver:
             if (
                 not binding
                 or locator.subject.kind
-                not in ("research_assessment", "research_finding", "experiment_brief")
+                not in (
+                    "research_assessment",
+                    "research_finding",
+                    "experiment_brief",
+                    "discovery_search",
+                    "creative_pattern",
+                )
                 or binding["subject_revision_id"] != locator.subject.revision_id
             ):
                 raise StorageIntegrityError("Research citation has a mismatched typed binding")

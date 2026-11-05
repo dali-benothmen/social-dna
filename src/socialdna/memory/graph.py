@@ -141,7 +141,9 @@ def project_entity(connection: Connection, identity: str) -> None:
             "payload": payload,
             "locator": {},
             "citations": [],
-            "claim_level": "hypothesis" if owner.kind == "hypothesis" else "observation",
+            "claim_level": payload.get(
+                "claim_level", "hypothesis" if owner.kind == "hypothesis" else "observation"
+            ),
         },
     )
 

@@ -16,6 +16,8 @@ from socialdna.storage.evidence_repository import EvidenceRepository
 from socialdna.storage.schema import metadata
 
 KINDS = {
+    "discovery_search",
+    "creative_pattern",
     "literature_source",
     "study_finding",
     "psychological_construct",
@@ -108,7 +110,13 @@ def cite(connection: Connection, ref: EntityRef) -> EvidenceRef:
                 "source_revision_id": source.revision_id,
             },
         )
-    elif ref.kind in ("research_assessment", "research_finding", "experiment_brief"):
+    elif ref.kind in (
+        "research_assessment",
+        "research_finding",
+        "experiment_brief",
+        "discovery_search",
+        "creative_pattern",
+    ):
         locator = ResearchLocator(subject=ref)
         table, values = "research_evidence_bindings", {"subject_revision_id": ref.revision_id}
     else:
@@ -149,6 +157,12 @@ def active(
     if row["source_id"]:
         assert_active_inputs(connection, source_ids=(row["source_id"],))
     payload = json.loads(row["payload_json"])
+    if ref.kind == "discovery_search" and "snapshot" in payload:
+        from socialdna.application.statistical_service import assert_design_inputs
+
+        assert_design_inputs(
+            connection, [r for r in payload["snapshot"]["rows"] if "source_ids" in r]
+        )
     if ref.kind == "literature_source":
         latest = repo.latest("literature_source", ref.id)
         assert latest is not None
@@ -170,6 +184,11 @@ def active(
             )
         else:
             child_row = repo.entity(child)
+            from socialdna.storage.context_repository import KINDS as CONTEXT_KINDS
+            from socialdna.storage.context_repository import cite as context_cite
+
+            if child.kind in CONTEXT_KINDS:
+                dependencies.append(context_cite(connection, child))
             if child.kind in ("research_question", "hypothesis"):
                 child_payload = json.loads(child_row["payload_json"])
                 dependencies.extend(

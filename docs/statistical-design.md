@@ -1,6 +1,6 @@
 # Statistical design and validation
 
-Status: bounded R2 comparison/lineage/validation and R3 [creative-recipe joins](creative-analysis.md) are preserved in `0.0.10`. R5 [behavioral analysis](behavioral-analysis.md) adds separate source-grid descriptive comparisons and account outcomes, not new R2 regressions or causal identification; R6 adds [persistent memory](research-memory.md), not new estimators. See [operations and supported limits](versioned-analytics.md). This document also specifies future capabilities, including C1 inputs and broader discovery in R9; not all designs below are executable. Old specifications retain their semantics. See [architecture](../ARCHITECTURE.md), [research contracts](research-contracts.md), [roadmap](../PLAN.md) and [cooking use case](research-use-case.md).
+Status (`0.0.17`): corrected R2 comparisons, lineage and actual-model validation remain unchanged. R9 adds [bounded marginal nonlinear discovery](bounded-discovery.md), including qualified C1 inputs; this is not a revision of frozen within-creator estimands. Fixed-OLS independent focal replication is available under explicit support/freshness gates. Broader causal/experiment designs below remain future capabilities; old specifications retain their semantics. See [architecture](../ARCHITECTURE.md), [research contracts](research-contracts.md), [roadmap](../PLAN.md) and [cooking use case](research-use-case.md).
 
 This specification defines analytical eligibility and interpretation. Passing a software test, obtaining a full-rank fit, or exceeding an engineering sample threshold does not demonstrate construct validity, causal identification, adequate power or external validity.
 
@@ -173,6 +173,13 @@ Report effect intervals, cluster counts, missingness, balance/overlap, rank/cond
 A minimum number of rows/clusters per parameter is a conservative implementation gate, not a power calculation. Declare a smallest meaningful effect and design/precision target when appropriate; simulate/estimate power using plausible independent-unit structure. Small case studies remain useful but cannot justify broad generalization.
 
 ## 9. Bounded discovery and repeated-testing discipline: R9
+
+Delivered refinement (`0.0.17`): [actual operations](bounded-discovery.md) implement
+this section's bounded grammar with one marginal OLS/Ridge pipeline, training-only
+selection, creator/time/joint/niche purges, all-fit accounting and declared exploratory
+BY membership. Fixed-OLS main/product/quadratic contrasts can replicate on separately
+registered untouched units. Tuned/regularized/spline inferential replication and
+global sequential error control are explicitly withheld; R2 frozen semantics remain.
 
 R2 supports prespecified interactions only. R9 adds a deliberately limited candidate grammar:
 

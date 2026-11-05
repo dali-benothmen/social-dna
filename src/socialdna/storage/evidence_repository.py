@@ -42,6 +42,8 @@ LEGACY_KINDS = {
     "ocr_box": ("ocr_boxes", "id"),
 }
 AUTHORED_KINDS = {
+    "discovery_search",
+    "creative_pattern",
     "profile_snapshot",
     "profile_review",
     "profile_rubric",
@@ -183,6 +185,12 @@ class EvidenceRepository:
             )
 
             validate_behavioral(self, ref, json.loads(row["payload_json"]))
+        if ref.kind in ("discovery_search", "creative_pattern"):
+            from socialdna.storage.discovery_repository import (
+                validate_projection as discovery_check,
+            )
+
+            discovery_check(self, ref)
         if ref.kind in ("research_protocol", "research_assessment"):
             from socialdna.storage.research_repository import validate_projection as research_check
 

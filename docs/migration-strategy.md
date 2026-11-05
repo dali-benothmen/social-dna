@@ -1,6 +1,6 @@
 # Migration, compatibility and retention strategy
 
-Status: migrations through R8 are implemented in `0.0.12` / `0012_reevaluation`; R9–R10/C1/U1/U2 remain planned. Date: 2026-11-05. See [R1 operations](research-foundation.md), [versioned analytics](versioned-analytics.md), [creative analysis](creative-analysis.md), [audience analysis](audience-analysis.md), [behavioral analysis](behavioral-analysis.md), [research memory](research-memory.md), [psychological research](psychological-research.md), [architecture](../ARCHITECTURE.md), [roadmap](../PLAN.md) and [research contracts](research-contracts.md). Released migrations `0001`–`0011` remain unchanged. Evidence CHECK changes use atomic FK-checked parent rebuilds and verified backups, not edits to released migrations.
+Status (`0.0.17` / `0015_discovery`, 2026-11-06): R1–R9 and C1 have canonical producers; R10/U1/U2 remain planned. Released migrations `0001`–`0014` remain unchanged. Discovery adds four query/ledger tables, reusing the existing research locator and holdout schema without a parent rebuild. See [bounded discovery](bounded-discovery.md), [architecture](../ARCHITECTURE.md), [roadmap](../PLAN.md) and [research contracts](research-contracts.md). Earlier evidence CHECK changes retain their atomic FK-checked rebuild/backup behavior.
 
 ## 1. Compatibility contract
 

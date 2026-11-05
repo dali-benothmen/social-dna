@@ -1,6 +1,6 @@
 # SocialDNA architecture
 
-Revised: 2026-11-05. Implementation: **0.0.12**, database head **0012_reevaluation**. R1–R8 are completed and verified. Results and optional verification limits are recorded in [PLAN.md](PLAN.md). **R9–R10, C1 and U1/U2 remain planned**. The architecture incorporates the approved [intelligence audit](docs/architecture-audit.md) and the additional [production and growth capability audit](docs/intelligence-capability-audit.md). See [R1 operations](docs/research-foundation.md), [versioned analytics](docs/versioned-analytics.md), [creative analysis](docs/creative-analysis.md), [audience analysis](docs/audience-analysis.md), [behavioral analysis](docs/behavioral-analysis.md), [research memory](docs/research-memory.md) and [psychological research](docs/psychological-research.md) for actual commands and limits.
+Revised: 2026-11-06. Implementation: **0.0.17**, database head **0015_discovery**. R1–R9 and C1 are completed and verified within their documented bounds; results are recorded in [PLAN.md](PLAN.md). **R10 and U1/U2 remain planned**. The architecture incorporates the approved [intelligence audit](docs/architecture-audit.md) and [production and growth capability audit](docs/intelligence-capability-audit.md). Actual bounded discovery commands and limits are in [operations](docs/bounded-discovery.md); existing [research memory](docs/research-memory.md), [versioned analytics](docs/versioned-analytics.md) and [psychological research](docs/psychological-research.md) contracts remain supported.
 
 The [implementation plan](PLAN.md) defines delivery and acceptance gates. Detailed contracts live in [research contracts](docs/research-contracts.md), [statistical design](docs/statistical-design.md), [migration strategy](docs/migration-strategy.md), and the [twelve-step cooking use case](docs/research-use-case.md). The [previous architecture](docs/history/ARCHITECTURE.pre-research-revision.md) is a historical record, not a competing specification. Architecture/plan line references inside the unchanged audit refer to those pre-revision documents.
 
@@ -843,3 +843,62 @@ these working inputs from R9 discovery and R10 causal experiments/recommendation
 See [formats, semantic guards and delivered limits](docs/profile-conversion.md).
 U1 automatic image interpretation and R9/R10 discovery/recommendation/experiment
 work remain separate; completing C1 does not claim their scientific validity.
+
+## 30. Bounded discovery implementation decisions (`0.0.17`)
+
+R9 is a separate versioned **model adapter/lifecycle**, not a rewrite of frozen
+R2 estimands or an independent untracked analytics engine. It reuses R2's real SQL
+population/materializer and universal evidence, C1's real contextual producers,
+R6 memory projections and the shared family/whole-round/holdout history. Pure fitting,
+partitioning and counterexample selection live in `research/`; canonical source joins,
+transactions and CLI adapters stay in their existing application/storage boundaries.
+
+1. **Marginal prediction instead of unsupported fixed-effect transfer.** Main effects,
+   raw pairwise products, quadratics and a fixed small spline family share one
+   train-fitted OLS/Ridge pipeline. Three inner creator-disjoint folds choose only
+   predeclared candidates/alpha values; outer creator/time/joint/niche evaluation
+   uses that pipeline unchanged. New creators have no invented fixed-effect intercept.
+   This target is explicitly observational marginal raw-outcome prediction, not an
+   adjusted within-creator causal effect. Small/rank-deficient designs refuse estimates.
+2. **One frozen search round and durable failed/null attempts.** Up to 12 candidates,
+   three alphas and 128 fit attempts; no adaptive expansion or early stopping.
+   `0015_discovery` adds four query projections: rounds, fits, inspected-unit members
+   and typed canonical bindings. Specifications/snapshots/results/patterns remain
+   immutable entity revisions, cited with the existing research locator. No parent
+   table rebuild, new collection, server, dependency or schema-per-model.
+3. **Protected actual data, not renamed reservations.** Whole-round attempts reuse
+   R2 families/attempts; actual post/media holdouts use its existing ledger. The new
+   member history also protects previously trained-on rows and actual account-period
+   measurements. R2 reservations consult that history; R9 checks prior fitted R2
+   populations too. Interrupted/failed/renamed rounds do not release observations.
+   Repeat exploration requires disclosed parent lineage; no global sequential FDR
+   guarantee is inferred from per-round BY correction.
+4. **C1 lanes share machinery, not outcome meanings.** Primitive/reviewed craft and
+   source-attested publishing features use real explicit-window post outcomes;
+   surface distribution uses compatible R5 early/later observations and actual
+   knowledge clocks; profile features require the exact exposed snapshot and source-
+   qualified measured funnel. Official guidance, qualitative rubrics and measured
+   results remain separate. `discovery-context-1` pins literal/circular/completeness
+   transformations. Source truth/declared sampling frames are not automatically verified.
+5. **Prediction is not inferential replication.** A separate frozen confirmation
+   specification estimates the selected fixed-OLS main/product/quadratic raw-basis
+   focal contrast on untouched units, with creator-cluster uncertainty only under
+   adequate support. Tuned/Ridge and reknotted-spline inferential replication are
+   refused. Support, contradictory direction, inconclusiveness and insufficiency
+   persist independently of the old result. No psychological assessment is promoted,
+   no mediator identified and no experiment declared randomized by this path.
+6. **Research memory is qualified and erasable.** Selected combinations are reified
+   `creative_pattern` candidate proposals with constituent roles/scope and exact
+   `discovery_search` references, explicitly not confirmed. Existing SQL/FTS/optional
+   Qdrant and SQLite-backed NetworkX builders project them without causal edges.
+   Withdrawals/corrections gate every read; confirmed context erasure also scrubs
+   dependent search snapshots/fit diagnostics. Structural reservation IDs remain
+   to prevent reuse. Exact reproduction is read-only and checks numerical versions.
+
+The approved broad scope is delivered within these bounds, documented in
+[operations](docs/bounded-discovery.md). A held-out niche is a named stress test,
+not universal transfer. Near-duplicate detection, unrestricted feature mining,
+online error control, richer semantic metadata features, repeated account-period
+interventions, R10 recommendations/experiments and U1/U2 remain separate work.
+Controlled fixtures establish software behavior, not empirical construct validity
+or platform algorithm recovery. Released migrations `0001`–`0014` are unchanged.

@@ -1,7 +1,11 @@
 # SocialDNA
 
 SocialDNA is a local-first social-media research engine. The implemented release is
-`0.0.16`: dated public profiles, frozen evidence-backed human rubrics and separately
+`0.0.17`: bounded nonlinear discovery, train-only candidate selection, creator/time/niche
+transfer tests, all-attempt history and independent focal-contrast replication,
+including qualified C1 production, publishing, distribution and profile inputs.
+See [bounded discovery](docs/bounded-discovery.md). It extends `0.0.16`'s
+dated public profiles, frozen evidence-backed human rubrics and separately
 measured owner-account funnels, with explicit follow/install meanings and qualified
 source attribution. See [profile conversion evidence](docs/profile-conversion.md).
 It extends `0.0.15`'s reviewed platform-document/statement versions, source capabilities and

@@ -1,0 +1,58 @@
+{
+  "schema_version": "1.0",
+  "key": "cooking-caption-shape",
+  "family_id": "cooking-caption-shape",
+  "holdout_id": "cooking-untouched-creators",
+  "as_of": "2026-11-06T00:00:00Z",
+  "input": {
+    "kind": "posts",
+    "analysis": {
+      "schema_version": "2.0",
+      "metric_key": "demo.views.v1",
+      "design": "descriptive",
+      "estimand": "descriptive",
+      "feature_policy": "retrospective_content",
+      "knowledge_cutoff": "2026-11-06T00:00:00Z",
+      "publication_cutoff": "2026-11-01T00:00:00Z",
+      "sampling_frame": "All authorized imported cooking posts in this declared source frame",
+      "population": {"platforms": ["demo"], "niches": ["cooking"]},
+      "features": ["caption_length"],
+      "covariates": ["caption_length"],
+      "family_id": "input-only-no-v2-fit",
+      "family_terms": ["caption_length"]
+    }
+  },
+  "scope": {
+    "platform": "demo",
+    "surface": "aggregate",
+    "native_format": "video",
+    "language": "en",
+    "market": "US",
+    "audience": "Declared cooking source audience; not independently verified",
+    "niches": ["cooking"],
+    "objective": "aggregate_attention",
+    "traffic": "unknown",
+    "period_start": "2026-01-01T00:00:00Z",
+    "period_end": "2026-11-01T00:00:00Z",
+    "basis": "Replace with the actual source frame, permission and scope before running"
+  },
+  "candidates": [
+    {
+      "key": "linear-caption",
+      "kind": "main",
+      "features": ["caption_length"],
+      "proposal_source": "Analyst prespecified before testing",
+      "prediction": "Caption length may have a scoped marginal association with the imported outcome"
+    },
+    {
+      "key": "curved-caption",
+      "kind": "quadratic",
+      "features": ["caption_length"],
+      "proposal_source": "Analyst prespecified before testing",
+      "prediction": "The declared raw quadratic coefficient may differ from zero"
+    }
+  ],
+  "split": "creator",
+  "seed": 42,
+  "max_fits": 9
+}

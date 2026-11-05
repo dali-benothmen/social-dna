@@ -1,6 +1,6 @@
 # Research contracts
 
-Status: R1–R6 identity/evidence, statistics, creative/audience/behavioral producers and memory are preserved in `0.0.12`; R7's bounded reviewed-literature/protocol/assessment path is implemented, with final verification recorded in the roadmap. R8 adds explicit incremental reevaluation; R9–R10/C1 remain planned. Date: 2026-11-05. See [R1 operations](research-foundation.md), [versioned analytics](versioned-analytics.md), [creative analysis](creative-analysis.md), [audience analysis](audience-analysis.md), [behavioral analysis](behavioral-analysis.md), [research memory](research-memory.md) and [psychological research](psychological-research.md) for actual signatures/limits; prepared-real-model acceptance is opt-in and conceptual interfaces below are not all executable APIs.
+Status (`0.0.17`, 2026-11-06): R1–R8 and C1 are preserved; R9 adds [bounded discovery and independent focal replication](bounded-discovery.md). R10/U1/U2 remain planned. See the linked operations guides and roadmap for actual signatures/limits; prepared-real-model acceptance is opt-in and conceptual interfaces below are not all executable APIs.
 
 This document makes the research payloads and invariants in [ARCHITECTURE.md](../ARCHITECTURE.md) concrete. It does not replace the implemented video timeline, comment imports, scalar metrics, or frozen statistical analyses. [Statistical design](statistical-design.md) defines comparison/validation methods; [migration strategy](migration-strategy.md) defines additive adoption. The complete reference flow is in [the cooking use case](research-use-case.md).
 
@@ -255,3 +255,26 @@ rather than creating a new research engine.
 | C1-D funnel and outcome context | Defined stage/branch, actual subject/profile variant/link/campaign when supplied, compatible cohort/windows/uniqueness/denominators and deduplication/attribution. No individual path inferred from aggregates, no nearest-post follower credit, no invented private conversion rate. |
 
 Each family requires its canonical writer, FK/kind/ownership validation, typed evidence resolver, idempotent reader/report and eligibility/erasure tests before memory indexes it. Profile/link/campaign metric subjects extend the current post/account registry only with real producers; a free-form campaign label is not a registered subject. Low-volume specifications remain validated documents; query projections are first-use additions. U1 supplies real static-image evidence; R8 tracks revisions once writers exist; R9 analyzes scoped comparisons and R10 produces qualified recommendations/experiment outcomes. U2 cannot expose planned contracts as working commands.
+
+## 6. Delivered bounded discovery contracts (`0.0.17`)
+
+Executable schemas are `research.candidates.{Candidate,Scope,DiscoverySpec,ConfirmationSpec}`.
+Inputs are discriminated `posts` (real input-only v2 analysis plus exact publication/
+inventory refs), `distribution` (actual scoped observations/optional separate official
+statements) or `funnels` (actual exposed-profile account rates). Unknown feature names,
+arbitrary arrays and interchangeable search/recommendation/conversion labels are refused.
+See [operations](bounded-discovery.md) for actual keys, counts, timing and denominator gates.
+
+Canonical `discovery_search` registration/result and `creative_pattern` candidate
+documents have immutable revisions and existing research-record citations. The new
+`discovery_bindings(revision_id FK, round_id FK, role)` validates actual producers;
+rounds pin registration/result/parent revisions and their real shared test attempt.
+`discovery_attempts` uniquely identifies each round/ordinal, candidate/phase, durable
+started/terminal status, exact partitions and diagnostics. `discovery_members` indexes
+round/member-key/role for inspected-unit and exact-media protection. Its non-textual
+audit identities survive authorized erasure; source-derived fit details do not.
+
+Discovery remains exploratory; independent fixed-OLS main/product/quadratic confirmation
+requires a new frozen specification and untouched actual units. It is observational
+replication, not a psychological assessment or R10 causal experiment. Old R7/R8
+assessment schemas and old v1/v2 statistical outputs retain their exact meanings.

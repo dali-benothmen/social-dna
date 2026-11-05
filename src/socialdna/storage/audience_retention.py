@@ -386,6 +386,20 @@ def resume(database: Any, paths: DataPaths) -> None:
                 .where(table.c.id.in_(items.get("statistical_analysis", [])))
                 .values(result_json=canonical_json(document))
             )
+            if inspect(connection).has_table("discovery_bindings"):
+                bindings = metadata.tables["discovery_bindings"]
+                attempts = metadata.tables["discovery_attempts"]
+                connection.execute(
+                    attempts.update()
+                    .where(
+                        attempts.c.round_id.in_(
+                            select(bindings.c.round_id).where(
+                                bindings.c.revision_id.in_(items.get("entity_revision", []))
+                            )
+                        )
+                    )
+                    .values(result_json=canonical_json(document))
+                )
             for _, sql in triggers:
                 connection.exec_driver_sql(sql)
             objects = metadata.tables["artifact_objects"]

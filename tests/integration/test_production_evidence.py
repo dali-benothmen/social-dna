@@ -275,6 +275,44 @@ def test_multi_video_performance_history_reload_and_withdrawal(
             r["feature_values"]["creative.shot_duration_mean"]["lineage"]["evidence_refs"]
             for r in analysis["posts"]
         )
+        # The R9 adapter consumes the exact delivered craft recipe, not an
+        # unrelated appearance proxy or a fixture-only predictor column.
+        from test_discovery import request
+
+        from socialdna.application.discovery_inputs import build
+        from socialdna.research.candidates import DiscoverySpec
+
+        source = design(
+            model="none",
+            features=["creative.shot_duration_mean", "caption_length"],
+            creative_annotation_key="professional-review",
+            creative_recipes={"creative.shot_duration_mean": recipes[0]},
+            family_terms=["creative.shot_duration_mean", "caption_length"],
+        )
+        base = request()
+        discovery_spec = DiscoverySpec.model_validate(
+            {
+                **base.model_dump(mode="json"),
+                "as_of": source.knowledge_cutoff,
+                "input": {"kind": "posts", "analysis": source.model_dump(mode="json")},
+                "scope": {**base.scope.model_dump(mode="json"), "niches": ["craft-fixture"]},
+                "candidates": [
+                    {
+                        "key": "craft",
+                        "kind": "main",
+                        "features": ["creative.shot_duration_mean"],
+                        "proposal_source": "reviewed craft",
+                        "prediction": "Scoped craft association",
+                    }
+                ],
+            }
+        )
+        joined = build(app, discovery_spec)
+        assert len(joined["rows"]) == 6
+        assert all(
+            r["feature_values"]["creative.shot_duration_mean"]["lineage"]["evidence_refs"]
+            for r in joined["rows"]
+        )
         corpus = literature_service.import_corpus(
             app, literature_service.read_spec(CORPUS, LiteratureCorpus)
         )
