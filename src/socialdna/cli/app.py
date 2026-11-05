@@ -11,6 +11,7 @@ from socialdna.cli.account_commands import register as register_accounts
 from socialdna.cli.common import ConfigFile, DataDir, Format, execute
 from socialdna.cli.errors import error_result
 from socialdna.cli.output import emit
+from socialdna.cli.research_commands import register as register_research_commands
 from socialdna.config.settings import Settings
 from socialdna.core.enums import ExitCode
 from socialdna.core.exceptions import ConfigurationError, SocialDNAError
@@ -409,3 +410,4 @@ def main() -> None:
 
 
 register_accounts(ingestion, analysis, compare_app)
+register_research_commands(app, storage)

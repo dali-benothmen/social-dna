@@ -1,7 +1,8 @@
 # Account export contract (version 1.0)
 
-Status: implemented `0.0.4` contract, unchanged by the research-design revision.
-Planned R1/R4/R5 contracts must use versioned extensions and preserve these exports;
+Status: version 1.0 import contract from `0.0.4`, preserved in `0.0.5`. R1 captures
+source-backed immutable revisions/citations without changing export fields. Planned
+R4/R5 contracts must use versioned extensions and preserve these exports;
 see [research contracts](research-contracts.md), [migration strategy](migration-strategy.md),
 and [PLAN.md](../PLAN.md). Proposed research records are not accepted by this importer.
 

@@ -1,7 +1,7 @@
 # Deterministic local video analysis
 
-Status: implemented `0.0.4` behavior. Planned R1 universal evidence and R3 semantic
-creative events extend this foundation; the [roadmap](../PLAN.md) does not require
+Status: existing video behavior preserved in `0.0.5`. R1 adds versioned universal
+bindings; R3 semantic events remain planned. The [roadmap](../PLAN.md) does not require
 research registration, embeddings, or literature retrieval for basic video analysis.
 
 This describes the Milestone 1 deterministic foundation, still available with `--no-ai`.
@@ -71,8 +71,8 @@ integrated loudness is absent with a limitation, never reported as zero LUFS.
 Every observation and scene/frame/text/audio record has timestamped evidence; task
 results link to provenance, source records, configurations, dependency fingerprints,
 and tool/library versions. JSON reports include all timeline lanes and evidence IDs.
-These are existing media-specific evidence items, not the universal registry proposed
-in [research contracts](research-contracts.md). R1 must preserve their IDs. Timestamp
+These remain media-specific evidence items with unchanged IDs. R1 also registers
+immutable universal bindings; see [R1 operations](research-foundation.md). Timestamp
 alignment alone does not establish a cross-modal semantic relationship, and sampled
 non-detection is not evidence that a creative cue is absent.
 Markdown links evidence frames and cites subtitle/measurement evidence; it limits the

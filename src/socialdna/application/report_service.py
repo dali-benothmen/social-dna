@@ -5,6 +5,12 @@ from sqlalchemy import select
 from sqlalchemy.dialects.sqlite import insert
 
 from socialdna.application.bootstrap import Application
+from socialdna.application.evidence_service import (
+    EvidenceResolver,
+    assert_active_inputs,
+    assert_context_active,
+    assert_media_active,
+)
 from socialdna.core.exceptions import InvalidMedia
 from socialdna.core.ids import stable_id
 from socialdna.core.time import utc_now
@@ -20,6 +26,7 @@ def build_report(application: Application, run_id: str) -> VideoReport:
         run = connection.execute(select(runs).where(runs.c.id == run_id)).mappings().first()
         if run is None:
             raise InvalidMedia("Unknown analysis run.")
+        assert_media_active(connection, run["target_id"])
         tasks = [
             dict(row)
             for row in connection.execute(
@@ -168,6 +175,25 @@ def generate_report(
     else:
         raise InvalidMedia("Supply an analysis run or account ID.")
     if performance is not None:
+        # Never replace archived bytes with a new current claim using revoked inputs.
+        with application.database.transaction() as connection:
+            assert_context_active(
+                connection,
+                tuple(
+                    {post["post_id"] for post in performance["posts"]}
+                    | {post["account_id"] for post in performance["posts"] if post["account_id"]}
+                ),
+            )
+            for post in performance["posts"]:
+                assert_active_inputs(
+                    connection,
+                    source_ids=tuple(item["source_id"] for item in post["snapshots"]),
+                    evidence_ids=tuple(
+                        stable_id("metric-evidence", item) for item in post["snapshot_ids"]
+                    ),
+                )
+                for evidence_id in post["feature_evidence_ids"]:
+                    EvidenceResolver(connection).resolve(evidence_id, purpose="new_claim")
         run_id = performance["run_id"]
         content = (
             json.dumps(performance, indent=2, ensure_ascii=False, allow_nan=False)

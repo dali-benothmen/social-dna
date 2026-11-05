@@ -219,6 +219,11 @@ class TaskRunner:
                         .values(task_id=task_id, evidence_id=evidence_id)
                         .on_conflict_do_nothing()
                     )
+                from socialdna.storage.evidence_repository import EvidenceRepository
+
+                evidence_repository = EvidenceRepository(connection)
+                for evidence_row in output.records.get("evidence_items", []):
+                    evidence_repository.media_evidence(evidence_row["id"], legacy=False)
                 result = substitute(output.result)
                 result["artifacts"] = list(artifacts.values())
                 result["producer_task_id"] = task_id

@@ -1,17 +1,22 @@
 # SocialDNA
 
 SocialDNA is a local-first social-media research engine. The implemented release is
-`0.0.4`: the foundation and historical Milestones 1, 3, and 4 provide local-video
-analysis, optional enrichment, account imports, and bounded performance analytics.
+`0.0.5`: R1 adds versioned media/comment/metric citations, draft research registration,
+withdrawal-aware citation reports, and verified backup/restore. The foundation and
+historical Milestones 1, 3, and 4 retain local-video analysis, optional enrichment,
+account imports, and bounded performance analytics.
 
-The revised [architecture](ARCHITECTURE.md) and [roadmap](PLAN.md) describe planned
-research capabilities, not additional released functionality. Research contracts and
-analytical repairs come first (R1–R2); persistent semantic/graph memory is planned in
-R6, replacing the deferred historical Milestone 2. No research schema, migration,
-model, or new CLI command is installed by this documentation revision.
+The revised [architecture](ARCHITECTURE.md) and [roadmap](PLAN.md) distinguish R1's
+implemented citation foundation from later research capabilities. R2's analytical
+repairs are next; semantic/graph memory remains planned in R6. Registering a draft
+does not evaluate it or establish an association or psychological mechanism.
 
 Working capabilities:
 
+- Exact revisioned media, comment-span and scalar-metric citations; draft question/
+  hypothesis registration and persistent JSON/Markdown citation reports.
+- Withdrawal eligibility checks and verified canonical backups/restores, with
+  post-checkpoint withdrawal reconciliation or restricted recovery.
 - Local video registration by checksum, optional managed originals, and FFprobe metadata.
 - Adaptive shot detection, scene-aware evidence frames/contact sheets, visual color,
   texture and motion measurements, audio loudness/energy/spectral/pitch estimates,
@@ -78,6 +83,23 @@ Initialization requires no system media tools, API key, model download, Docker,
 or database server. Install FFmpeg (including ffprobe) through your operating system's
 package manager before analyzing video;
 SocialDNA never installs it automatically.
+
+## Register research and cite real sources
+
+```bash
+uv run socialdna research register --spec examples/research/question.json --dry-run --format json
+uv run socialdna research register --spec examples/research/question.json --format json
+# Use actual evidence/comment/snapshot IDs from your imported or analyzed library.
+uv run socialdna evidence resolve EVIDENCE_ID --format json
+uv run socialdna evidence cite-comment COMMENT_ID --start 0 --end 19 --format json
+uv run socialdna evidence cite-metric SNAPSHOT_ID --format json
+uv run socialdna research report QUESTION_ID --format json
+```
+
+The bundled question has no fabricated citations. Add returned `{id, revision_id}`
+references to its evidence lists to produce a sourced registration report. R1 does
+not evaluate hypotheses; withdrawal is not full retained-data erasure. See the
+[R1 workflow, source rules and backup/restore guide](docs/research-foundation.md).
 
 ## Import an account and analyze performance
 

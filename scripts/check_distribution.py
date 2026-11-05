@@ -110,6 +110,37 @@ def main() -> None:
                 raise RuntimeError("Installed account report lost imported observations")
             if analyzed["run_id"] != account_report["data"]["content"]["run_id"]:
                 raise RuntimeError("Installed account report did not reopen the saved analysis")
+            snapshot_id = account_report["data"]["content"]["posts"][0]["snapshot_ids"][0]
+            citation = json.loads(
+                run([*base, "evidence", "cite-metric", snapshot_id], cwd=isolated)
+            )
+            specification = isolated / "research.json"
+            specification.write_text(
+                json.dumps(
+                    {
+                        "schema_version": "1.0",
+                        "key": "installed-smoke",
+                        "question": "Can this installed package preserve an exact metric citation?",
+                        "population": "Software acceptance fixtures, not empirical research",
+                        "evidence": [citation["data"]["ref"]],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            registered = json.loads(
+                run([*base, "research", "register", "--spec", str(specification)], cwd=isolated)
+            )
+            question_id = registered["data"]["question"]["id"]
+            research_report = json.loads(
+                run([*base, "research", "report", question_id], cwd=isolated)
+            )
+            report_id = research_report["data"]["ref"]["id"]
+            reopened = json.loads(run([*base, "research", "show", report_id], cwd=isolated))
+            if not reopened["data"]["content"]["citations"][0]["eligible"]:
+                raise RuntimeError("Installed research report lost its eligible citation")
+            print(
+                f"PASS: {distribution.name} installed R1 citation, registration and report restart"
+            )
             print(
                 f"PASS: {distribution.name} installed account import, analytics and report restart"
             )

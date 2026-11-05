@@ -30,6 +30,8 @@ from socialdna.ingestion.tabular import (
     Tag,
     parse_import,
 )
+from socialdna.storage.evidence_repository import EvidenceRepository
+from socialdna.storage.readonly import immutable_snapshot
 from socialdna.storage.schema import metadata
 
 STATE_TABLES = ("accounts", "posts", "metric_definitions", "comments", "media_references")
@@ -46,7 +48,7 @@ def _read_state(settings: Settings) -> dict[str, list[dict[str, Any]]]:
     if not path.is_file():
         return state
     try:
-        with sqlite3.connect(path.as_uri() + "?mode=ro", uri=True) as connection:
+        with immutable_snapshot(path) as connection:
             connection.row_factory = sqlite3.Row
             tables = {row[0] for row in connection.execute("SELECT name FROM sqlite_master")}
             for name in STATE_TABLES:
@@ -338,6 +340,7 @@ def _persist(
         }[r.record_type],
     )
     pending_comments: list[Comment] = []
+    captures: list[tuple[str, str]] = []
     for record in ordered:
         entity_type, entity_id = record.record_type, ""
         if isinstance(record, Account):
@@ -450,6 +453,16 @@ def _persist(
         elif isinstance(record, MetricSnapshot):
             entity_id = _persist_snapshot(connection, record, source.dataset_id, provenance_id, now)
         if entity_id:
+            # A tabular "media" record is only an unresolved URI reference, not
+            # a decoded media asset. Its eventual analyzer registers actual media.
+            if entity_type in {
+                "account",
+                "post",
+                "metric_definition",
+                "comment",
+                "metric_snapshot",
+            }:
+                captures.append((entity_type, entity_id))
             connection.execute(
                 insert(metadata.tables["provenance_links"])
                 .values(
@@ -484,6 +497,18 @@ def _persist(
                 .where(table.c.id == stable_id("comment", post_id, record.external_id))
                 .values(parent_comment_id=stable_id("comment", post_id, record.parent_external_id))
             )
+    # Capture after all upserts/parent links, in dependency order and in the same
+    # transaction. Citations must never read mutable current text as history.
+    repository = EvidenceRepository(connection)
+    for kind, identity in captures:
+        repository.capture(
+            kind,
+            identity,
+            None if kind == "metric_snapshot" else provenance_id,
+            mode="source_capture",
+        )
+        if kind == "metric_snapshot":
+            repository.metric_evidence(identity)
     return {
         "batch_id": batch_id,
         "source_id": source_id,

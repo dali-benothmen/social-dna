@@ -11,6 +11,7 @@ from socialdna.analyzers.base import TaskContext, TaskOutput
 from socialdna.analyzers.visual import measure_motion, measure_visual
 from socialdna.application.bootstrap import Application
 from socialdna.application.enrichment_service import run_enrichment, select_providers
+from socialdna.application.evidence_service import assert_media_active
 from socialdna.application.import_service import resolve_media
 from socialdna.application.report_service import generate_report
 from socialdna.application.task_runner import TaskRunner
@@ -50,6 +51,8 @@ def analyze_video(
         if subtitles.stat().st_size > 5_000_000:
             raise InvalidMedia("Subtitle file exceeds the 5 MB limit.")
     media_id, source, info, checksum = resolve_media(application, target, copy_media=copy_media)
+    with application.database.transaction() as connection:
+        assert_media_active(connection, media_id)
     estimate = {
         "sequential_inference": True,
         "max_selected_frames": min(

@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "key": "cooking-result-first",
+  "question": "Why might showing a finished meal during the first seconds be associated with better performance?",
+  "population": "Authorized cooking videos in a declared collection period",
+  "data_needs": [
+    "Reviewed opening-technique annotations",
+    "Comparable source-defined outcomes",
+    "Reviewed research and discriminating construct measurements"
+  ],
+  "evidence": [],
+  "hypotheses": [
+    {
+      "key": "anticipation",
+      "statement": "A result preview might increase anticipated reward; this remains an untested explanation.",
+      "population": "The declared cooking-video population",
+      "intended_claim_level": "hypothesis",
+      "data_needs": ["Evidence distinguishing anticipation from sensory appeal, curiosity and clarity"],
+      "evidence": []
+    }
+  ]
+}

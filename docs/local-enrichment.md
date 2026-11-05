@@ -1,6 +1,7 @@
 # Optional local model enrichment (Milestone 3)
 
-Status: implemented `0.0.4` enrichment behavior. The revised [roadmap](../PLAN.md)
+Status: existing enrichment behavior preserved in `0.0.5`, with R1 citation/withdrawal
+checks around its source evidence. The revised [roadmap](../PLAN.md)
 preserves this historical milestone; R3 creative events and R7 psychological research
 are planned additions, not features of the current reasoning endpoint.
 

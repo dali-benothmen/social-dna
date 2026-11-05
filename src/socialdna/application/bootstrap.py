@@ -14,6 +14,7 @@ from socialdna.core.exceptions import (
     StoragePermissionError,
 )
 from socialdna.storage.artifacts import ArtifactStore
+from socialdna.storage.backup import assert_recovery_ready, prepare_upgrade, reconcile_restore
 from socialdna.storage.database import Database
 from socialdna.storage.filesystem import FilesystemInfo, detect_filesystem
 from socialdna.storage.locking import DataDirectoryLock
@@ -45,10 +46,16 @@ def open_application(settings: Settings) -> Iterator[Application]:
         paths.root.mkdir(parents=True, exist_ok=True)
         with ExitStack() as stack:
             stack.enter_context(DataDirectoryLock(paths.lock, timeout=settings.lock_timeout))
+            assert_recovery_ready(paths, allow_pending=True)
             paths.create()
             database = Database(paths.database, busy_timeout_ms=settings.busy_timeout_ms)
             stack.callback(database.close)
+            prepare_upgrade(paths, database)
             migrate(database)
+            reconcile_restore(paths, database)
+            from socialdna.storage.evidence_repository import backfill_evidence
+
+            backfill_evidence(database)
             vectors = stack.enter_context(LocalVectorStore(paths.vectors))
             yield Application(settings, paths, database, vectors, ArtifactStore(paths), filesystem)
     except SocialDNAError:

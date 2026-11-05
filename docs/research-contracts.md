@@ -1,6 +1,6 @@
 # Research contracts
 
-Status: revised architecture for review; **all new contracts below are planned, not implemented**. Date: 2026-11-05.
+Status: R1 identity/evidence, draft registration and base validation are implemented in `0.0.5`; later creative/audience/behavioral/evaluation contracts below remain planned. Date: 2026-11-05. See [the R1 operational guide](research-foundation.md) for actual service/CLI signatures and limits.
 
 This document makes the research payloads and invariants in [ARCHITECTURE.md](../ARCHITECTURE.md) concrete. It does not replace the implemented video timeline, comment imports, scalar metrics, or frozen statistical analyses. [Statistical design](statistical-design.md) defines comparison/validation methods; [migration strategy](migration-strategy.md) defines additive adoption. The complete reference flow is in [the cooking use case](research-use-case.md).
 

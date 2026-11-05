@@ -1,8 +1,8 @@
 # SocialDNA implementation plan
 
-Revised: 2026-11-05. Scope: approved architecture/documentation revision; no new implementation is claimed.
+Revised: 2026-11-05. Scope: R1 completed and verified. No later milestone implementation is claimed.
 
-Runtime remains package `0.0.4`, SQLite head `0004_analytics`. Released migrations `0001_foundation`–`0004_analytics` are immutable. Legacy Milestones 0, 1, 3 and 4 are completed deliveries; their limitations remain visible. Legacy Milestones 2, 5 and 6 are **superseded, not completed**. Every R/U milestone below is **planned and unimplemented**.
+Runtime: package `0.0.5`, SQLite head `0005_evidence`. Released migrations `0001_foundation`–`0004_analytics` remain unchanged; `0005_evidence` is frozen with the R1 delivery. Legacy Milestones 0, 1, 3 and 4 are completed deliveries; their limitations remain visible. Legacy Milestones 2, 5 and 6 are **superseded, not completed**. R1 is completed and verified; **R2–R10 and U1/U2 remain planned and unimplemented**.
 
 Authoritative design: [ARCHITECTURE.md](ARCHITECTURE.md), [research contracts](docs/research-contracts.md), [statistical design](docs/statistical-design.md), [migration strategy](docs/migration-strategy.md), and [reference use case](docs/research-use-case.md). The [audit](docs/architecture-audit.md) records the reasons for this revision; the [previous roadmap](docs/history/PLAN.pre-research-revision.md) is historical, not an alternative active plan.
 
@@ -20,7 +20,7 @@ Delivery rules:
 - Keep basic media/account analysis fast: do not register a research question, load a graph, index embeddings or invoke a reasoner merely to describe a video.
 - Missing data is not zero; absent detection under sparse sampling is not demonstrated absence; expressed intention is not behavior; association is not causation.
 - Every research result declares its population, availability, estimand, evidence version, uncertainty, alternatives and limitations. `insufficient_data`, rejected and inconclusive results are successful research outcomes when honestly supported.
-- Implementation changes require unit/integration/contract/end-to-end verification, migration/compatibility checks, documentation updates and a scoped working commit when authorized. This document revision does not authorize implementation yet.
+- Implementation changes require unit/integration/contract/end-to-end verification, migration/compatibility checks, documentation updates and a scoped working commit when authorized. Implementation authority currently covers R1 only.
 
 ## 2. Preserved implementation and historical deliveries
 
@@ -31,7 +31,7 @@ Delivery rules:
 | M3, `0.0.3`, 2026-11-04, deliberately before M2 | Optional prepared local ASR/OCR/pose/audio adapters; provider isolation; consent/budget/provenance gates; model/task/report integration | 116 tests including real CPU ASR/OCR and isolated MediaPipe; optional alignment/VLM quality not empirically established |
 | M4, `0.0.4`, 2026-11-05, deliberately before M2 | Strict CSV/JSON account/post/comment/tag/metric exports; immutable snapshots; local-media account batches; guarded descriptive/model paths; frozen analytics and JSON/Markdown reports | 164-test full run including local-model smoke; final targeted hardening raised collected tests to 166; lint/type/build/offline-install checks |
 
-These are historical test records, not tests rerun for this design-only revision. Only Linux/Python 3.11 was locally executed at those deliveries; configured CI platforms are not claimed as observed results.
+These counts are historical delivery records. R1's current verification is recorded below. Only Linux/Python 3.11 was locally executed at those deliveries; configured CI platforms are not claimed as observed results.
 
 M4 delivered its scoped implementation, but its retrospective baseline, same-creator matcher, cross-niche design and model-validation mismatch need R2 remediation. Existing reports remain reproducible and are not retroactively relabeled as corrected. The old M2 memory design and broad M5/M6 delivery bundles are replaced below, rather than treated as satisfied by the completed work.
 
@@ -39,8 +39,8 @@ M4 delivered its scoped implementation, but its retrospective baseline, same-cre
 
 | ID | Working result | Hard dependencies | Status |
 |---|---|---|---|
-| R1 | Universal evidence with usable metric/comment citations and minimal research registration | Current `0.0.4` | Planned; first ready for implementation |
-| R2 | Correct historical baselines, comparison designs, feature timing and actual-pipeline validation | R1 | Planned |
+| R1 | Universal evidence with usable metric/comment citations and minimal research registration | Existing `0.0.4` foundation | Completed and verified, `0.0.5` |
+| R2 | Correct historical baselines, comparison designs, feature timing and actual-pipeline validation | R1 | Planned; next implementation milestone |
 | R3 | Semantic creative events and reproducible multimodal feature recipes | R1; R2 for analytics joins | Planned |
 | R4 | Audience collection provenance, reaction annotations and qualified content links | R1, R3 | Planned |
 | R5 | Behavioral metric series, denominators, attribution and account outcomes | R1, R2; R3 for event overlays | Planned |
@@ -60,7 +60,7 @@ R6 must work without prepared embeddings through SQL/FTS/graph retrieval; semant
 
 Preserve current commands and output/exit-code families: `init`, `doctor`, `storage status|verify`, `import local|csv|json`, `analyze video|account`, `timeline show`, `models status|prepare`, `compare posts|accounts|reproduce`, and `report generate --run|--account`. New behavior is additive or uses explicit versioned specification fields. Old comparison specifications retain legacy semantics for exact reproduction; corrected analyses use a new specification/method version. Old reports never acquire a new interpretation just because software was upgraded.
 
-New command sketches in the milestone sections are proposed interfaces, not available commands. The exact argument surface is stabilized by contract tests at the implementing milestone. All agents call the same Python services/CLI; agent instructions contain no alternate statistics, hidden browser scraping or host-specific database logic.
+R1's commands are available as documented in [R1 operations](docs/research-foundation.md). Later-milestone command sketches remain proposed interfaces. The exact argument surface is stabilized by contract tests at the implementing milestone. All agents call the same Python services/CLI; agent instructions contain no alternate statistics, hidden browser scraping or host-specific database logic.
 
 Each future migration must preserve released migration checksums and old evidence identities, upgrade a fixture from every released head, survive an interrupted upgrade, and pass `storage verify`. Back up and validate before upgrades; destructive retention/redaction is explicit and audited. See [migration strategy](docs/migration-strategy.md).
 
@@ -68,7 +68,19 @@ Research materialization is lazy and budgeted. The canonical research layer must
 
 ## 5. R1 — Universal evidence and minimum research contracts
 
-Status: **planned, unimplemented; first implementation milestone**.
+Status: **completed and verified in `0.0.5` / `0005_evidence`**, 2026-11-05.
+
+Delivered: typed versioned media/comment/metric citations and aliases; immutable captured source revisions; draft registration/show/report CLI and Python services; append-only withdrawal eligibility, derived-input checks and current-view withholding; restartable backfills; pre-upgrade backups and restricted/same-lineage reconciled restore. See [R1 operations](docs/research-foundation.md) and [implementation decisions](ARCHITECTURE.md#17-r1-implementation-decisions-and-boundaries).
+
+Boundary clarification: R1 withdrawal revokes new use but does not erase retained bytes. Full audience/raw-import/derived-report redaction remains R4 and index cleanup R6, as assigned in the migration strategy. R1 never reports erasure as completed; historical bytes may remain only under permitted retention. No R2 statistics, R7 evaluation or R8 reevaluation was implemented.
+
+Verification record (Linux/Python 3.11):
+
+- Full `pytest -q`: **189 passed, 2 skipped** (the optional real-model library/interpreter was not configured).
+- Final additional `tests/unit/test_research_foundation.py`: **3 passed** for escaping, exact Unicode spans and no-write WAL refusal. Total: **192 distinct passing tests**, two optional model tests skipped.
+- Focused R1 integration/upgrade tests and cross-process frame→comment→metric→registration→report→withdrawal workflow passed. Upgrade fixtures cover all four released heads, original IDs/report bytes, interrupted backfill, downgrade refusal, restored withdrawal journals and restricted recovery.
+- Ruff lint/format, strict mypy, unchanged released migration checksums, documentation links and `git diff --check` passed. Offline `uv lock --check` passed without dependency changes.
+- Wheel and sdist build and isolated offline installs passed R1 citation/registration/report restart plus existing account analytics and real FFmpeg video/report workflows. No model downloads or platform API calls were required.
 
 ### Objective
 
@@ -472,7 +484,7 @@ Follow a host-neutral skill workflow to analyze a local video/photo/account expo
 
 ## 17. Release and verification gates
 
-The old `v0.1`–`v0.4` milestone labels are withdrawn planning gates, not promised releases. Package `0.0.4` and existing data stay unchanged by this revision. Each implementation sets its package/specification/migration versions deliberately; an R ID is not a schema revision number.
+The old `v0.1`–`v0.4` milestone labels are withdrawn planning gates, not promised releases. R1 advances the package to `0.0.5` with additive migration `0005_evidence`, preserving released migrations and old data/report identities. Each implementation sets its package/specification/migration versions deliberately; an R ID is not a schema revision number.
 
 A research-preview release requires R1–R8 plus the corresponding U2 workflow: one complete cooking use case, eligible universal citations, representative comparisons, persistent retrieval, a falsifiable literature-backed explanation and a demonstrable weakened/rejected revision. Broader-discovery/experiment-ready status requires R9/R10; public `1.0` additionally requires U1/U2 hardening and documented platform/data-access limitations. No milestone is considered complete solely because a model produced plausible prose.
 
@@ -491,4 +503,4 @@ Official platform adapters are optional, permission-aware additions after export
 
 Data-access, self-selected comments, small creator/niche counts, paid distribution, unavailable historical covariates, measurement error and hidden confounding can make a question unanswerable. More embeddings, larger reasoners or more posts from the same few creators do not remove these limits. A psychological mechanism remains a hypothesis unless a justified measurement/experimental identification supports it; randomized creative effects alone do not establish mediation.
 
-The first implementation-ready milestone is **R1**. All architecture revisions above are documentation only until implementation is explicitly requested.
+The next implementation milestone is **R2**. It was not started as part of R1; all later R/U work remains planned until explicitly requested.

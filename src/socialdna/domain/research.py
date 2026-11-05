@@ -3,13 +3,48 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from socialdna.core.enums import ClaimLevel
-from socialdna.domain.evidence import EvidenceReference
+from socialdna.domain.evidence import EvidenceRef, EvidenceReference
 
 
 class ClaimReference(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
     claim_level: ClaimLevel
     evidence: tuple[EvidenceReference, ...]
+
+
+class DraftHypothesis(BaseModel):
+    """R1 registration is a draft specification, not an evaluated finding."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    key: str = Field(pattern=r"^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,99}$")
+    statement: str = Field(min_length=1, max_length=10000)
+    population: str = Field(min_length=1, max_length=10000)
+    intended_claim_level: Literal["hypothesis", "association"] = "hypothesis"
+    data_needs: tuple[str, ...] = ()
+    evidence: tuple[EvidenceRef, ...] = ()
+
+
+class ResearchRegistration(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    schema_version: Literal["1.0"] = "1.0"
+    key: str = Field(pattern=r"^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,99}$")
+    question: str = Field(min_length=1, max_length=10000)
+    population: str = Field(min_length=1, max_length=10000)
+    data_needs: tuple[str, ...] = ()
+    evidence: tuple[EvidenceRef, ...] = ()
+    hypotheses: tuple[DraftHypothesis, ...] = Field(default=(), max_length=50)
+
+    @model_validator(mode="after")
+    def unique_keys(self) -> "ResearchRegistration":
+        if len({item.key for item in self.hypotheses}) != len(self.hypotheses):
+            raise ValueError("Hypothesis keys must be unique within a registration")
+        if not self.question.strip() or not self.population.strip():
+            raise ValueError("Question and population cannot be blank")
+        if any(
+            not item.statement.strip() or not item.population.strip() for item in self.hypotheses
+        ):
+            raise ValueError("Hypothesis statement and population cannot be blank")
+        return self
 
 
 class Population(BaseModel):

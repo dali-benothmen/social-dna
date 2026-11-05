@@ -1,6 +1,7 @@
 # Account performance analysis
 
-Status: implemented `0.0.4` behavior, including known limitations. The revised
+Status: existing analytical methods from `0.0.4`, preserved in `0.0.5` with R1's
+source/evidence withdrawal gates; no R2 statistical repairs are claimed. The revised
 [statistical design](statistical-design.md) specifies planned R2 repairs;
 [PLAN.md](../PLAN.md) is the implementation roadmap. Those repairs are not available
 in the current commands and do not retroactively alter saved reports.

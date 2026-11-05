@@ -1,8 +1,8 @@
-# Local storage (implemented `0.0.4`)
+# Local storage (implemented `0.0.5`)
 
-This page describes existing storage behavior, not the planned research schema.
-Historical Milestones 0, 1, 3, and 4 are implemented. Revised R1 introduces universal
-evidence contracts; R6 implements semantic/graph memory. See
+This page describes existing storage behavior. Historical Milestones 0, 1, 3, and 4
+and R1 are implemented. R1 adds universal citation/registration storage; semantic/
+graph memory remains planned in R6. See [R1 operations](research-foundation.md),
 [research contracts](research-contracts.md), [migration strategy](migration-strategy.md),
 and the [roadmap](../PLAN.md) for planned changes.
 
@@ -26,21 +26,28 @@ The first migration creates:
 Migration `0002_timeline` adds `media_locations`, `media_probes`, task result/dependency
 tables, scenes, frames, text tracks/segments, audio segments, feature definitions,
 observations, evidence items, and reports. These evidence items are media-specific:
-they require a media/task identity and nonempty media interval. They are not yet a
-universal evidence registry. The baseline migration is unchanged.
+they require a media/task identity and nonempty media interval. They remain the media
+subtype bound by R1's separate universal registry. The baseline migration is unchanged.
 
 Revision `0003_enrichment` adds nullable paired `text_words` timing, normalized OCR-box
 evidence linked to frames/text segments, `inference_inputs` source-evidence foreign keys,
 and durable `provider_calls` request/response artifacts and status.
 
-Revision `0004_analytics` is the current head. It adds `import_batches`,
+Revision `0004_analytics` adds `import_batches`,
 `media_references`, `tags`, `post_tags`, `comments`, immutable `metric_definitions`,
 append-only `metric_observations`, `derived_metrics`, `cohorts`, `cohort_members`,
 `statistical_analyses`, `statistical_results`, and `account_media_runs`. Saved
 statistical inputs/results and reports support reproducibility; they do not yet
-provide a hypothesis-assessment lifecycle. Metric citations currently remain
-separate from media evidence. Vector-registry/outbox, persistent graph, universal
-evidence, and psychological research tables are still planned, not implemented.
+provide a hypothesis-assessment lifecycle.
+
+Revision `0005_evidence` is the current head. It adds `entity_identities`, immutable
+`entity_revisions`, `legacy_entity_bindings`, `evidence_records`, immutable
+`evidence_revisions`, media/comment/metric typed bindings, `evidence_aliases`,
+`evidence_links`, `evidence_withdrawals` and restartable `evidence_backfill` cursors.
+Original media UUIDs stay unchanged. Registered questions, draft hypotheses and
+citation reports use validated versioned entity documents, not fake media/tasks.
+Withdrawals are terminal new-use revocations, not full erasure. Vector-registry/
+outbox, persistent graph and psychological evaluation remain planned.
 Migration numbering is independent of roadmap milestone numbering.
 
 All SQLAlchemy connections enable foreign keys, WAL, a bounded busy timeout,
@@ -87,9 +94,12 @@ media tools are warnings for health/storage commands; video analysis requires th
 and returns dependency-unavailable exit code 3 before creating a run.
 
 No graph relationships, semantic embeddings, or cross-store indexes are claimed
-until their milestones implement and test them. This release does not provide a
-backup/restore command; stop all commands before making a filesystem copy, including
-the database's `-wal`/`-shm` files if present, vector directory, and artifacts.
+until their milestones implement and test them. R1 adds `storage backup|restore`,
+verified pre-upgrade backups and source-eligibility verification. SQLite's backup
+API and managed artifact checks replace unsafe live database-file copying. Restore
+requires a new directory and either a same-lineage latest withdrawal authority or
+restricted recovery. External media/model inputs and derived vectors are explicitly
+not included; see [the operational guide](research-foundation.md).
 
 ## Concurrency and recovery
 
@@ -114,9 +124,9 @@ rows. Failed/incomplete attempts have no committed canonical output. The writer 
 allows interrupted tasks to be retried without a background lease-reaper service.
 See [video-analysis.md](video-analysis.md) for the execution and recovery contract.
 
-## Planned evolution, not current behavior
+## Implemented R1 and planned evolution
 
-R1 will add typed, versioned evidence locators while preserving existing media
+R1 adds typed, versioned evidence locators while preserving existing media
 evidence IDs and report snapshots. R6 will add reconstructible lexical/vector/graph
 projections derived from canonical SQLite revisions; it will not make Qdrant or
 NetworkX authoritative. Existing released migrations must not be edited. Legacy

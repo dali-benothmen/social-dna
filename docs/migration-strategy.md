@@ -1,6 +1,6 @@
 # Migration, compatibility and retention strategy
 
-Status: proposed architecture, 2026-11-05. **No application migration has been implemented by this document revision.** Current package/head remain `0.0.4` / `0004_analytics`. See [architecture](../ARCHITECTURE.md), [roadmap](../PLAN.md) and [research contracts](research-contracts.md).
+Status: R1's additive migration, backup and restricted-restore paths are implemented in `0.0.5` / `0005_evidence`; later migration work remains planned. Date: 2026-11-05. See [R1 operations](research-foundation.md), [architecture](../ARCHITECTURE.md), [roadmap](../PLAN.md) and [research contracts](research-contracts.md).
 
 ## 1. Compatibility contract
 
@@ -54,7 +54,7 @@ Before any future schema upgrade:
 4. Produce a consistent SQLite backup through the supported backup mechanism, plus artifact catalog/content needed to restore the checkpoint. Close/snapshot Qdrant consistently if present; derived data can instead be explicitly rebuilt.
 5. Record schema/package/configuration/retention manifests and verify restoration into a separate directory before declaring the backup usable. Inventory external original-media and model/runtime dependencies with hashes/availability; backups containing only managed artifacts are explicitly non-self-contained unless all required authorized inputs are included and verified. Missing dependencies constrain recomputation, even when stored reports remain readable.
 
-The existing CLI does not yet promise a complete `storage backup` command. A tested backup/preflight procedure or focused adapter is part of R1's implementation work. Copying a live database file without WAL handling is not an adequate backup plan.
+R1 implements `storage backup|restore` and verified pre-upgrade backups. They preserve canonical SQLite and managed artifacts, inventory external originals, and explicitly omit prepared model runtimes/weights and rebuildable vectors. Restores require a new directory and reconcile an operator-identified same-lineage latest withdrawal journal before normal use, or remain restricted. Copying a live database file without WAL handling is not an adequate backup plan. See [R1 operations](research-foundation.md).
 
 Backups may contain personal/source-restricted data. Record their location/retention and deletion obligations; a backup is not permission to retain withdrawn comments forever.
 
@@ -138,7 +138,7 @@ Distinguish **withdrawal from new use** from **erasure of retained bytes**:
 
 Referential history may remain as a permitted tombstone rather than a dangling citation. Immutable decisions mean that the system does not secretly rewrite what it once concluded; they do **not** override lawful erasure. Historical sources/reports can become unverifiable or unavailable, and that degradation is explicit.
 
-R1 supports withdrawal metadata/current citation eligibility and applicable source handling; R4 completes audience-derived retention workflows; R6 extends them across all projections. Do not claim one milestone already implements a future store's purge behavior.
+R1 supports withdrawal metadata/current citation eligibility, not full byte erasure; R4 completes audience/raw-import/derived-report redaction workflows and R6 extends cleanup across future projections. Archived bytes may remain only where retention is permitted. An erasure request cannot be satisfied by calling R1 withdrawal. Do not claim one milestone already implements a future store's purge behavior.
 
 ## 8. Rollback and forward recovery
 

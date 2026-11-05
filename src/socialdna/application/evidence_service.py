@@ -1,0 +1,420 @@
+"""Typed citation resolution, eligibility and terminal withdrawal for R1."""
+
+import json
+from typing import Any, Literal
+
+from pydantic import TypeAdapter, ValidationError
+from sqlalchemy import Connection, or_, select
+from sqlalchemy.dialects.sqlite import insert
+
+from socialdna.core.exceptions import ConfigurationError, StorageIntegrityError
+from socialdna.core.hashing import hash_config
+from socialdna.core.ids import stable_id
+from socialdna.core.time import utc_now
+from socialdna.domain.evidence import (
+    CommentLocator,
+    EntityRef,
+    EvidenceLocator,
+    EvidenceRef,
+    MediaLocator,
+    MetricLocator,
+    ResolvedEvidence,
+)
+from socialdna.ingestion.tabular import timestamp
+from socialdna.storage.evidence_repository import EvidenceRepository
+from socialdna.storage.schema import metadata
+
+LOCATOR_ADAPTER: TypeAdapter[EvidenceLocator] = TypeAdapter(EvidenceLocator)  # type: ignore[arg-type]
+
+
+class EvidenceResolver:
+    def __init__(self, connection: Connection) -> None:
+        self.connection = connection
+        self.repository = EvidenceRepository(connection)
+
+    def resolve(
+        self,
+        ref: EvidenceRef | str,
+        *,
+        revision_id: str | None = None,
+        purpose: Literal["inspect", "new_claim"] = "inspect",
+        as_of: str | None = None,
+        expected_subject: EntityRef | None = None,
+        media_id: str | None = None,
+        post_id: str | None = None,
+        run_id: str | None = None,
+        _ancestors: frozenset[str] = frozenset(),
+    ) -> ResolvedEvidence:
+        if purpose not in ("inspect", "new_claim"):
+            raise ConfigurationError("Unknown evidence resolution purpose")
+        if isinstance(ref, EvidenceRef):
+            if revision_id and revision_id != ref.revision_id:
+                raise ConfigurationError("Conflicting evidence revision arguments")
+            identity, revision_id = ref.id, ref.revision_id
+        else:
+            identity = ref
+        evidence = metadata.tables["evidence_revisions"]
+        aliases = metadata.tables["evidence_aliases"]
+        alias = self.connection.scalar(
+            select(aliases.c.evidence_revision_id).where(aliases.c.alias == identity)
+        )
+        if alias:
+            if revision_id and revision_id != alias:
+                raise ConfigurationError("Alias does not refer to the requested revision")
+            revision_id = str(alias)
+            identity = self.repository.get("evidence_revisions", revision_id)["evidence_id"]
+        rows = list(
+            self.connection.execute(
+                select(evidence).where(evidence.c.evidence_id == identity)
+            ).mappings()
+        )
+        if revision_id is None:
+            if len(rows) != 1:
+                raise ConfigurationError(
+                    "Unknown or ambiguous evidence ID; supply an exact revision"
+                )
+            row = dict(rows[0])
+        else:
+            row = self.repository.get("evidence_revisions", revision_id)
+            if row["evidence_id"] != identity:
+                raise ConfigurationError("Evidence identity does not match its revision")
+        payload = json.loads(row["locator_json"])
+        if row["id"] in _ancestors or len(_ancestors) >= 32:
+            raise StorageIntegrityError("Cyclic or excessively deep evidence dependency chain")
+        if hash_config(payload) != row["content_hash"]:
+            raise StorageIntegrityError("Evidence locator hash mismatch")
+        try:
+            locator = LOCATOR_ADAPTER.validate_python(payload)
+        except ValidationError as exc:
+            raise StorageIntegrityError("Stored evidence locator is invalid") from exc
+        if (
+            locator.kind != row["locator_kind"]
+            or locator.subject.revision_id != row["subject_revision_id"]
+        ):
+            raise StorageIntegrityError("Evidence locator and registry subject disagree")
+        related = [locator.subject]
+        if isinstance(locator, MediaLocator):
+            related.append(locator.media)
+        elif isinstance(locator, CommentLocator):
+            related.append(locator.post)
+        else:
+            related.extend((locator.measured_subject, locator.definition))
+        entities = [self.repository.entity(item) for item in related]
+        if row["provenance_id"] != entities[0]["provenance_id"]:
+            raise StorageIntegrityError("Citation provenance does not match its captured subject")
+        self._validate_binding(row, locator)
+        if expected_subject and locator.subject != expected_subject:
+            raise ConfigurationError("Evidence does not cite the expected entity revision")
+        if media_id and (not isinstance(locator, MediaLocator) or locator.media.id != media_id):
+            raise ConfigurationError("Evidence belongs to different media")
+        if post_id:
+            actual_post: str | None
+            if isinstance(locator, CommentLocator):
+                actual_post = locator.post.id
+            elif isinstance(locator, MetricLocator):
+                actual_post = (
+                    locator.measured_subject.id if locator.measured_subject.kind == "post" else None
+                )
+            else:
+                links = metadata.tables["post_media"]
+                actual_post = self.connection.scalar(
+                    select(links.c.post_id).where(
+                        links.c.post_id == post_id, links.c.media_asset_id == locator.media.id
+                    )
+                )
+            if actual_post != post_id:
+                raise ConfigurationError("Evidence does not belong to the expected post")
+        if run_id:
+            tasks = metadata.tables["analysis_tasks"]
+            allowed = self.connection.scalar(
+                select(tasks.c.id).where(
+                    tasks.c.run_id == run_id,
+                    or_(
+                        tasks.c.id == row["producer_task_id"],
+                        tasks.c.reused_from_task_id == row["producer_task_id"],
+                    ),
+                )
+            )
+            if row["producer_run_id"] != run_id and not allowed:
+                raise ConfigurationError("Evidence was not produced or reused by the requested run")
+        limitations: list[str] = []
+        sources = {item["source_id"] for item in entities if item["source_id"]}
+        if row["source_id"]:
+            sources.add(row["source_id"])
+        withdrawals = metadata.tables["evidence_withdrawals"]
+        reasons: list[str] = list(
+            self.connection.scalars(
+                select(withdrawals.c.reason).where(
+                    or_(withdrawals.c.evidence_id == identity, withdrawals.c.source_id.in_(sources))
+                )
+            )
+        )
+        if reasons:
+            limitations.extend("withdrawn: " + reason for reason in reasons)
+        if row["producer_task_id"]:
+            inputs = metadata.tables["inference_inputs"]
+            dependency_ids: list[str] = list(
+                self.connection.scalars(
+                    select(inputs.c.evidence_id).where(inputs.c.task_id == row["producer_task_id"])
+                )
+            )
+            for dependency_id in dependency_ids:
+                dependency = self.resolve(
+                    dependency_id, as_of=as_of, _ancestors=_ancestors | {row["id"]}
+                )
+                if not dependency.eligible:
+                    limitations.append(f"Derived input {dependency_id} is ineligible")
+        if not row["source_id"]:
+            limitations.append(
+                "Source authority is unknown; citation is ineligible for a new claim"
+            )
+        source = self.repository.get("source_records", row["source_id"]) if row["source_id"] else {}
+        if row["source_id"] and not str(source.get("permission_basis", "")).strip():
+            limitations.append("Source permission basis is absent")
+        if isinstance(locator, CommentLocator) and source.get("source_kind") == "tabular_export":
+            if not json.loads(source["terms_json"]).get("comments_permitted"):
+                limitations.append("Source does not permit comment reuse")
+        if isinstance(locator, MetricLocator) and locator.availability != "available":
+            limitations.append(f"Metric is {locator.availability}: {locator.reason}")
+        if as_of:
+            try:
+                cutoff = timestamp(as_of)
+            except ValueError as exc:
+                raise ConfigurationError(str(exc)) from exc
+            if row["available_at"] is None or row["available_at"] > cutoff:
+                limitations.append(
+                    "Evidence availability is unknown or later than the as-of cutoff"
+                )
+        eligible = not limitations
+        if purpose == "new_claim" and not eligible:
+            raise ConfigurationError("Ineligible evidence: " + "; ".join(limitations))
+        return ResolvedEvidence(
+            ref=EvidenceRef(id=identity, revision_id=row["id"]),
+            locator_kind=row["locator_kind"],
+            subject=locator.subject,
+            locator=locator if eligible else None,
+            source={
+                "id": row["source_id"],
+                "uri": source.get("source_uri"),
+                "permission_basis": source.get("permission_basis"),
+            },
+            provenance_id=row["provenance_id"],
+            producer_run_id=row["producer_run_id"],
+            producer_task_id=row["producer_task_id"],
+            captured_at=row["captured_at"],
+            available_at=row["available_at"],
+            eligible=eligible,
+            limitations=tuple(limitations),
+        )
+
+    def _validate_binding(
+        self,
+        row: dict[str, Any],
+        locator: MediaLocator | CommentLocator | MetricLocator,
+    ) -> None:
+        counts = {}
+        for name in (
+            "legacy_media_evidence_bindings",
+            "comment_evidence_bindings",
+            "metric_evidence_bindings",
+        ):
+            table = metadata.tables[name]
+            counts[name] = (
+                self.connection.execute(
+                    select(table).where(table.c.evidence_revision_id == row["id"])
+                )
+                .mappings()
+                .first()
+            )
+        if sum(value is not None for value in counts.values()) != 1:
+            raise StorageIntegrityError("Evidence requires exactly one typed locator binding")
+        subject = json.loads(self.repository.entity(locator.subject)["payload_json"])
+        if isinstance(locator, CommentLocator):
+            binding = counts["comment_evidence_bindings"]
+            if (
+                not binding
+                or locator.subject.kind != "comment"
+                or locator.post.kind != "post"
+                or binding["comment_revision_id"] != locator.subject.revision_id
+                or binding["comment_id"] != locator.subject.id
+                or binding["start_char"] != locator.start_char
+                or binding["end_char"] != locator.end_char
+                or subject["post_id"] != locator.post.id
+                or subject["body"][locator.start_char : locator.end_char] != locator.quote
+                or locator.end_char > len(subject["body"])
+            ):
+                raise StorageIntegrityError("Comment locator does not match its captured source")
+        elif isinstance(locator, MetricLocator):
+            binding = counts["metric_evidence_bindings"]
+            definition = json.loads(self.repository.entity(locator.definition)["payload_json"])
+            measured = json.loads(self.repository.entity(locator.measured_subject)["payload_json"])
+            if (
+                not binding
+                or locator.subject.kind != "metric_snapshot"
+                or binding["metric_observation_id"] != locator.subject.id
+                or binding["definition_revision_id"] != locator.definition.revision_id
+                or locator.definition.kind != "metric_definition"
+                or subject["metric_key"] != locator.definition.id
+                or subject["subject_type"] != locator.measured_subject.kind
+                or subject["subject_id"] != locator.measured_subject.id
+                or definition["subject_type"] != locator.measured_subject.kind
+                or definition["platform"] != measured["platform"]
+                or any(
+                    subject[key] != getattr(locator, key)
+                    for key in (
+                        "value",
+                        "availability",
+                        "reason",
+                        "observed_at",
+                        "window_start",
+                        "window_end",
+                    )
+                )
+            ):
+                raise StorageIntegrityError(
+                    "Metric locator does not match its captured snapshot/definition"
+                )
+        else:
+            binding = counts["legacy_media_evidence_bindings"]
+            if (
+                not binding
+                or locator.media.kind != "media"
+                or binding["media_revision_id"] != locator.media.revision_id
+            ):
+                raise StorageIntegrityError("Media locator binding disagrees with its media")
+            legacy = self.repository.get("evidence_items", binding["legacy_evidence_id"])
+            task = self.repository.get("analysis_tasks", row["producer_task_id"])
+            run = self.repository.get("analysis_runs", task["run_id"])
+            if (
+                legacy["id"] != row["evidence_id"]
+                or legacy["subject_id"] != locator.subject.id
+                or legacy["subject_type"] != locator.subject.kind
+                or legacy["media_asset_id"] != locator.media.id
+                or legacy["task_id"] != row["producer_task_id"]
+                or legacy["provenance_id"] != row["provenance_id"]
+                or legacy["artifact_id"] != locator.artifact_id
+                or legacy["excerpt"] != locator.excerpt
+                or task["run_id"] != row["producer_run_id"]
+                or run["target_type"] != "media"
+                or run["target_id"] != locator.media.id
+                or (legacy["start_ms"], legacy["end_ms"])
+                != (locator.interval.start_ms, locator.interval.end_ms)
+            ):
+                raise StorageIntegrityError("Media locator does not match its original evidence")
+        provenance = self.repository.get("provenance_records", row["provenance_id"])
+        if provenance["source_record_id"] != row["source_id"]:
+            raise StorageIntegrityError("Evidence provenance/source mismatch")
+
+
+class ClaimValidator:
+    """R1 research gates; legacy analytics retain their original method contract."""
+
+    def __init__(self, connection: Connection) -> None:
+        self.resolver = EvidenceResolver(connection)
+
+    def validate(
+        self,
+        claim_level: str,
+        evidence: tuple[EvidenceRef, ...],
+        *,
+        draft: bool = False,
+    ) -> tuple[ResolvedEvidence, ...]:
+        if claim_level not in ("observation", "hypothesis"):
+            raise ConfigurationError("R1 cannot validate associations or causal research findings")
+        if claim_level == "hypothesis" and not draft:
+            raise ConfigurationError(
+                "R1 hypotheses are registered drafts, not evaluation-ready claims"
+            )
+        if claim_level == "observation" and not evidence:
+            raise ConfigurationError("An observation requires eligible source evidence")
+        return tuple(self.resolver.resolve(ref, purpose="new_claim") for ref in evidence)
+
+
+def assert_active_inputs(
+    connection: Connection,
+    *,
+    source_ids: tuple[str, ...] = (),
+    evidence_ids: tuple[str, ...] = (),
+) -> None:
+    """Privacy gate for legacy producers; does not reinterpret their statistics."""
+    table = metadata.tables["evidence_withdrawals"]
+    reason = connection.scalar(
+        select(table.c.reason).where(
+            or_(table.c.source_id.in_(source_ids), table.c.evidence_id.in_(evidence_ids))
+        )
+    )
+    if reason:
+        raise ConfigurationError("Withdrawn input cannot support a new analysis/report: " + reason)
+
+
+def assert_media_active(connection: Connection, media_id: str) -> None:
+    locations = metadata.tables["media_locations"]
+    sources: tuple[str, ...] = tuple(
+        connection.scalars(
+            select(locations.c.source_record_id).where(locations.c.media_asset_id == media_id)
+        )
+    )
+    evidence = metadata.tables["evidence_items"]
+    ids: tuple[str, ...] = tuple(
+        connection.scalars(select(evidence.c.id).where(evidence.c.media_asset_id == media_id))
+    )
+    assert_active_inputs(connection, source_ids=sources, evidence_ids=ids)
+
+
+def assert_context_active(connection: Connection, subject_ids: tuple[str, ...]) -> None:
+    """Fail closed for merged legacy metadata without per-field source lineage."""
+    links, provenance = (
+        metadata.tables[name] for name in ("provenance_links", "provenance_records")
+    )
+    sources: tuple[str, ...] = tuple(
+        connection.scalars(
+            select(provenance.c.source_record_id)
+            .join(links, links.c.provenance_id == provenance.c.id)
+            .where(
+                links.c.entity_type.in_(("post", "account")),
+                links.c.entity_id.in_(subject_ids),
+                provenance.c.source_record_id.is_not(None),
+            )
+        )
+    )
+    assert_active_inputs(connection, source_ids=sources)
+
+
+def withdraw(
+    connection: Connection,
+    *,
+    source_id: str | None = None,
+    evidence_id: str | None = None,
+    reason: str,
+    actor: str = "local-user",
+) -> dict[str, Any]:
+    """Revoke new use, without claiming to erase retained historical bytes."""
+    if bool(source_id) == bool(evidence_id) or not reason.strip() or not actor.strip():
+        raise ConfigurationError(
+            "Specify exactly one source/evidence identity and a nonempty reason/actor"
+        )
+    repository = EvidenceRepository(connection)
+    repository.get(
+        "source_records" if source_id else "evidence_records", source_id or evidence_id or ""
+    )
+    identity = stable_id(
+        "withdrawal", "source" if source_id else "evidence", source_id or evidence_id or ""
+    )
+    table = metadata.tables["evidence_withdrawals"]
+    connection.execute(
+        insert(table)
+        .values(
+            id=identity,
+            source_id=source_id,
+            evidence_id=evidence_id,
+            reason=reason.strip(),
+            actor=actor.strip(),
+            created_at=utc_now(),
+        )
+        .on_conflict_do_nothing()
+    )
+    return {
+        **repository.get("evidence_withdrawals", identity),
+        "retained_bytes_erased": False,
+        "limitations": ["Withdrawal blocks new citation use; it is not a full erasure operation."],
+    }

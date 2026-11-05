@@ -140,6 +140,58 @@ def artifact_checks(application: Application) -> list[CheckResult]:
     ]
 
 
+def evidence_checks(application: Application) -> list[CheckResult]:
+    from socialdna.application.evidence_service import EvidenceResolver
+    from socialdna.storage.evidence_repository import EvidenceRepository
+
+    failures = []
+    withheld = 0
+    with application.database.transaction() as connection:
+        repository = EvidenceRepository(connection)
+        for row in connection.execute(select(metadata.tables["entity_revisions"])).mappings():
+            try:
+                repository.entity(repository.ref(dict(row)))
+            except Exception as exc:
+                failures.append({"revision": row["id"], "error": str(exc)})
+        resolver = EvidenceResolver(connection)
+        for row in connection.execute(select(metadata.tables["evidence_revisions"])).mappings():
+            try:
+                result = resolver.resolve(row["evidence_id"], revision_id=row["id"])
+                withheld += int(not result.eligible)
+            except Exception as exc:
+                failures.append({"revision": row["id"], "error": str(exc)})
+        legacy, bindings = (
+            metadata.tables[name] for name in ("evidence_items", "legacy_media_evidence_bindings")
+        )
+        missing: list[str] = list(
+            connection.scalars(
+                select(legacy.c.id)
+                .outerjoin(bindings, bindings.c.legacy_evidence_id == legacy.c.id)
+                .where(bindings.c.evidence_revision_id.is_(None))
+            )
+        )
+        pending: list[str] = list(
+            connection.scalars(
+                select(metadata.tables["evidence_backfill"].c.kind).where(
+                    metadata.tables["evidence_backfill"].c.status != "complete"
+                )
+            )
+        )
+    return [
+        CheckResult(
+            name="evidence.integrity",
+            status="error" if failures or pending or missing else "ok",
+            message="Verified canonical revision hashes and typed evidence bindings.",
+            details={
+                "failures": failures,
+                "pending_backfills": pending,
+                "withheld_citations": withheld,
+                "unregistered_legacy_evidence": missing,
+            },
+        )
+    ]
+
+
 def _vector_status(application: Application) -> dict[str, Any]:
     collections = application.vectors.client.get_collections().collections
     return {
@@ -177,7 +229,11 @@ def storage_status(settings: Settings) -> dict[str, Any]:
 
 def storage_verify(settings: Settings) -> list[CheckResult]:
     with open_application(settings) as application:
-        checks = database_checks(application) + artifact_checks(application)
+        checks = (
+            database_checks(application)
+            + artifact_checks(application)
+            + evidence_checks(application)
+        )
         checks.append(
             CheckResult(
                 name="qdrant.local",

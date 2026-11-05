@@ -18,6 +18,11 @@ from socialdna.analytics.cohorts import in_population, match_pairs
 from socialdna.analytics.metrics import outcome, select_snapshot
 from socialdna.analytics.statistics import analyze_rows
 from socialdna.application.bootstrap import Application
+from socialdna.application.evidence_service import (
+    EvidenceResolver,
+    assert_active_inputs,
+    assert_context_active,
+)
 from socialdna.core.exceptions import ConfigurationError, SocialDNAError, StorageIntegrityError
 from socialdna.core.hashing import canonical_json, hash_config
 from socialdna.core.ids import new_id, stable_id
@@ -106,6 +111,10 @@ def build_population(
         # Keep platform definitions distinct even if a creator has cross-platform accounts.
         posts = [row for row in posts if row["platform"] == definitions[0]["platform"]]
         selected_ids = {row["id"] for row in posts}
+        assert_context_active(
+            connection,
+            tuple(selected_ids | {row["account_id"] for row in posts if row["account_id"]}),
+        )
         primary = {
             row["post_id"]: row["media_asset_id"]
             for row in _rows(connection, "post_media")
@@ -141,6 +150,11 @@ def build_population(
                 metrics_table.c.metric_key.in_([r["key"] for r in definitions]),
             )
         ).mappings():
+            assert_active_inputs(
+                connection,
+                source_ids=(metric_row["source_id"],),
+                evidence_ids=(stable_id("metric-evidence", metric_row["id"]),),
+            )
             snapshots[(metric_row["subject_id"], metric_row["metric_key"])].append(dict(metric_row))
         feature_data = _media_features(connection, set(primary.values()))
     result = []
@@ -251,6 +265,8 @@ def _media_features(connection: Connection, media_ids: set[str]) -> dict[str, di
                 .order_by(evidence.c.id)
             )
         )
+        for evidence_id in evidence_ids:
+            EvidenceResolver(connection).resolve(evidence_id, purpose="new_claim")
         result[media_id] = {"run_id": run_id, "features": values, "evidence_ids": evidence_ids}
     return result
 
@@ -421,6 +437,24 @@ def _persist_analysis(
     batch: list[dict[str, Any]] | None = None,
     reproduced_from: str | None = None,
 ) -> dict[str, Any]:
+    with application.database.transaction() as connection:
+        assert_context_active(
+            connection,
+            tuple(
+                {row["post_id"] for row in rows}
+                | {row["account_id"] for row in rows if row["account_id"]}
+            ),
+        )
+        for row in rows:
+            assert_active_inputs(
+                connection,
+                source_ids=tuple(item["source_id"] for item in row["snapshots"]),
+                evidence_ids=tuple(
+                    stable_id("metric-evidence", item) for item in row["snapshot_ids"]
+                ),
+            )
+            for evidence_id in row["feature_evidence_ids"]:
+                EvidenceResolver(connection).resolve(evidence_id, purpose="new_claim")
     run_id, now = new_id(), utc_now()
     version_info = {
         name: importlib.metadata.version(name)

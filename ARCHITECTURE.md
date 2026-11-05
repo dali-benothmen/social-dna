@@ -1,6 +1,6 @@
 # SocialDNA architecture
 
-Revised: 2026-11-05. Status: architecture revision incorporating the approved [intelligence audit](docs/architecture-audit.md); implementation remains **0.0.4**, database head **0004_analytics**. All R/U capabilities below are **planned and unimplemented**, unless explicitly identified as existing. This revision does not authorize application implementation.
+Revised: 2026-11-05. Implementation: **0.0.5**, database head **0005_evidence**. R1's evidence/registration foundation is implemented; **R2–R10 and U1/U2 remain planned**. The architecture incorporates the approved [intelligence audit](docs/architecture-audit.md); R1 was subsequently authorized for implementation. See [R1's operational guide](docs/research-foundation.md) for its exact available surface and limitations.
 
 The [implementation plan](PLAN.md) defines delivery and acceptance gates. Detailed contracts live in [research contracts](docs/research-contracts.md), [statistical design](docs/statistical-design.md), [migration strategy](docs/migration-strategy.md), and the [twelve-step cooking use case](docs/research-use-case.md). The [previous architecture](docs/history/ARCHITECTURE.pre-research-revision.md) is a historical record, not a competing specification. Architecture/plan line references inside the unchanged audit refer to those pre-revision documents.
 
@@ -26,7 +26,7 @@ Scientific boundaries are architectural invariants: missing data is not zero; ex
 
 ### 2.1 Implemented foundation
 
-The current repository delivers deterministic local video processing, supplied subtitles, optional prepared local-model enrichment, strict account/post/comment/tag/metric imports, account media batches, descriptive/model-based comparisons and immutable analysis/report artifacts. Existing media evidence is interval-bound; imported metrics are scalar snapshots. Current vector support initializes/checks Qdrant, but semantic retrieval and graph research memory are not implemented.
+The current repository delivers deterministic local video processing, supplied subtitles, optional prepared local-model enrichment, strict account/post/comment/tag/metric imports, account media batches, descriptive/model-based comparisons and immutable analysis/report artifacts. R1 additionally supplies universal revisioned citations for existing media, comment spans and scalar metrics, draft registration and withdrawal-aware citation reports. Legacy media evidence remains interval-bound; imported metrics remain scalar snapshots. Current vector support initializes/checks Qdrant, but semantic retrieval and graph research memory are not implemented.
 
 Important current limitations remain until R milestones land: retrospective rather than historically prior baselines; same-creator matching only; niche/creator design aliasing; missing production availability lineage; auxiliary Ridge validation rather than validation of the requested interaction/model; comments not integrated into reaction analysis; no retention-series contracts or hypothesis revision engine. Existing optional reasoners cannot already make the future mechanism/performance claims.
 
@@ -297,12 +297,12 @@ Storage verification checks dangling refs, hashes, projection generations, missi
 
 ## 10. Agent skill, commands and reports
 
-Keep current CLI commands and result envelopes. All new names below are **proposed**, not installed commands.
+Keep current CLI commands and result envelopes. R1's evidence/registration/report and backup/restore commands are implemented as documented in [R1 operations](docs/research-foundation.md). Later-milestone names below remain **proposed**, not installed commands.
 
 | Workflow | Engine surface / milestone |
 |---|---|
 | Current basic media/account workflow | Existing `import local\|csv\|json`, `analyze video\|account`, `timeline show`, `models status\|prepare`, `compare posts\|accounts\|reproduce`, `report generate`, `doctor`, `storage status\|verify` |
-| Resolve/register | `evidence resolve`, `research register\|show` — R1 |
+| Resolve/register/report | `evidence resolve\|cite-comment\|cite-metric\|withdraw`, `research register\|show\|report`, `storage backup\|restore` — implemented R1 |
 | Corrected comparisons | Existing compare commands with explicit versioned design/specification — R2 |
 | Events / audience / behavior | Validated imported or reviewed annotation/series specifications and focused CLI adapters — R3–R5 |
 | Retrieve / maintain memory | `query`, `graph neighbors\|path`, bounded `storage reconcile\|reindex` adapters — R6 |
@@ -348,7 +348,7 @@ The [migration strategy](docs/migration-strategy.md) preserves existing tables/I
 
 Delivery follows [PLAN.md](PLAN.md): R1 universal evidence/minimal registration; R2 correctness; R3 events; R4 reactions; R5 behavioral metrics; R6 memory; R7 first full mechanism investigation; R8 reevaluation; R9 bounded broader discovery; R10 experiments. U1/U2 preserve image and portable-skill usability. R4/R5 are deliberately separated; memory follows working canonical producers rather than encoding an inadequate evidence model.
 
-The first implementation-ready scope is R1 only. It needs no model selection, platform connector or finalized psychology corpus. Its proof is an upgraded old media citation plus real imported comment and metric citations, minimal question/spec registration, restart resolution and withdrawal-aware reporting.
+R1's implemented proof is an upgraded old media citation plus real imported comment and metric citations, minimal question/spec registration, restart resolution and withdrawal-aware reporting. R2 is the next implementation scope; it is not included in the R1 delivery.
 
 ## 14. Architectural support for the six audited capabilities
 
@@ -390,3 +390,55 @@ Official references inform contracts, not promises that connectors/models are al
 - [TikTok Research API FAQ](https://developers.tiktok.com/docs/en/research-api-faq): eligibility and data-freshness constraints.
 - [Kang et al., 2009](https://www.cmu.edu/dietrich/sds/docs/loewenstein/WickCandleLearning.pdf): an example of operationalized curiosity research, not direct proof about cooking-video openings.
 - [Webb and Sheeran, 2006](https://pubmed.ncbi.nlm.nih.gov/16536643/): intention and subsequent behavior are not interchangeable.
+
+## 17. R1 implementation decisions and boundaries
+
+R1 implements the common revision/citation foundation without R2 statistical repairs
+or R7 mechanism evaluation. [The operational guide](docs/research-foundation.md)
+documents actual commands, payloads and recovery steps.
+
+| Implemented surface | Current module/interface |
+|---|---|
+| Canonical captured revisions and typed bindings | `storage/evidence_repository.py`: `EvidenceRepository.capture`, `media_evidence`, `comment_evidence`, `metric_evidence`; `backfill_evidence` |
+| Citation/eligibility validation | `application/evidence_service.py`: `EvidenceResolver.resolve`, base `ClaimValidator.validate`, `withdraw` |
+| Draft registration and citation reports | `application/research_service.py`: `register_research`, `show_research`, `generate_research_report`; no evaluator |
+| Backup/recovery | `storage/backup.py`: canonical SQLite/artifact backup, separate-directory restore, lineage check and withdrawal replay |
+| No-write validation | `storage/readonly.py`: immutable checkpoint reads with WAL/concurrent-change refusal |
+| CLI | `cli/research_commands.py`: evidence, research and backup/restore adapters; normal result envelopes |
+
+Implementation choices clarify the earlier conceptual interfaces:
+
+- A single normalized `legacy_entity_bindings` table provides real nullable subtype
+  FKs with an exactly-one constraint; the resolver additionally validates kind,
+  identity, hash, ownership and source. Captured payloads freeze mutable metadata.
+- Draft questions/hypotheses and citation reports are versioned entity documents.
+  Reports use artifact owner links and scoped `evidence_links`, rather than fake
+  `analysis_runs` or media timestamps. Functional application-service APIs follow
+  the existing engine style; the proposed `ResearchService` evaluation interface
+  remains future work.
+- Media producers keep the existing `TaskContext`; the task transaction registers
+  emitted evidence. Imports capture actual account/post/comment/definition/snapshot
+  rows. A tabular media URI is not a decoded asset and is not registered as one.
+- Original media evidence rows and new revision/binding/link histories receive
+  immutable update/delete guards. Corrections create new revisions. Metric URI
+  aliases bind exact snapshot revisions and do not follow edited post metadata.
+- The terminal withdrawal journal deliberately permits target identities absent
+  from an older restored checkpoint. Normal withdrawal validates target existence;
+  recovery can retain detached privacy tombstones. These are not evidence claims,
+  and FK-constrained canonical citations remain intact. This prevents reimports from
+  reviving a post-checkpoint withdrawal.
+- Backups use SQLite's backup API and verified managed artifacts; external originals,
+  model weights/runtimes and rebuildable vectors are explicit omissions. Restores
+  require a new directory. Same-lineage journal reconciliation or restricted
+  recovery prevents an older checkpoint from silently reinstating eligibility.
+- `mode=ro` alone can create SQLite WAL/SHM side files. No-write dry runs therefore
+  read only quiescent checkpoints using immutable reads and reject active WAL/file
+  changes. Actual writes always revalidate under the established writer lock.
+- R1 withdraws new use and withholds current locator text/values, including derived
+  model dependencies. It is **not full byte erasure**. Permitted historical bytes
+  stay unchanged; complete audience/raw-import/report redaction remains R4, extended
+  to future indices in R6. An erasure obligation cannot be discharged by withdrawal.
+- Legacy merged post/account metadata has no per-field source lineage. New analyses
+  fail closed when contributing source history is withdrawn; R2 can refine this
+  conservatism with explicit feature lineage. Other legacy statistical limitations
+  remain visible and unchanged.
