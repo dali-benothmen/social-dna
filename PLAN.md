@@ -730,13 +730,13 @@ The next numbered research milestone is **R9**; C1 and U1/U2 remain separately a
 
 ## 19. C1 — Versioned production and growth-context evidence
 
-Status: **C1-A/B/C delivered in `0.0.13`–`0.0.15`; C1-D pending**. Four bounded deliveries,
+Status: **complete — four independently tested deliveries (`0.0.13`–`0.0.16`)**. Four bounded deliveries,
 not one large implementation or a requirement to build live API adapters. Detailed
 boundaries are in the [capability audit](docs/intelligence-capability-audit.md#2-shared-extension-architecture--planned-not-implemented).
 
 Current authorization: implement C1-A through C1-D as four serial deliveries, each
 with working functionality, automated verification and its own professional commit.
-C1-A/B/C are complete; C1-D has not started.
+C1-A/B/C/D are complete as bounded evidence foundations.
 This does not authorize R9/R10 or U1/U2.
 
 ### Objective and integration
@@ -808,6 +808,35 @@ Proposed file names below are responsibility boundaries, not scaffolding instruc
   and final reruns: 474 pass, three optional prepared-model skips. Ruff, strict mypy
   (160 modules), offline lock/build and installed-wheel/source checks pass.
   [Operations and limitations](docs/platform-research.md).
+
+### Delivered profiles and measured funnels (`0.0.16`)
+
+- `domain/profile.py`, `application/profile_service.py`, `storage/profile_repository.py`,
+  `analytics/funnels.py` and `cli/profile_commands.py` implement dated public snapshots,
+  exact photo/text/link/pin evidence, a frozen human rubric, source event definitions
+  and actual R5 account-period funnels. `0014_profile` adds only the first-use immutable
+  event-meaning/uniqueness binding with real definition/context FKs and code hashes.
+- Qualitative assessments and actual measured follow/install/purchase outcomes remain
+  distinct. Rates preserve unknown private data, invalid denominators/cohorts/windows,
+  missing source joins and dedup limits. Source attribution retains its supplied model,
+  windows, credits and unassigned remainder; no individual paths, nearest-post credit
+  or causal profile effect is invented. Native link/campaign metric subjects remain
+  source-specific first-use extensions, not synthesized from account aggregates.
+- The actual integration verifies two captures, ordering/assets/Unicode evidence,
+  human rubric, source-qualified measured rates, source attribution, unknown versus
+  explicitly attested exposure, older corrections, missing/suppressed counts,
+  stock-versus-flow, relabeling/duplicate-credit/ownership rejection, restart, frozen
+  bytes, current memory, withdrawal and confirmed erasure.
+- All 482 collected tests covered across full regression partitions and targeted final
+  reruns: 479 pass and three optional prepared-model skips. Ruff and strict mypy (166
+  source modules), offline lock/build, installed-wheel CLI and packaged/source equality
+  checks pass. No detector accuracy, actual business lift or empirical causal validity
+  follows from controlled fixtures. [Operations and limits](docs/profile-conversion.md).
+
+C1 completion does not implement U1 automatic static-image interpretation, R9 broader
+cross-domain discovery, R10 recommendations/prospective experiment outcomes or U2 skill
+delivery. Those remain the next separately authorized roadmap work, not hidden scope
+inside these four commits.
 
 ### Acceptance criteria and tests
 

@@ -143,7 +143,8 @@ def _scope_evidence(
         members = document.get("spec", {}).get("posts", [])
         post = document.get("post")
         eligible = (
-            resolved.subject.kind in ("publication_context", "publishing_window", "trend_context")
+            resolved.subject.kind
+            in ("publication_context", "publishing_window", "trend_context", "profile_snapshot")
             and document["account"]["id"] in account_ids
             and (post["id"] in post_ids if post else all(p["id"] in post_ids for p in members))
         )

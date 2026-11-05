@@ -48,7 +48,10 @@ adds `0013_context`: immutable context ownership/capture and typed citation bind
 preserving existing evidence triggers across the locator-CHECK rebuild. Any captured
 history prevents downgrade; verified backups remain the recovery path. C1-C (`0.0.15`)
 uses the existing context bindings for its four actual producers, with no new DDL.
-C1-D remains a planned first-use extension. See the [capability contracts](research-contracts.md#8-production-and-growth-context-contracts)
+C1-D (`0.0.16`) adds `0014_profile` for the actually used immutable source event/uniqueness
+bindings: real R5 definition and context FKs plus event-code hash. It does not rebuild
+parents or create a profile/link/campaign fake-post registry. Captured binding history
+prevents downgrade. See the [capability contracts](research-contracts.md#8-production-and-growth-context-contracts)
 and [slice verification matrix](intelligence-capability-audit.md#4-bounded-delivery-and-verification).
 Preserve account-export v1, the closed R3 annotation v1 vocabulary and existing
 post/account metric semantics; unknown labels must not silently become valid in

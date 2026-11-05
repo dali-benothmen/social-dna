@@ -106,6 +106,10 @@ def preview(
                 "platform_statement",
                 "platform_capabilities",
                 "distribution_observation",
+                "profile_snapshot",
+                "profile_review",
+                "funnel_definition",
+                "funnel_context",
             )
             for r in entities
         )

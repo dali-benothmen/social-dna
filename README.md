@@ -1,7 +1,10 @@
 # SocialDNA
 
 SocialDNA is a local-first social-media research engine. The implemented release is
-`0.0.15`: reviewed platform-document/statement versions, source capabilities and
+`0.0.16`: dated public profiles, frozen evidence-backed human rubrics and separately
+measured owner-account funnels, with explicit follow/install meanings and qualified
+source attribution. See [profile conversion evidence](docs/profile-conversion.md).
+It extends `0.0.15`'s reviewed platform-document/statement versions, source capabilities and
 surface mappings, and qualified early-response/later-distribution reports. See
 [platform research evidence](docs/platform-research.md). It extends `0.0.14`'s
 dated publication/packaging context, exact metadata/asset citations,

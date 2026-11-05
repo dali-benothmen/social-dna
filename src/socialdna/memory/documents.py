@@ -86,6 +86,11 @@ TEXT_KEYS = {
     "profile_context",
     "observation",
     "query",
+    "bio",
+    "display_name",
+    "username",
+    "positioning",
+    "content_pillars",
 }
 
 
@@ -134,7 +139,7 @@ def text_fields(value: dict[str, Any]) -> str:
 
 
 def current_revision(connection: Connection, ref: EntityRef, as_of: str | None = None) -> bool:
-    if ref.kind in ("context_report", "platform_statement"):
+    if ref.kind in ("context_report", "platform_statement", "profile_review", "funnel_context"):
         row = EvidenceRepository(connection).entity(ref)
         from socialdna.storage.context_repository import KINDS as CONTEXT_KINDS
 
@@ -153,7 +158,12 @@ def current_revision(connection: Connection, ref: EntityRef, as_of: str | None =
         statement = statement.where(
             table.c.available_at.is_not(None), table.c.available_at <= as_of
         )
-    latest = connection.scalar(statement.order_by(table.c.revision_no.desc()).limit(1))
+    order = [table.c.revision_no.desc()]
+    if ref.kind == "profile_snapshot":
+        captures = metadata.tables["context_records"]
+        statement = statement.join(captures, captures.c.revision_id == table.c.id)
+        order.insert(0, captures.c.captured_at.desc())
+    latest = connection.scalar(statement.order_by(*order).limit(1))
     if latest != ref.revision_id:
         return False
     # Removed annotations are historical, not current merely because their own
@@ -342,6 +352,8 @@ def build(connection: Connection, kind: str, identity: str) -> dict[str, Any] | 
     if locator.get("kind") in ("comment_span", "post_text"):
         text = locator["quote"]  # Index only the permitted exact cited span.
     elif locator.get("kind") == "context_record" and locator.get("quote"):
+        if (locator.get("field") or "").endswith("/destination"):
+            return None  # Do not project link query/tracking parameters into semantic indexes.
         text = locator["quote"]
     else:
         text = text_fields(payload)
@@ -376,6 +388,40 @@ def build(connection: Connection, kind: str, identity: str) -> dict[str, Any] | 
                     ],
                 },
                 ensure_ascii=False,
+            )
+        if owner.kind == "profile_snapshot":
+            snapshot = payload["spec"]
+            text = "Dated public profile snapshot; source declarations, not measured conversion.\n"
+            text += "Captured at: " + snapshot["clock"]["captured_at"] + "\n"
+            for field in ("username", "display_name", "bio", "category", "positioning"):
+                value = snapshot[field]
+                text += field + " [" + value["state"] + "]: " + (value["value"] or "") + "\n"
+            text += "Declared pillars: " + ", ".join(snapshot["content_pillars"])
+        if owner.kind == "profile_review":
+            text = (
+                "Frozen human profile rubric; not measured conversion or personality.\n"
+                + json.dumps(
+                    [
+                        {key: criterion[key] for key in ("key", "verdict", "rationale")}
+                        for criterion in payload["spec"]["criteria"]
+                    ],
+                    ensure_ascii=False,
+                )
+            )
+        if owner.kind == "funnel_context":
+            text = (
+                "Source-qualified aggregate account funnel; "
+                "no individual journey or causal profile effect.\n"
+                + json.dumps(
+                    {
+                        "stages": [
+                            {key: stage[key] for key in ("signal", "value", "availability", "unit")}
+                            for stage in payload["result"]["stages"].values()
+                        ],
+                        "profile_exposure": payload["result"]["profile_exposure"],
+                    },
+                    ensure_ascii=False,
+                )
             )
         if owner.kind == "research_assessment" and "reevaluation" in payload:
             text += "\nCumulative exploratory reevaluation; not independent confirmation."
@@ -422,6 +468,7 @@ def build(connection: Connection, kind: str, identity: str) -> dict[str, Any] | 
         or owner.kind == "comment"
         else "behavioral_observations"
         if locator.get("kind") in ("behavioral_record", "metric_snapshot")
+        or owner.kind == "funnel_context"
         else "statistical_findings"
         if owner.kind in ("statistical_analysis", "research_assessment", "research_finding")
         else "psychological_patterns"
@@ -438,6 +485,8 @@ def build(connection: Connection, kind: str, identity: str) -> dict[str, Any] | 
             "platform_document",
             "platform_statement",
             "platform_capabilities",
+            "profile_review",
+            "funnel_definition",
         )
         else "content_segments"
     )
@@ -456,5 +505,9 @@ def build(connection: Connection, kind: str, identity: str) -> dict[str, Any] | 
         if owner.kind == "platform_statement"
         else "source_document"
         if owner.kind == "platform_document"
+        else "qualitative_human_assessment"
+        if owner.kind == "profile_review"
+        else "measured_aggregate_not_causal"
+        if owner.kind == "funnel_context"
         else "observation",
     }

@@ -651,7 +651,7 @@ command. See [operations and verification boundaries](docs/research-memory.md).
 ## 23. Production and growth-context extension decisions
 
 This design follows the [four-area audit](docs/intelligence-capability-audit.md).
-C1-A/B/C are implemented in `0.0.13`–`0.0.15` (details below); D remains planned. Generic
+C1-A/B/C/D are implemented in `0.0.13`–`0.0.16` (details below). Generic
 creative annotations, platform metric namespaces and arbitrary profile JSON cannot
 honestly stand in for complete craft, distribution, publishing or conversion intelligence.
 
@@ -815,3 +815,31 @@ not an autonomous trend detector or evidence of a universal optimal posting time
 
 [Operations, trust boundaries and source limits](docs/platform-research.md) distinguish
 these working inputs from R9 discovery and R10 causal experiments/recommendations.
+
+## 29. Profile and owner-funnel evidence (`0.0.16`)
+
+- Actual snapshots distinguish captured public fields, ordered links/pins, retained
+  photo identity and source declarations from a frozen human rubric. Current selection
+  uses source capture time within a stable snapshot key, not the arrival order of old
+  corrections. Engine knowledge remains import time; exposure is not backdated.
+- Source meanings require one small additive projection, `0014_profile`:
+  `funnel_event_bindings` binds actual R5 definition revisions to immutable event role,
+  uniqueness and source-code hash, with real context/definition FKs. It prevents
+  relabeling a click counter as installs and retains only non-sensitive role/hash
+  metadata after source erasure. Released migrations are unchanged.
+- R5 owns actual account-period counts and source attribution. Funnel rates require
+  actual compatible components/cohorts/windows and supplied nested/deduplicated joins;
+  missing/suppressed or incompatible data stays unknown. Source joins are reviewed
+  attestations, not automatic verification of individual journeys. No new numeric
+  inference engine or quality→growth score is introduced.
+- Shared context/asset/report/memory services support public fields and qualified
+  measured flows as independent lanes. Account aggregates are not fake native profile,
+  link or campaign subjects; those require source-specific actual bindings when used.
+  Public-profile exposure remains unknown unless explicitly sourced and interval-checked.
+- Frozen history, raw R7 population context, R8's existing change journal, current
+  memory gating, source withdrawal and confirmed erasure reuse the existing architecture.
+  Derived graph links stay structural, not causal. No connector, server or dependency.
+
+See [formats, semantic guards and delivered limits](docs/profile-conversion.md).
+U1 automatic image interpretation and R9/R10 discovery/recommendation/experiment
+work remain separate; completing C1 does not claim their scientific validity.

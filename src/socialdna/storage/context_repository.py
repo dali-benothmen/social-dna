@@ -23,6 +23,10 @@ KINDS = {
     "platform_statement",
     "platform_capabilities",
     "distribution_observation",
+    "profile_snapshot",
+    "profile_review",
+    "funnel_definition",
+    "funnel_context",
 }
 
 
@@ -103,6 +107,10 @@ def validate_projection(repo: EvidenceRepository, ref: EntityRef, payload: dict[
     )
     if capture and row["captured_at"] != capture:
         raise StorageIntegrityError("Context capture projection mismatch")
+    if ref.kind == "funnel_definition":
+        from socialdna.storage.profile_repository import validate_bindings
+
+        validate_bindings(repo, payload)
 
 
 def field_value(payload: dict[str, Any], field: str) -> str:
@@ -140,7 +148,9 @@ def validate_locator(repo: EvidenceRepository, locator: ContextLocator) -> None:
     ):
         raise ConfigurationError("Partial context text locators are not allowed")
     if locator.artifact_id:
-        thumbnails = payload["spec"].get("thumbnails", [])
+        thumbnails = list(payload["spec"].get("thumbnails", []))
+        if payload["spec"].get("photo"):
+            thumbnails.append(payload["spec"]["photo"])
         if not any(t["artifact_id"] == locator.artifact_id for t in thumbnails):
             raise ConfigurationError("Artifact does not belong to this context variant")
         asset = repo.get("artifact_objects", locator.artifact_id)

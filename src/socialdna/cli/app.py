@@ -17,6 +17,7 @@ from socialdna.cli.errors import error_result
 from socialdna.cli.memory_commands import register as register_memory_commands
 from socialdna.cli.output import emit
 from socialdna.cli.platform_commands import register as register_platform_commands
+from socialdna.cli.profile_commands import register as register_profile_commands
 from socialdna.cli.research_commands import register as register_research_commands
 from socialdna.config.settings import Settings
 from socialdna.core.enums import ExitCode
@@ -430,6 +431,7 @@ def main() -> None:
 register_creative_commands(app)
 register_context_commands(app)
 register_platform_commands(app)
+register_profile_commands(app)
 register_audience_commands(app, analysis)
 register_behavioral_commands(app, ingestion, analysis)
 register_accounts(ingestion, analysis, compare_app)

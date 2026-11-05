@@ -5,7 +5,10 @@ imports and eight craft recipes through existing comparison, evidence and increm
 research services. See [actual operations and limits](production-evidence.md).
 C1-B (`0.0.14`) adds [publishing-context imports and reports](publication-context.md).
 C1-C (`0.0.15`) adds [platform/source-specific evidence and descriptive reports](platform-research.md).
-C1-D remains pending. The original audit below records the earlier baseline;
+C1-D (`0.0.16`) adds [public snapshots, frozen rubrics and measured account funnels](profile-conversion.md).
+The C1 foundations are delivered; U1/R9/R10 automatic image analysis, broader discovery,
+recommendations/experiments and independent real-world validation remain separate.
+The original audit below records the earlier baseline;
 it is not a claim that all four intelligence areas or empirical validity are complete.
 
 Reviewed: 2026-11-05 against package `0.0.10`, SQLite head `0010_memory`, the active roadmap, design documents and implementation. This is a documentation-only revision: R1–R6 remain delivered; R7 remains next. **None of the four requested areas is complete today.** Existing extensibility is not an implemented capability or empirical validation.

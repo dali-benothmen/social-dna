@@ -10,7 +10,7 @@ from zoneinfo import ZoneInfo
 
 from PIL import Image, UnidentifiedImageError
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import case, select
 from sqlalchemy.dialects.sqlite import insert
 
 from socialdna import __version__
@@ -35,6 +35,40 @@ from socialdna.storage.evidence_repository import EvidenceRepository
 from socialdna.storage.schema import metadata
 
 T = TypeVar("T", bound=BaseModel)
+
+
+def capture_image(
+    app: Application,
+    connection: Any,
+    path: Path,
+    sha256: str,
+    *,
+    variant: str,
+    placement: str,
+    kind: str = "thumbnail",
+    base: Path | None = None,
+) -> dict[str, str]:
+    if not path.is_absolute():
+        path = (base or Path.cwd()) / path
+    try:
+        with path.open("rb") as stream:
+            content = stream.read(10_000_001)
+    except OSError as exc:
+        raise ConfigurationError("Cannot read explicitly supplied image") from exc
+    if len(content) > 10_000_000 or hashlib.sha256(content).hexdigest() != sha256:
+        raise ConfigurationError("Image byte limit/hash mismatch")
+    try:
+        with Image.open(io.BytesIO(content)) as image:
+            if image.format not in ("PNG", "JPEG", "WEBP"):
+                raise ConfigurationError("Only PNG/JPEG/WebP assets are supported")
+            image.verify()
+    except (UnidentifiedImageError, OSError, Image.DecompressionBombError) as exc:
+        raise ConfigurationError("Invalid or oversized supplied image") from exc
+    artifact = app.artifacts.put_bytes(
+        connection, content, kind=kind, mime_type="application/octet-stream"
+    )
+    return {"variant": variant, "placement": placement, "sha256": sha256, "artifact_id": artifact}
+
 
 PUBLICATION_RECIPES = {
     "publication.local_clock.v1": {
@@ -153,40 +187,17 @@ def import_into_application(
                     raise ConfigurationError("Publication timestamp differs from captured post")
                 thumbnails = []
                 for item in record.thumbnails:
-                    path = Path(item.path)
-                    if not path.is_absolute():
-                        path = (base or Path.cwd()) / path
-                    try:
-                        with path.open("rb") as stream:
-                            content = stream.read(10_000_001)
-                    except OSError as exc:
-                        raise ConfigurationError(
-                            "Cannot read explicitly supplied thumbnail"
-                        ) from exc
-                    if (
-                        len(content) > 10_000_000
-                        or hashlib.sha256(content).hexdigest() != item.sha256
-                    ):
-                        raise ConfigurationError("Thumbnail byte limit/hash mismatch")
-                    try:
-                        with Image.open(io.BytesIO(content)) as image:
-                            if image.format not in ("PNG", "JPEG", "WEBP"):
-                                raise ConfigurationError("Only PNG/JPEG/WebP assets are supported")
-                            image.verify()
-                    except (UnidentifiedImageError, OSError, Image.DecompressionBombError) as exc:
-                        raise ConfigurationError("Invalid or oversized supplied thumbnail") from exc
-                    artifact = app.artifacts.put_bytes(
-                        connection, content, kind="thumbnail", mime_type="application/octet-stream"
+                    asset = capture_image(
+                        app,
+                        connection,
+                        Path(item.path),
+                        item.sha256,
+                        variant=item.variant,
+                        placement=item.placement,
+                        base=base,
                     )
-                    artifacts.append(artifact)
-                    thumbnails.append(
-                        {
-                            "variant": item.variant,
-                            "placement": item.placement,
-                            "sha256": item.sha256,
-                            "artifact_id": artifact,
-                        }
-                    )
+                    artifacts.append(asset["artifact_id"])
+                    thumbnails.append(asset)
                 data["thumbnails"] = thumbnails
             elif isinstance(record, PublishingWindow):
                 for ref in record.posts:
@@ -268,8 +279,17 @@ def show(app: Application, identity: str, *, revision: str | None = None) -> dic
         )
         if revision:
             query = query.where(table.c.id == revision)
+        captures = metadata.tables["context_records"]
+        query = query.join(captures, captures.c.revision_id == table.c.id)
         row = (
-            connection.execute(query.order_by(table.c.revision_no.desc()).limit(1))
+            connection.execute(
+                query.order_by(
+                    case(
+                        (table.c.kind == "profile_snapshot", captures.c.captured_at), else_=""
+                    ).desc(),
+                    table.c.revision_no.desc(),
+                ).limit(1)
+            )
             .mappings()
             .first()
         )

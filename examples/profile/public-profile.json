@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0",
+  "dataset_id": "replace-with-source-id",
+  "source_uri": "urn:replace-with-actual-profile-capture",
+  "permission_basis": "REPLACE: actual source authorization",
+  "records": [
+    {
+      "record_type": "profile_snapshot",
+      "key": "public-profile",
+      "account": {"kind": "account", "id": "REPLACE_ACCOUNT_ID", "revision_id": "00000000-0000-0000-0000-000000000000"},
+      "clock": {"captured_at": "2026-01-01T00:00:00Z", "validity_basis": "unknown"},
+      "username": {"state": "not_collected"},
+      "display_name": {"state": "not_collected"},
+      "bio": {"state": "not_collected"},
+      "category": {"state": "not_collected"},
+      "positioning": {"state": "not_collected"},
+      "declaration_basis": "unknown",
+      "content_pillars": [],
+      "photo_state": "not_collected",
+      "links_state": "not_collected",
+      "pins_state": "not_collected"
+    }
+  ]
+}
