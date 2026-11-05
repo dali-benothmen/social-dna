@@ -10,6 +10,7 @@ from socialdna.storage.migrations.versions.v0007_creative import extend_metadata
 from socialdna.storage.migrations.versions.v0008_audience import extend_metadata as audience
 from socialdna.storage.migrations.versions.v0009_behavioral import extend_metadata as behavioral
 from socialdna.storage.migrations.versions.v0010_memory import extend_metadata as memory
+from socialdna.storage.migrations.versions.v0011_research import extend_metadata as research
 
 metadata = foundation_metadata()
 extend_metadata(metadata)
@@ -21,3 +22,4 @@ creative(metadata)
 audience(metadata)
 behavioral(metadata)
 memory(metadata)
+research(metadata)

@@ -17,6 +17,34 @@
       "intended_claim_level": "hypothesis",
       "data_needs": ["Evidence distinguishing anticipation from sensory appeal, curiosity and clarity"],
       "evidence": []
+    },
+    {
+      "key": "curiosity",
+      "statement": "A result preview might open a knowledge gap about how to prepare the dish; this is not a detected viewer state.",
+      "population": "The declared cooking-video population",
+      "data_needs": ["Reviewed curiosity evidence and discriminating measurements"],
+      "evidence": []
+    },
+    {
+      "key": "sensory-appeal",
+      "statement": "Visible food appearance might account for the outcome without a curiosity mechanism.",
+      "population": "The declared cooking-video population",
+      "data_needs": ["Relevant reviewed sensory research and appearance-matched contrasts"],
+      "evidence": []
+    },
+    {
+      "key": "clarity",
+      "statement": "A result preview might clarify the content's utility rather than activate curiosity.",
+      "population": "The declared cooking-video population",
+      "data_needs": ["Reviewed fluency/clarity evidence and separate utility measurements"],
+      "evidence": []
+    },
+    {
+      "key": "context",
+      "statement": "Production, publishing, audience or distribution context might explain the association.",
+      "population": "The declared cooking-video population",
+      "data_needs": ["Context evidence or explicit unresolved confounders"],
+      "evidence": []
     }
   ]
 }

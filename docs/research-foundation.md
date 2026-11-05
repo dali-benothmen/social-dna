@@ -2,9 +2,11 @@
 
 Implemented in `0.0.5`, SQLite revision `0005_evidence`. R1 is an offline citation
 and registration foundation, **not** a psychological or statistical evaluation engine.
-This foundation is preserved in `0.0.7`, alongside [R2 versioned analytics](versioned-analytics.md)
-and [R3 creative events and recipes](creative-analysis.md).
-R4–R10 and U1/U2 remain planned. Existing video/account analysis stays available.
+This foundation is preserved in `0.0.11`, alongside R2–R6's versioned analytics,
+creative/audience/behavioral producers and memory. R7's [separate prepared research
+workflow](psychological-research.md) adds bounded evaluation without reinterpreting
+R1 draft registration. R8–R10/C1 and U1/U2 remain planned. Existing video/account
+analysis stays available.
 
 ## What works
 
@@ -22,8 +24,9 @@ R4–R10 and U1/U2 remain planned. Existing video/account analysis stays availab
   into a separate directory with withdrawal reconciliation or restricted recovery.
 
 No model, platform API, server or embedding is needed. Statistical-result citations
-are now available in R2; mechanism operationalizations/evaluation arrive in R7; reevaluation
-arrives in R8. Registration never makes a hypothesis evaluation-ready.
+are available in R2; R7 adds mechanism plans and bounded evaluation through an explicit
+`research prepare` step; reevaluation remains planned in R8. Registration alone never
+makes a hypothesis evaluation-ready.
 
 ## CLI workflow
 

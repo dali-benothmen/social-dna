@@ -5,6 +5,7 @@ from typing import Annotated, Any
 
 import typer
 
+from socialdna.application import investigation_service, literature_service
 from socialdna.application.bootstrap import open_application
 from socialdna.application.evidence_service import EvidenceResolver, withdraw
 from socialdna.application.research_service import (
@@ -15,6 +16,7 @@ from socialdna.application.research_service import (
 from socialdna.cli.common import ConfigFile, DataDir, Format, execute
 from socialdna.config.settings import Settings
 from socialdna.core.exceptions import ConfigurationError
+from socialdna.domain.investigation import EvaluationSpec, LiteratureCorpus, ResearchProtocol
 from socialdna.storage.backup import backup_library, restore_library
 from socialdna.storage.evidence_repository import EvidenceRepository
 
@@ -22,10 +24,55 @@ from socialdna.storage.evidence_repository import EvidenceRepository
 def register(app: typer.Typer, storage: typer.Typer) -> None:
     evidence = typer.Typer(help="Create, resolve and withdraw exact versioned citations.")
     research = typer.Typer(
-        help="Register draft questions/hypotheses; evaluation starts in a later milestone."
+        help="Register questions, import reviewed research and evaluate bounded rival protocols."
     )
     app.add_typer(evidence, name="evidence")
     app.add_typer(research, name="research")
+
+    @research.command("import-literature")
+    def literature_command(
+        ctx: typer.Context,
+        spec: Annotated[Path, typer.Option("--spec")],
+        data_dir: DataDir = None,
+        config: ConfigFile = None,
+        output_format: Format = None,
+    ) -> None:
+        def operation(settings: Settings) -> dict[str, Any]:
+            corpus = literature_service.read_spec(spec, LiteratureCorpus)
+            with open_application(settings) as application:
+                return literature_service.import_corpus(application, corpus)
+
+        execute(ctx, "research.import-literature", operation, data_dir, config, output_format)
+
+    @research.command("prepare")
+    def prepare_command(
+        ctx: typer.Context,
+        spec: Annotated[Path, typer.Option("--spec")],
+        data_dir: DataDir = None,
+        config: ConfigFile = None,
+        output_format: Format = None,
+    ) -> None:
+        def operation(settings: Settings) -> dict[str, Any]:
+            protocol = literature_service.read_spec(spec, ResearchProtocol)
+            with open_application(settings) as application:
+                return investigation_service.prepare(application, protocol)
+
+        execute(ctx, "research.prepare", operation, data_dir, config, output_format)
+
+    @research.command("evaluate")
+    def evaluate_command(
+        ctx: typer.Context,
+        spec: Annotated[Path, typer.Option("--spec")],
+        data_dir: DataDir = None,
+        config: ConfigFile = None,
+        output_format: Format = None,
+    ) -> None:
+        def operation(settings: Settings) -> dict[str, Any]:
+            evaluation = literature_service.read_spec(spec, EvaluationSpec)
+            with open_application(settings) as application:
+                return investigation_service.evaluate(application, evaluation)
+
+        execute(ctx, "research.evaluate", operation, data_dir, config, output_format)
 
     @evidence.command("resolve")
     def resolve_command(

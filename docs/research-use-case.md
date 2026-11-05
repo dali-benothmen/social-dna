@@ -1,6 +1,6 @@
 # Reference research flow: result-first cooking videos
 
-Status: **proposed architecture acceptance scenario; not an implemented capability or a research result**. Date: 2026-11-05.
+Status: **R7's bounded offline fixture represents steps 1–11 in `0.0.11`; step 12 remains planned in R8**. This is a software acceptance scenario, not an empirical psychological result. Date: 2026-11-05. See [actual operations and limits](psychological-research.md); the broader target below is not a claim of scientific validation.
 
 Question: **Why might showing a finished meal during the first seconds of a cooking video be associated with better performance?**
 

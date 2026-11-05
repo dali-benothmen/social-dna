@@ -68,6 +68,21 @@ TEXT_KEYS = {
     "status",
     "method",
     "analysis_kind",
+    "definition",
+    "exclusions",
+    "procedure",
+    "indicator",
+    "confounders",
+    "scope_conditions",
+    "contrast",
+    "falsifier",
+    "discriminating_measurement",
+    "mechanism_status",
+    "causal_identification",
+    "production_context",
+    "distribution_context",
+    "publishing_context",
+    "profile_context",
 }
 
 
@@ -181,6 +196,12 @@ def entity_active(
         raise StorageIntegrityError("Cyclic or excessively deep memory entity dependencies")
     repository = EvidenceRepository(connection)
     row = repository.entity(ref)
+    from socialdna.storage.research_repository import KINDS
+    from socialdna.storage.research_repository import active as research_active
+
+    if ref.kind in KINDS:
+        for dependency in research_active(connection, ref, as_of):
+            EvidenceResolver(connection).resolve(dependency, purpose="new_claim", as_of=as_of)
     assert_active_inputs(connection, source_ids=(row["source_id"],) if row["source_id"] else ())
     if as_of and (not row["available_at"] or row["available_at"] > as_of):
         raise ConfigurationError("Entity was not known at this cutoff")
@@ -280,7 +301,17 @@ def build(connection: Connection, kind: str, identity: str) -> dict[str, Any] | 
         if is_redacted(connection, "entity_revision", identity):
             return None
         row = repository.get("entity_revisions", identity)
-        if row["kind"] not in ("research_question", "hypothesis"):
+        if row["kind"] not in (
+            "research_question",
+            "hypothesis",
+            "study_finding",
+            "psychological_construct",
+            "operationalization",
+            "research_protocol",
+            "research_assessment",
+            "research_finding",
+            "experiment_brief",
+        ):
             return None
         owner = repository.ref(row)
         representation_key = owner.kind + ":" + owner.id
@@ -331,11 +362,12 @@ def build(connection: Connection, kind: str, identity: str) -> dict[str, Any] | 
         else "behavioral_observations"
         if locator.get("kind") in ("behavioral_record", "metric_snapshot")
         else "statistical_findings"
-        if owner.kind == "statistical_analysis"
+        if owner.kind in ("statistical_analysis", "research_assessment", "research_finding")
         else "psychological_patterns"
-        if owner.kind == "hypothesis"
+        if owner.kind in ("hypothesis", "psychological_construct", "operationalization")
         else "research_knowledge"
-        if owner.kind == "research_question"
+        if owner.kind
+        in ("research_question", "study_finding", "research_protocol", "experiment_brief")
         else "content_segments"
     )
     return {
@@ -347,5 +379,7 @@ def build(connection: Connection, kind: str, identity: str) -> dict[str, Any] | 
         "available_at": available_at,
         "locator": locator,
         "payload": payload,
-        "claim_level": "hypothesis" if owner.kind == "hypothesis" else "observation",
+        "claim_level": payload.get("claim_level", "hypothesis")
+        if owner.kind in ("hypothesis", "research_assessment", "research_finding")
+        else "observation",
     }

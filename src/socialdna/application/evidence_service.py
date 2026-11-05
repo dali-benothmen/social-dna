@@ -22,8 +22,10 @@ from socialdna.domain.evidence import (
     MediaLocator,
     MetricLocator,
     PostTextLocator,
+    ResearchLocator,
     ResolvedEvidence,
     StatisticalLocator,
+    StudyLocator,
 )
 from socialdna.ingestion.tabular import timestamp
 from socialdna.storage.evidence_repository import EvidenceRepository
@@ -126,6 +128,8 @@ class EvidenceResolver:
         ):
             raise StorageIntegrityError("Evidence locator and registry subject disagree")
         related = [locator.subject]
+        if isinstance(locator, StudyLocator):
+            related.append(locator.source_document)
         if isinstance(locator, AudienceLocator):
             related.append(locator.collection)
         if isinstance(locator, (MediaLocator, CreativeEventLocator)):
@@ -244,6 +248,22 @@ class EvidenceResolver:
                 limitations.append("Source does not permit comment reuse")
         if isinstance(locator, MetricLocator) and locator.availability != "available":
             limitations.append(f"Metric is {locator.availability}: {locator.reason}")
+        if isinstance(locator, (StudyLocator, ResearchLocator)):
+            from socialdna.storage.research_repository import active as research_active
+
+            try:
+                research_dependencies = research_active(self.connection, locator.subject, as_of)
+                for dependency_ref in research_dependencies:
+                    dependency = self.resolve(
+                        dependency_ref,
+                        as_of=as_of,
+                        _ancestors=_ancestors | {row["id"]},
+                        _memo=memo,
+                    )
+                    if not dependency.eligible:
+                        limitations.append("Research input is ineligible: " + dependency.ref.id)
+            except ConfigurationError as exc:
+                limitations.append("Research input is ineligible: " + str(exc))
         if isinstance(locator, StatisticalLocator):
             from socialdna.application.statistical_service import assert_design_inputs
 
@@ -380,7 +400,9 @@ class EvidenceResolver:
         | PostTextLocator
         | CreativeEventLocator
         | AudienceLocator
-        | BehavioralLocator,
+        | BehavioralLocator
+        | StudyLocator
+        | ResearchLocator,
     ) -> None:
         counts = {}
         for name in (
@@ -393,6 +415,8 @@ class EvidenceResolver:
             "behavioral_evidence_bindings",
             "post_text_evidence_bindings",
             "creative_evidence_bindings",
+            "study_evidence_bindings",
+            "research_evidence_bindings",
         ):
             table = metadata.tables[name]
             counts[name] = (
@@ -405,7 +429,39 @@ class EvidenceResolver:
         if sum(value is not None for value in counts.values()) != 1:
             raise StorageIntegrityError("Evidence requires exactly one typed locator binding")
         subject = json.loads(self.repository.entity(locator.subject)["payload_json"])
-        if isinstance(locator, BehavioralLocator):
+        if isinstance(locator, StudyLocator):
+            binding = counts["study_evidence_bindings"]
+            source = json.loads(self.repository.entity(locator.source_document)["payload_json"])
+            spec = subject.get("spec", {})
+            if (
+                not binding
+                or locator.subject.kind != "study_finding"
+                or locator.source_document.kind != "literature_source"
+                or binding["finding_revision_id"] != locator.subject.revision_id
+                or binding["source_revision_id"] != locator.source_document.revision_id
+                or subject["source_document"] != locator.source_document.model_dump()
+                or any(
+                    spec.get(k) != getattr(locator, k)
+                    for k in ("start_char", "end_char", "quote", "location")
+                )
+                or not 0
+                <= locator.start_char
+                < locator.end_char
+                <= len(source["spec"]["source_text"])
+                or source["spec"]["source_text"][locator.start_char : locator.end_char]
+                != locator.quote
+            ):
+                raise StorageIntegrityError("Study excerpt has a mismatched source/span binding")
+        elif isinstance(locator, ResearchLocator):
+            binding = counts["research_evidence_bindings"]
+            if (
+                not binding
+                or locator.subject.kind
+                not in ("research_assessment", "research_finding", "experiment_brief")
+                or binding["subject_revision_id"] != locator.subject.revision_id
+            ):
+                raise StorageIntegrityError("Research citation has a mismatched typed binding")
+        elif isinstance(locator, BehavioralLocator):
             from socialdna.storage.behavioral_repository import KINDS
 
             binding = counts["behavioral_evidence_bindings"]
@@ -617,7 +673,37 @@ class ClaimValidator:
     """R1 research gates; legacy analytics retain their original method contract."""
 
     def __init__(self, connection: Connection) -> None:
+        self.connection = connection
         self.resolver = EvidenceResolver(connection)
+
+    def validate_research(
+        self, claim_level: str, evidence: tuple[EvidenceRef, ...]
+    ) -> tuple[ResolvedEvidence, ...]:
+        if claim_level not in ("hypothesis", "association") or not evidence:
+            raise ConfigurationError("R7 requires evidence and cannot validate causal findings")
+        resolved = tuple(self.resolver.resolve(r, purpose="new_claim") for r in evidence)
+        if claim_level == "association":
+            supported = False
+            for item in resolved:
+                if not isinstance(item.locator, StatisticalLocator) or not item.locator.result_id:
+                    continue
+                analysis = EvidenceRepository(self.connection).get(
+                    "statistical_analyses", item.locator.analysis_id
+                )
+                model = json.loads(analysis["result_json"])["results"]["regression"]
+                term = next((t for t in model["terms"] if t["term"] == item.locator.term), None)
+                supported |= bool(
+                    model["status"] == "fitted"
+                    and term
+                    and term.get("adjusted_p_value") is not None
+                    and term["adjusted_p_value"] <= 0.05
+                    and term.get("ci_low") is not None
+                    and term.get("ci_high") is not None
+                    and (term["ci_low"] > 0 or term["ci_high"] < 0)
+                )
+            if not supported:
+                raise ConfigurationError("An association needs an eligible fitted statistical term")
+        return resolved
 
     def validate(
         self,

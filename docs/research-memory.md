@@ -75,8 +75,10 @@ context can be an older revision without silently substituting today's value.
 
 Hypotheses are nodes with qualified references, not flattened technique→success
 edges. No `causes`, evaluated `supports`, or association edges are synthesized.
-R7+ study/assessment/finding producers must register their own qualified builders
-and relation rules when implemented. A graph path is not independent confirmation.
+R7's [study/assessment/finding producers](psychological-research.md) now register their
+qualified builders in the same memory architecture; findings retain scoped prediction
+support/contradiction data, not identified psychological mediators. Graph edges remain
+structural references to those reified records. A graph path is not independent confirmation.
 
 ## Optional prepared embeddings
 

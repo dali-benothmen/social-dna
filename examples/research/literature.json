@@ -1,0 +1,111 @@
+{
+  "schema_version": "1.0",
+  "key": "cooking-opening-literature-v1",
+  "studies": [
+    {
+      "key": "kang2009",
+      "title": "The Wick in the Candle of Learning: Epistemic Curiosity Activates Reward Circuitry and Enhances Memory",
+      "url": "https://journals.sagepub.com/doi/10.1111/j.1467-9280.2009.02402.x",
+      "doi": "10.1111/j.1467-9280.2009.02402.x",
+      "authors": [
+        "Min Jeong Kang",
+        "Ming Hsu",
+        "Ian M. Krajbich",
+        "George Loewenstein",
+        "Samuel M. McClure",
+        "Joseph Tao-yi Wang",
+        "Colin F. Camerer"
+      ],
+      "year": 2009,
+      "review_status": "reviewed",
+      "reviewer": "SocialDNA seed-corpus source review, 2026-11-05",
+      "verification_note": "Bibliographic metadata and the short abstract excerpt checked against the publisher page. Abstract-level curation only; no full-text, correction-registry or independent replication review is claimed.",
+      "permission_basis": "Minimal attributed excerpt and original project summary; not a full-text mirror.",
+      "source_text": "We scanned subjects with functional magnetic resonance imaging while they read trivia questions.",
+      "findings": [
+        {
+          "key": "curiosity",
+          "start_char": 0,
+          "end_char": 96,
+          "quote": "We scanned subjects with functional magnetic resonance imaging while they read trivia questions.",
+          "location": "Publisher abstract, second sentence",
+          "summary": "Trivia-task curiosity covaried with reward-related activity, willingness to expend resources for answers, and later recall. These observations do not test cooking-video openings.",
+          "design": "observational",
+          "population": "Human participants reading trivia questions in laboratory imaging/behavioral tasks.",
+          "exposure": "Self-rated curiosity about trivia answers.",
+          "outcome": "Neural activity, answer-seeking resource expenditure and later recall.",
+          "direction": "positive",
+          "limitations": [
+            "Abstract-level curated summary, not a systematic review.",
+            "Different task, population, intervention and outcome from social video distribution.",
+            "Neural covariance and curiosity ratings do not establish a mediator in a creator's audience."
+          ]
+        }
+      ]
+    },
+    {
+      "key": "brod2019",
+      "title": "Lighting the wick in the candle of learning: generating a prediction stimulates curiosity",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6803639/",
+      "doi": "10.1038/s41539-019-0056-y",
+      "authors": [
+        "Garvin Brod",
+        "Jasmin Breitwieser"
+      ],
+      "year": 2019,
+      "review_status": "reviewed",
+      "reviewer": "SocialDNA seed-corpus source review, 2026-11-05",
+      "verification_note": "Primary article metadata, abstract and Results/Discussion checked on PMC. The overall memory contrast between conditions was not significant; curiosity association is distinct from that contrast.",
+      "permission_basis": "Minimal attributed excerpt and original project summary; not a full-text mirror.",
+      "source_text": "More facts received high-curiosity ratings in the prediction condition",
+      "findings": [
+        {
+          "key": "prediction",
+          "start_char": 0,
+          "end_char": 70,
+          "quote": "More facts received high-curiosity ratings in the prediction condition",
+          "location": "Abstract, fourth sentence (partial); interpretation reviewed against Results/Discussion",
+          "summary": "Generating numerical predictions rather than examples increased reported curiosity. Curiosity related to later recall, but overall memory did not significantly differ between the conditions.",
+          "design": "experiment",
+          "population": "Laboratory numerical-fact learners; not social-video viewers.",
+          "exposure": "Generate a numerical prediction versus generate a relevant example.",
+          "outcome": "Self-rated curiosity, pupil responses and later recall.",
+          "direction": "mixed",
+          "limitations": [
+            "The excerpt alone is not evidence for every paraphrased result; the recorded review also consulted Results/Discussion.",
+            "Overall memory improvement from prediction versus example was not established.",
+            "No cooking, platform retention, recommendation distribution or psychological mediation was tested."
+          ]
+        }
+      ]
+    }
+  ],
+  "constructs": [
+    {
+      "key": "epistemic-curiosity",
+      "definition": "A desire to resolve an acknowledged knowledge gap; a proposed explanation, not a detected viewer state.",
+      "exclusions": [
+        "A finished-dish image alone is not a curiosity measurement.",
+        "A positive comment or longer watch time does not distinguish curiosity from sensory appeal or utility."
+      ],
+      "finding_keys": [
+        "kang2009.curiosity",
+        "brod2019.prediction"
+      ]
+    }
+  ],
+  "operationalizations": [
+    {
+      "key": "curiosity-plan",
+      "construct_key": "epistemic-curiosity",
+      "procedure": "Propose a separately authorized study using reviewed curiosity self-report items and a matched information-gap manipulation; validate adaptation before use.",
+      "population": "Proposed consenting cooking-video viewers; not collected by SocialDNA.",
+      "indicator": "An explicit curiosity measure and differential response to knowledge-gap manipulation.",
+      "validity": "unvalidated_project_measure",
+      "limitations": [
+        "A planning specification, not observed mediator data or a validated scale.",
+        "A creative variant effect alone does not establish the construct."
+      ]
+    }
+  ]
+}

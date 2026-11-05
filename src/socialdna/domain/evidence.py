@@ -133,6 +133,23 @@ class CreativeEventLocator(BaseModel):
     media: EntityRef
 
 
+class StudyLocator(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    kind: Literal["study_excerpt"] = "study_excerpt"
+    subject: EntityRef
+    source_document: EntityRef
+    start_char: int = Field(strict=True, ge=0)
+    end_char: int = Field(strict=True, gt=0)
+    quote: str
+    location: str
+
+
+class ResearchLocator(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    kind: Literal["research_record"] = "research_record"
+    subject: EntityRef
+
+
 EvidenceLocator = Annotated[
     MediaLocator
     | CommentLocator
@@ -141,7 +158,9 @@ EvidenceLocator = Annotated[
     | PostTextLocator
     | CreativeEventLocator
     | AudienceLocator
-    | BehavioralLocator,
+    | BehavioralLocator
+    | StudyLocator
+    | ResearchLocator,
     Field(discriminator="kind"),
 ]
 

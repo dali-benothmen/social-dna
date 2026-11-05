@@ -1,8 +1,12 @@
 # SocialDNA
 
 SocialDNA is a local-first social-media research engine. The implemented release is
-`0.0.10`: persistent citation-backed SQL/FTS research memory, qualified graph
-traversal and optional prepared local embeddings. See [research memory](docs/research-memory.md).
+`0.0.11`: an offline literature-backed psychological research slice with reviewed
+source excerpts, competing predictions, immutable assessments, scoped findings and
+proposed discriminating experiments. See [psychological research](docs/psychological-research.md).
+It builds on `0.0.10`'s persistent citation-backed SQL/FTS memory, qualified graph
+traversal and optional prepared local embeddings. No mediator or causal effect is
+identified automatically; scientific validity still requires appropriate evidence.
 
 `0.0.9` added source-defined retention series, qualified attribution and signed account
 outcomes; source-qualified audience collections, reaction review and content links,
@@ -90,8 +94,10 @@ availability. See [versioned analytics](docs/versioned-analytics.md) and
 The target product supports individual videos and photos, complete accounts,
 captions/hashtags, within- and cross-niche research, original experiments, and durable
 hypothesis revision. Photos/carousels (U1), portable Agent Skills-compatible
-instructions for Codex, Claude Code, and OpenCode (U2), and psychological research
-(R7–R10) remain planned. The shared Python CLI already works independently of an
+instructions for Codex, Claude Code, and OpenCode (U2), incremental reevaluation,
+broader discovery and registered experiment outcomes (R8–R10), and production/growth
+context extensions (C1) remain planned. The bounded R7 assessment path is implemented.
+The shared Python CLI already works independently of an
 agent; compatibility with those three agent hosts has not been validated.
 
 ## Install from this checkout

@@ -1,9 +1,10 @@
 # Local storage
 
 This page describes the preserved storage foundation through R1 and current R6
-lifecycle boundaries (`0.0.10`, head `0010_memory`). R1 adds universal citation/
+lifecycle boundaries (preserved in `0.0.11`, head `0011_research`). R1 adds universal citation/
 registration storage; R6 delivers semantic/lexical/graph memory. See
 [research memory](research-memory.md) for the complete newer schema/operations,
+[psychological research](psychological-research.md) for R7 literature/assessment storage,
 [R1 operations](research-foundation.md),
 [research contracts](research-contracts.md), [migration strategy](migration-strategy.md),
 and the [roadmap](../PLAN.md) for planned changes.
@@ -52,7 +53,7 @@ Original media UUIDs stay unchanged. Registered questions, draft hypotheses and
 citation reports use validated versioned entity documents, not fake media/tasks.
 Withdrawals are terminal new-use revocations, not full erasure. R4 later adds explicit
 audience erasure; R6 supplies vector registry/outbox, FTS and persistent graph
-projections. Psychological evaluation remains planned in R7. Later migrations and
+projections. R7 adds separate bounded reviewed-literature/protocol assessments. Later migrations and
 their actual constraints are documented in the corresponding operational guides.
 Migration numbering is independent of roadmap milestone numbering.
 

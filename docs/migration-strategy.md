@@ -1,6 +1,6 @@
 # Migration, compatibility and retention strategy
 
-Status: R1–R6 canonical/evidence, statistics, creative, audience/erasure, behavioral/account-outcome and persistent-memory migrations are implemented in `0.0.10` / `0010_memory`; R7–R10/C1/U1/U2 remain planned. Date: 2026-11-05. See [R1 operations](research-foundation.md), [versioned analytics](versioned-analytics.md), [creative analysis](creative-analysis.md), [audience analysis](audience-analysis.md), [behavioral analysis](behavioral-analysis.md), [research memory](research-memory.md), [architecture](../ARCHITECTURE.md), [roadmap](../PLAN.md) and [research contracts](research-contracts.md). Released migrations `0001`–`0010` are frozen. Evidence CHECK changes use atomic FK-checked parent rebuilds and verified backups, not edits to released migrations.
+Status: migrations through R7 are implemented in `0.0.11` / `0011_research`; R8–R10/C1/U1/U2 remain planned. Date: 2026-11-05. See [R1 operations](research-foundation.md), [versioned analytics](versioned-analytics.md), [creative analysis](creative-analysis.md), [audience analysis](audience-analysis.md), [behavioral analysis](behavioral-analysis.md), [research memory](research-memory.md), [psychological research](psychological-research.md), [architecture](../ARCHITECTURE.md), [roadmap](../PLAN.md) and [research contracts](research-contracts.md). Released migrations `0001`–`0010` remain unchanged. Evidence CHECK changes use atomic FK-checked parent rebuilds and verified backups, not edits to released migrations.
 
 ## 1. Compatibility contract
 
@@ -34,7 +34,8 @@ Schema is introduced with its first real writer and consumer:
 | R4 | Audience collections/memberships, reactions/clusters/qualified links and source retention/redaction lineage. |
 | R5 | Behavioral definition extensions, observation context, metric series/bins, denominators/cohorts, attribution/account-period outcomes and signed changes. |
 | R6 | Versioned documents, embedding spaces, desired/indexed generations/outbox, FTS and qualified graph projections. |
-| R7–R8 | Reviewed literature/construct payloads, assessments/findings/dependency projections, stale selection policies and successive-assessment deltas. |
+| R7, implemented `0011_research` | Reviewed literature/construct/protocol/assessment/finding/brief documents, typed source-excerpt/research bindings and protocol/assessment/dependency projections. Preserve R6 evidence journal/immutable triggers across the CHECK parent rebuild; allow empty-store downgrade but refuse captured history. Extend latest-authority backup/restore schema recognition. |
+| R8, planned | Stale selection policies, prior/successive assessment links, newly eligible row selection and assessment deltas. R7 does not create these unused tables. |
 | C1, after R7 | Separately versioned professional annotation schemas; publication/metadata/timezone/completeness and thumbnail/profile snapshots; official platform-document statements, surface mappings and distribution observations; compatible profile/link/campaign/funnel bindings, each only with its first writer/resolver/reader. U1 supplies static asset evidence. |
 | R9–R10 | Extend the minimal family ledger to bounded adaptive candidate searches; add experiment design/assignment/outcome and assessment integration. |
 | U1/U2 | Image/carousel subject bindings and report/skill compatibility metadata only where needed. |

@@ -1,12 +1,12 @@
 # SocialDNA implementation plan
 
-Revised: 2026-11-05. Scope: R1–R6 delivered. R6 prepared-real-model acceptance is opt-in and was not run without supplied weights; no R7 or later implementation is claimed.
+Revised: 2026-11-05. Scope: R1–R7 delivered and verified. Prepared-real-model acceptance remains opt-in and was not run without supplied weights; no R8 or later implementation is claimed.
 
-Runtime: package `0.0.10`, SQLite head `0010_memory`. Released migrations `0001_foundation`–`0010_memory` are frozen. Legacy Milestones 0, 1, 3 and 4 are completed deliveries; their limitations remain visible. Legacy Milestones 2, 5 and 6 are **superseded, not completed**. **R7–R10, C1 and U1/U2 remain planned and unimplemented**.
+Runtime: package `0.0.11`, SQLite head `0011_research`. Released migrations `0001_foundation`–`0010_memory` remain unchanged; `0011_research` is now frozen too. Legacy Milestones 0, 1, 3 and 4 are completed deliveries; their limitations remain visible. Legacy Milestones 2, 5 and 6 are **superseded, not completed**. **R8–R10, C1 and U1/U2 remain planned and unimplemented**.
 
 Authoritative design: [ARCHITECTURE.md](ARCHITECTURE.md), [research contracts](docs/research-contracts.md), [statistical design](docs/statistical-design.md), [migration strategy](docs/migration-strategy.md), and [reference use case](docs/research-use-case.md). The [audit](docs/architecture-audit.md) records the reasons for this revision; the [previous roadmap](docs/history/PLAN.pre-research-revision.md) is historical, not an alternative active plan.
 
-The [four-area capability audit](docs/intelligence-capability-audit.md) adds explicit production, platform/surface distribution, publishing/discoverability and profile/conversion coverage. These are partially supported foundations today, not delivered intelligence systems. C1 supplies bounded future evidence extensions; R7 remains the next implementation milestone.
+The [four-area capability audit](docs/intelligence-capability-audit.md) adds explicit production, platform/surface distribution, publishing/discoverability and profile/conversion coverage. These are partially supported foundations today, not delivered intelligence systems. C1 supplies bounded future evidence extensions; its implementation was not added to R7.
 
 ## 1. Outcome, limits and delivery rules
 
@@ -24,7 +24,7 @@ Delivery rules:
 - Keep basic media/account analysis fast: do not register a research question, load a graph, index embeddings or invoke a reasoner merely to describe a video.
 - Missing data is not zero; absent detection under sparse sampling is not demonstrated absence; expressed intention is not behavior; association is not causation.
 - Every research result declares its population, availability, estimand, evidence version, uncertainty, alternatives and limitations. `insufficient_data`, rejected and inconclusive results are successful research outcomes when honestly supported.
-- Implementation changes require unit/integration/contract/end-to-end verification, migration/compatibility checks, documentation updates and a scoped working commit when authorized. R1–R6 are delivered; begin another milestone only when authorized. This capability audit authorizes documentation changes, not R7/C1 implementation. Commit messages describe the engineering change without type prefixes or milestone labels.
+- Implementation changes require unit/integration/contract/end-to-end verification, migration/compatibility checks, documentation updates and a scoped working commit when authorized. R7 is the currently authorized implementation; R8/C1 and later work require separate authority. Commit messages describe the engineering change without type prefixes or milestone labels.
 
 ## 2. Preserved implementation and historical deliveries
 
@@ -49,7 +49,7 @@ M4 delivered its scoped implementation, but its retrospective baseline, same-cre
 | R4 | Audience collection provenance, reaction annotations and qualified content links | R1, R3 | Completed and verified, `0.0.8` |
 | R5 | Behavioral metric series, denominators, attribution and account outcomes | R1, R2; R3 for event overlays | Completed and verified, `0.0.9` |
 | R6 | Persistent SQL/FTS/Qdrant/SQLite-backed NetworkX research memory | R1–R4; R5 for behavioral projections | Delivered `0.0.10`; real-model acceptance opt-in |
-| R7 | First complete, literature-backed psychological research vertical slice | R2–R6 | Planned |
+| R7 | First complete, literature-backed psychological research vertical slice | R2–R6 | Completed and verified, `0.0.11` |
 | R8 | Incremental hypothesis reevaluation and preserved contradiction history | R7 | Planned |
 | C1 | Versioned production and growth-context evidence, four independent deliveries | R1–R6; after R7; U1 for static visual branches | Planned extension track; see §19 |
 | R9 | Bounded nonlinear, cross-creator and cross-niche discovery, including delivered C1 dimensions | R2, R3, R6–R8; respective C1 slice for a new domain branch | Planned |
@@ -461,7 +461,25 @@ A deterministic generated-video label verifies exact moment retrieval, not cooki
 
 ## 11. R7 — First complete psychological research vertical slice
 
-Status: **planned, unimplemented**.
+Status: **completed and verified in `0.0.11` / `0011_research`**, 2026-11-05.
+
+Delivered operations and source-review limits: [psychological research](docs/psychological-research.md). The original milestone design below is retained; actual interface refinements are recorded here and in [architecture decisions](ARCHITECTURE.md#24-literature-backed-research-delivery-decisions-0011).
+
+### Delivered components and boundaries
+
+- Strict offline reviewed-literature import with DOI/primary URL metadata, exact captured Unicode excerpts, design/population/exposure/outcome/limitations, reviewer attestations and correction/retraction eligibility. A small two-study primary-source corpus is supplied; it is not direct evidence of cooking-video effects or automatic bibliographic verification.
+- Typed construct/operationalization plans, applicability reviews and prepared rival protocols. All registered rivals must be retained; contextual explanations need no fictitious psychological construct. R1 draft registration/report contracts remain unchanged through an additive `research prepare` step.
+- `application/{literature_service,investigation_service}.py`, `domain/investigation.py`, `psychology/{constructs,operationalizations,hypotheses}.py`, exact study/research evidence bindings and protocol/assessment/dependency projections. Migration `0011_research` preserves prior migrations and the R6 evidence-insert journal.
+- Deterministic evaluation over original frozen version-2 analyses: actual feature coverage/blinding, reviewed applicability, statistical terms/intervals/family-adjusted p-values and ledger, within/cross-creator overlap or honest insufficiency, unsuccessful uses/alternative-success exemplars and four-domain contextual unknowns. Findings persist question-scoped supporting/contradicting/non-discriminating citations for local predictions, not psychological mediation. No second statistical engine or search-defined population.
+- Immutable assessments and scoped findings, proposed-not-executed discriminating experiment briefs, escaped JSON/Markdown artifacts, process-restart reproduction and R6 canonical producer builders. Withdrawal/retraction and authorized audience erasure propagate; R8 staleness/reevaluation/history is not implemented.
+- Actual CLI: `research import-literature|prepare|evaluate`, extended `research show`, and `research report ASSESSMENT_ID`. No model/provider or new dependency is required. Associations do not identify a mediator; unmeasured mechanisms stay unsupported/non-discriminating.
+
+### Verification record
+
+- Full regression suite, partitioned across four isolated pytest processes: **408 passed, 3 skipped**, 411 collected. The skips require explicitly prepared real-model assets; no prepared-model or empirical corpus-quality result is claimed.
+- Final R7 hardening rerun: **24 passed**, covering real decoded media/annotations, sampled reactions, synthetic authorized-retention grids, erasure of derived reports, source review/correction/retraction/withdrawal, frozen reports/FTS, positive/negative/null 22-creator selected-pipeline fixtures, scoped evidence roles, complete-rival/input/claim gates and real CLI prepare/evaluate/reload.
+- Upgrade/backup/restore, crash rollback, empty downgrade and captured-history refusal pass, including upgrades from each released head through `0010_memory`. Released migration files are unchanged.
+- `ruff check`, changed-file formatting, strict `mypy` (144 source files), offline lock verification and offline wheel/sdist builds pass. Distribution smoke verifies actual installed-package version, real corpus/citation persistence and no-model SQL/FTS operation. Scientific/annotation validity and private real-creator analytics are separate, unclaimed empirical acceptance work.
 
 ### Objective
 
@@ -696,7 +714,7 @@ Official platform adapters are optional, permission-aware additions after export
 
 Data-access, self-selected comments, small creator/niche counts, paid distribution, unavailable historical covariates, measurement error and hidden confounding can make a question unanswerable. More embeddings, larger reasoners or more posts from the same few creators do not remove these limits. A psychological mechanism remains a hypothesis unless a justified measurement/experimental identification supports it; randomized creative effects alone do not establish mediation.
 
-The next implementation milestone is **R7**. This audit did not start it; all later R/C/U work remains planned until explicitly requested.
+The next research implementation milestone is **R8**. No R8/C1 or later R/C/U implementation was started as part of R7; each remains separately authorized work.
 
 ## 19. C1 — Versioned production and growth-context evidence
 
@@ -708,7 +726,7 @@ Supply the canonical inputs missing from professional craft, platform distributi
 
 ### Modules, interfaces and delivery boundaries
 
-Proposed file names below are responsibility boundaries, not scaffolding instructions. New record/service/CLI signatures are finalized by each slice's tested writer/reader. Add a new migration only where needed; never edit released `0001`–`0010`.
+Proposed file names below are responsibility boundaries, not scaffolding instructions. New record/service/CLI signatures are finalized by each slice's tested writer/reader. Add a new migration only where needed; never edit released `0001`–`0011`.
 
 | Delivery | Planned work and candidate files | Dependencies and integration |
 |---|---|---|

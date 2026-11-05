@@ -1,0 +1,152 @@
+{
+  "schema_version": "1.0",
+  "key": "cooking-opening-protocol",
+  "question": {
+    "kind": "research_question",
+    "id": "QUESTION_ID",
+    "revision_id": "QUESTION_REVISION"
+  },
+  "hypotheses": [
+    {
+      "hypothesis": {
+        "kind": "hypothesis",
+        "id": "anticipation_HYPOTHESIS_ID",
+        "revision_id": "anticipation_HYPOTHESIS_REVISION"
+      },
+      "explanation": "psychological",
+      "prediction": {
+        "feature": "creative.result_first",
+        "metric_key": "YOUR_PLATFORM.views.v1",
+        "direction": "positive",
+        "contrast": "Compare the declared reviewed result-first recipe against eligible ordinary and unsuccessful uses in the frozen population.",
+        "falsifier": "A null or reversed outcome contrast in an eligible independent sample weakens this prediction.",
+        "discriminating_measurement": "Define a reviewed anticipation measurement and a manipulation that distinguishes it from the other registered explanations."
+      },
+      "confounders": [
+        "Topic, creator/audience, publishing, paid exposure, packaging and production context."
+      ],
+      "scope_conditions": [
+        "Only the actual platform, niche, language, audience and observation window in the frozen analysis."
+      ]
+    },
+    {
+      "hypothesis": {
+        "kind": "hypothesis",
+        "id": "curiosity_HYPOTHESIS_ID",
+        "revision_id": "curiosity_HYPOTHESIS_REVISION"
+      },
+      "explanation": "psychological",
+      "prediction": {
+        "feature": "creative.result_first",
+        "metric_key": "YOUR_PLATFORM.views.v1",
+        "direction": "positive",
+        "contrast": "Compare the declared reviewed result-first recipe against eligible ordinary and unsuccessful uses in the frozen population.",
+        "falsifier": "A null or reversed outcome contrast in an eligible independent sample weakens this prediction.",
+        "discriminating_measurement": "Measure acknowledged information gaps under a separately authorized gap manipulation; control appearance and utility."
+      },
+      "confounders": [
+        "Topic, creator/audience, publishing, paid exposure, packaging and production context."
+      ],
+      "scope_conditions": [
+        "Only the actual platform, niche, language, audience and observation window in the frozen analysis."
+      ],
+      "construct_ref": {
+        "kind": "psychological_construct",
+        "id": "CONSTRUCT_ID",
+        "revision_id": "CONSTRUCT_REVISION"
+      },
+      "operationalization": {
+        "kind": "operationalization",
+        "id": "MEASUREMENT_PLAN_ID",
+        "revision_id": "MEASUREMENT_PLAN_REVISION"
+      },
+      "literature": [
+        {
+          "finding": {
+            "id": "KANG_FINDING_EVIDENCE_ID",
+            "revision_id": "KANG_FINDING_EVIDENCE_REVISION"
+          },
+          "applicability": "indirect",
+          "rationale": "Laboratory trivia tasks differ from cooking-video audiences, exposure and platform outcomes.",
+          "reviewer": "REPLACE_WITH_ACTUAL_REVIEWER"
+        }
+      ]
+    },
+    {
+      "hypothesis": {
+        "kind": "hypothesis",
+        "id": "sensory-appeal_HYPOTHESIS_ID",
+        "revision_id": "sensory-appeal_HYPOTHESIS_REVISION"
+      },
+      "explanation": "psychological",
+      "prediction": {
+        "feature": "creative.result_first",
+        "metric_key": "YOUR_PLATFORM.views.v1",
+        "direction": "positive",
+        "contrast": "Compare the declared reviewed result-first recipe against eligible ordinary and unsuccessful uses in the frozen population.",
+        "falsifier": "A null or reversed outcome contrast in an eligible independent sample weakens this prediction.",
+        "discriminating_measurement": "Define a reviewed sensory-appeal measurement and a manipulation that distinguishes it from the other registered explanations."
+      },
+      "confounders": [
+        "Topic, creator/audience, publishing, paid exposure, packaging and production context."
+      ],
+      "scope_conditions": [
+        "Only the actual platform, niche, language, audience and observation window in the frozen analysis."
+      ]
+    },
+    {
+      "hypothesis": {
+        "kind": "hypothesis",
+        "id": "clarity_HYPOTHESIS_ID",
+        "revision_id": "clarity_HYPOTHESIS_REVISION"
+      },
+      "explanation": "psychological",
+      "prediction": {
+        "feature": "creative.result_first",
+        "metric_key": "YOUR_PLATFORM.views.v1",
+        "direction": "positive",
+        "contrast": "Compare the declared reviewed result-first recipe against eligible ordinary and unsuccessful uses in the frozen population.",
+        "falsifier": "A null or reversed outcome contrast in an eligible independent sample weakens this prediction.",
+        "discriminating_measurement": "Define a reviewed clarity measurement and a manipulation that distinguishes it from the other registered explanations."
+      },
+      "confounders": [
+        "Topic, creator/audience, publishing, paid exposure, packaging and production context."
+      ],
+      "scope_conditions": [
+        "Only the actual platform, niche, language, audience and observation window in the frozen analysis."
+      ]
+    },
+    {
+      "hypothesis": {
+        "kind": "hypothesis",
+        "id": "context_HYPOTHESIS_ID",
+        "revision_id": "context_HYPOTHESIS_REVISION"
+      },
+      "explanation": "contextual",
+      "prediction": {
+        "feature": "creative.result_first",
+        "metric_key": "YOUR_PLATFORM.views.v1",
+        "direction": "positive",
+        "contrast": "Compare the declared reviewed result-first recipe against eligible ordinary and unsuccessful uses in the frozen population.",
+        "falsifier": "A null or reversed outcome contrast in an eligible independent sample weakens this prediction.",
+        "discriminating_measurement": "Define a reviewed context measurement and a manipulation that distinguishes it from the other registered explanations."
+      },
+      "confounders": [
+        "Topic, creator/audience, publishing, paid exposure, packaging and production context."
+      ],
+      "scope_conditions": [
+        "Only the actual platform, niche, language, audience and observation window in the frozen analysis."
+      ]
+    }
+  ],
+  "population": "REPLACE with the authorized sampling frame and its exclusions; not top-K search results.",
+  "production_context": "Unknown unless measured/reviewed production evidence is actually supplied.",
+  "distribution_context": "Unknown traffic, paid exposure and recommendation eligibility unless actually supplied.",
+  "publishing_context": "UTC metadata only unless an actual local timezone/completeness record is available.",
+  "profile_context": "Historical profile exposure and private conversion metrics unavailable unless supplied.",
+  "experiment_design": "Propose a separately authorized design manipulating knowledge gaps while matching sensory appearance and utility. Register actual assignment and outcome/mediator measurements before execution; a two-upload pre/post comparison is not randomization.",
+  "treatment_variants": [
+    "Finished-meal opening",
+    "Preparation-first opening"
+  ]
+}

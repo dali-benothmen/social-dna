@@ -148,13 +148,31 @@ def show_research(
             ref = next(
                 (
                     candidate
-                    for kind in ("research_question", "hypothesis", "citation_report")
+                    for kind in (
+                        "research_question",
+                        "hypothesis",
+                        "citation_report",
+                        "literature_source",
+                        "study_finding",
+                        "psychological_construct",
+                        "operationalization",
+                        "research_protocol",
+                        "research_assessment",
+                        "research_finding",
+                        "experiment_brief",
+                    )
                     if (candidate := repository.latest(kind, identity))
                 ),
                 None,
             )
             if ref is None:
                 raise ConfigurationError("Unknown research identity")
+        from socialdna.storage.research_repository import KINDS
+
+        if ref.kind in KINDS:
+            from socialdna.application.investigation_service import show_record
+
+            return show_record(application, ref)
         if ref.kind not in ("research_question", "hypothesis", "citation_report"):
             raise ConfigurationError("Not a registered research entity")
         row = repository.entity(ref)
@@ -270,6 +288,12 @@ def generate_research_report(
     if report_format not in ("json", "markdown"):
         raise ConfigurationError("Research report format must be json or markdown")
     question = show_research(application, identity, revision_id=revision_id)
+    if question["ref"]["kind"] == "research_assessment":
+        from socialdna.application.investigation_service import assessment_report
+
+        return assessment_report(
+            application, EntityRef.model_validate(question["ref"]), report_format
+        )
     if question["ref"]["kind"] != "research_question":
         raise ConfigurationError("A citation report requires a research question")
     refs = {item["ref"]["revision_id"]: item["ref"] for item in question["citations"]}
