@@ -1,7 +1,8 @@
 # Deterministic local video analysis
 
-Status: existing video behavior preserved in `0.0.5`. R1 adds versioned universal
-bindings; R3 semantic events remain planned. The [roadmap](../PLAN.md) does not require
+Status: deterministic video behavior is preserved in `0.0.10`. R1 adds versioned universal
+bindings; R3 [creative events](creative-analysis.md) and R6 [research memory](research-memory.md)
+are delivered separately. The [roadmap](../PLAN.md) does not require
 research registration, embeddings, or literature retrieval for basic video analysis.
 
 This describes the Milestone 1 deterministic foundation, still available with `--no-ai`.
@@ -109,9 +110,17 @@ pYIN and the first librosa/Numba compilation. No GPU is required. Temporary work
 removed on normal exit/interruption; SIGKILL may leave cache directories for inspection.
 These limits/protocol restrictions are safeguards, not an OS sandbox for hostile codecs.
 
-Qdrant semantic indexing, persistent graph construction and lexical search are planned
-in R6, superseding deferred historical Milestone 2. Existing extraction remains usable
-without them; compatible future indexing must not require re-decoding media. Reanalysis
+Qdrant semantic indexing, persistent graph construction and lexical search are delivered
+in R6, superseding deferred historical Milestone 2; prepared-model relevance has separate
+verification limits. Existing extraction remains usable without them; indexing existing
+observations does not require re-decoding media. Reanalysis
 can still be necessary when a new event detector needs evidence never sampled by an
 earlier run. Photo/carousel analysis remains planned in U1; accepted post metadata
 does not imply that the video analyzers support those media types.
+
+These measurements are not a complete professional filmmaking/editing analysis.
+Flow cannot isolate camera movement, blur does not identify focus technique, and
+short-window onset/tempo proxies do not prove music synchronization or editing intent.
+The [four-area audit](intelligence-capability-audit.md) assigns versioned professional
+craft annotations/recipes to future C1-A, comparisons/interactions to R9 and qualified
+filming/editing recommendations to R10. No current extraction output is reinterpreted.

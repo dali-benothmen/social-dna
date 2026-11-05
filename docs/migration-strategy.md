@@ -1,6 +1,6 @@
 # Migration, compatibility and retention strategy
 
-Status: R1–R5 canonical/evidence, statistics, creative, audience/erasure and behavioral/account-outcome migrations are implemented in `0.0.9` / `0009_behavioral`; later work remains planned. Date: 2026-11-05. See [R1 operations](research-foundation.md), [versioned analytics](versioned-analytics.md), [creative analysis](creative-analysis.md), [audience analysis](audience-analysis.md), [behavioral analysis](behavioral-analysis.md), [architecture](../ARCHITECTURE.md), [roadmap](../PLAN.md) and [research contracts](research-contracts.md). Released migrations `0001`–`0008` remain unchanged. Evidence CHECK changes use atomic FK-checked parent rebuilds and verified backups, not edits to released migrations.
+Status: R1–R6 canonical/evidence, statistics, creative, audience/erasure, behavioral/account-outcome and persistent-memory migrations are implemented in `0.0.10` / `0010_memory`; R7–R10/C1/U1/U2 remain planned. Date: 2026-11-05. See [R1 operations](research-foundation.md), [versioned analytics](versioned-analytics.md), [creative analysis](creative-analysis.md), [audience analysis](audience-analysis.md), [behavioral analysis](behavioral-analysis.md), [research memory](research-memory.md), [architecture](../ARCHITECTURE.md), [roadmap](../PLAN.md) and [research contracts](research-contracts.md). Released migrations `0001`–`0010` are frozen. Evidence CHECK changes use atomic FK-checked parent rebuilds and verified backups, not edits to released migrations.
 
 ## 1. Compatibility contract
 
@@ -35,10 +35,15 @@ Schema is introduced with its first real writer and consumer:
 | R5 | Behavioral definition extensions, observation context, metric series/bins, denominators/cohorts, attribution/account-period outcomes and signed changes. |
 | R6 | Versioned documents, embedding spaces, desired/indexed generations/outbox, FTS and qualified graph projections. |
 | R7–R8 | Reviewed literature/construct payloads, assessments/findings/dependency projections, stale selection policies and successive-assessment deltas. |
+| C1, after R7 | Separately versioned professional annotation schemas; publication/metadata/timezone/completeness and thumbnail/profile snapshots; official platform-document statements, surface mappings and distribution observations; compatible profile/link/campaign/funnel bindings, each only with its first writer/resolver/reader. U1 supplies static asset evidence. |
 | R9–R10 | Extend the minimal family ledger to bounded adaptive candidate searches; add experiment design/assignment/outcome and assessment integration. |
 | U1/U2 | Image/carousel subject bindings and report/skill compatibility metadata only where needed. |
 
 Do not create every future locator or projection in R1. The generic identity/revision registry supplies the extension point. Low-volume future definitions remain validated versioned documents until a query/writer justifies additional tables.
+
+C1 is a planned evidence-extension track, not a migration in this documentation audit. See the [capability contracts](research-contracts.md#8-production-and-growth-context-contracts--planned-c1) and [slice verification matrix](intelligence-capability-audit.md#4-bounded-delivery-and-verification). Preserve account-export v1, the closed R3 annotation v1 vocabulary and existing post/account metric semantics. New professional labels need a new explicit parser/schema version; unknown labels must not silently become valid in an old format. Existing profile JSON revisions remain historical captured data, not retrospectively complete typed profile snapshots.
+
+Introduce new entity/locator/subject kinds only with actual FK bindings, source/clock/missingness validation, no-model imports and a usable report. Do not backfill guessed local timezones, metadata effective dates, profile exposure, surface classifications, individual conversion paths or proprietary weights. New memory builders reuse R6 document/FTS/outbox/graph protocols, extending eligibility, erasure and restore verification for every added payload and asset. No new collection per domain and no edits to released migration scripts.
 
 Existing `evidence_items` retains mandatory media/task/interval invariants. Non-media evidence goes through new typed locators. Existing nonnegative metric constraints remain; signed account changes use a separate new typed representation. Do not broaden old columns so previously rejected inputs silently acquire new meanings.
 

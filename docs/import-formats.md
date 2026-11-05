@@ -1,8 +1,9 @@
 # Account export contract (version 1.0)
 
-Status: version 1.0 import contract from `0.0.4`, preserved in `0.0.5`. R1 captures
-source-backed immutable revisions/citations without changing export fields. Planned
-R4/R5 contracts must use versioned extensions and preserve these exports;
+Status: version 1.0 import contract from `0.0.4`, preserved in `0.0.10`. R1 captures
+source-backed immutable revisions/citations without changing export fields. R4/R5
+use separate [audience](audience-analysis.md) and [behavioral](behavioral-analysis.md)
+formats; they do not relax this v1 importer. Future C1 context contracts also preserve these exports;
 see [research contracts](research-contracts.md), [migration strategy](migration-strategy.md),
 and [PLAN.md](../PLAN.md). Proposed research records are not accepted by this importer.
 
@@ -68,6 +69,10 @@ post cannot change because stored post ages depend on them. Keep the original
 offset/timezone in source terms if needed; publishing-hour analytics currently
 uses UTC, not an inferred local timezone.
 
+The current importer writes `source_timezone="UTC"`; a supplied offset is not retained
+as a typed local scheduling field. Future C1-B adds explicit original-offset/IANA-zone
+and completeness-qualified cadence context rather than guessing it from stored UTC.
+
 | Record type | Required fields beyond platform/type | Optional fields / semantics |
 |---|---|---|
 | `account` | `external_id` | `handle`, `creator_key`, `niche`, `profile` object |
@@ -85,10 +90,17 @@ warn that independent creator counts may be overstated. Omitted mutable metadata
 is preserved on update; supplied title/caption/profile values replace that field.
 Tags append; absence from a later export is not a deletion instruction. Comments
 are minimized text without imported author identifiers; parents/cycles are checked.
-They do not yet include collection sampling/coverage, reaction annotations, or links
-to media segments. Comment publication time is wall-clock time, not playback time.
+These v1 comment records do not include collection sampling/coverage, reaction annotations,
+or links to media segments; those use the separate R4 audience format.
+Comment publication time is wall-clock time, not playback time.
 The importer accepts photo/carousel post metadata and references, but this is not
 photo/carousel analysis; current batch inference handles local videos only.
+
+Supplied `profile` JSON is retained in captured account revisions but is not a complete
+typed profile audit, field-validity history or conversion funnel. C1-B/C1-D will add
+versioned title/thumbnail/profile/link/pin evidence and compatible growth-context
+imports; they are not currently accepted fields/record types here. See the
+[capability audit](intelligence-capability-audit.md) for exact boundaries and tests.
 
 ## Metric definitions and snapshots
 

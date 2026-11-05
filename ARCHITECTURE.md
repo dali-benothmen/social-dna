@@ -1,12 +1,14 @@
 # SocialDNA architecture
 
-Revised: 2026-11-05. Implementation: **0.0.10**, database head **0010_memory**. R1–R6 are delivered; results and optional verification limits are recorded in [PLAN.md](PLAN.md). **R7–R10 and U1/U2 remain planned**. The architecture incorporates the approved [intelligence audit](docs/architecture-audit.md). See [R1 operations](docs/research-foundation.md), [versioned analytics](docs/versioned-analytics.md), [creative analysis](docs/creative-analysis.md), [audience analysis](docs/audience-analysis.md), [behavioral analysis](docs/behavioral-analysis.md) and [research memory](docs/research-memory.md) for actual commands and limits.
+Revised: 2026-11-05. Implementation: **0.0.10**, database head **0010_memory**. R1–R6 are delivered; results and optional verification limits are recorded in [PLAN.md](PLAN.md). **R7–R10, C1 and U1/U2 remain planned**. The architecture incorporates the approved [intelligence audit](docs/architecture-audit.md) and the additional [production and growth capability audit](docs/intelligence-capability-audit.md). See [R1 operations](docs/research-foundation.md), [versioned analytics](docs/versioned-analytics.md), [creative analysis](docs/creative-analysis.md), [audience analysis](docs/audience-analysis.md), [behavioral analysis](docs/behavioral-analysis.md) and [research memory](docs/research-memory.md) for actual commands and limits.
 
 The [implementation plan](PLAN.md) defines delivery and acceptance gates. Detailed contracts live in [research contracts](docs/research-contracts.md), [statistical design](docs/statistical-design.md), [migration strategy](docs/migration-strategy.md), and the [twelve-step cooking use case](docs/research-use-case.md). The [previous architecture](docs/history/ARCHITECTURE.pre-research-revision.md) is a historical record, not a competing specification. Architecture/plan line references inside the unchanged audit refer to those pre-revision documents.
 
 ## 1. Product and non-negotiable boundaries
 
 SocialDNA is a local-first, agent-independent Python engine, exposed through a CLI and eventually a portable Agent Skill. It investigates why content may succeed by preserving observations, operationalizing competing explanations, connecting them to appropriate audience/outcome evidence, testing qualified associations, and revising findings.
+
+The target is unified production, audience/psychology, platform-specific distribution, publishing/search and profile/conversion intelligence. These are separate evidence domains using shared infrastructure, not four new engines or one universal ranking score. Search discovery, recommendation exposure and conversion require different objectives and measurements. Never claim proprietary algorithm-weight recovery, recommendation bypass or guaranteed virality.
 
 The product must remain useful for a single video, photograph, carousel, caption, hashtag set, or account even when there is insufficient data for research. Ordinary analysis does not require registering a hypothesis, downloading research, fitting models, opening a graph, or embedding documents. Whole-account analysis is a resumable collection of bounded post/media tasks, not one giant model prompt.
 
@@ -28,7 +30,7 @@ Scientific boundaries are architectural invariants: missing data is not zero; ex
 
 The current repository delivers deterministic local video processing, supplied subtitles, optional prepared local-model enrichment, strict account/post/comment/tag/metric imports, account media batches, descriptive/model-based comparisons and immutable analysis/report artifacts. R1 additionally supplies universal revisioned citations and draft registration. R3–R5 add qualified creative/audience/behavioral producers. R6 provides persistent citation-backed SQL/FTS, optional immutable-space Qdrant retrieval and qualified SQLite-backed NetworkX views. Actual pretrained-model/corpus relevance is not inferred from controlled storage tests.
 
-The unversioned legacy path retains retrospective baselines, same-creator matching and auxiliary Ridge checks for exact reproduction. The explicit version 2 path corrects time-aware references, matching, lineage and selected OLS/Poisson validation; it withholds unidentifiable niche/between-creator effects and unseen-creator predictions. Comments still lack reaction analysis; retention-series contracts, semantic/graph memory and hypothesis evaluation/revision remain future work. Existing optional reasoners cannot already make those mechanism/performance claims.
+The unversioned legacy path retains retrospective baselines, same-creator matching and auxiliary Ridge checks for exact reproduction. The explicit version 2 path corrects time-aware references, matching, lineage and selected OLS/Poisson validation; it withholds unidentifiable niche/between-creator effects and unseen-creator predictions. R4 supplies qualified reaction analysis, R5 source-defined behavioral series/account outcomes and R6 persistent retrieval; hypothesis evaluation/revision remains future R7/R8 work. Existing optional reasoners cannot already make those mechanism/performance claims.
 
 ### 2.2 Components to preserve, adapt and add
 
@@ -38,7 +40,7 @@ All paths below are relative to `src/socialdna/`. A proposed filename is a respo
 |---|---|---|
 | Preserve algorithms/contracts | `core/{ids,hashing,time}.py`; `media/{probe,ffmpeg,scenes,frames,audio,subtitles,timeline}.py`; existing artifact/filesystem, writer-lock, UoW and provenance primitives | Keep original-presentation timestamps, hash-addressed inputs, millisecond intervals, deterministic transforms and durable task cache/resume. Add new producers without replacing the working timeline. |
 | Preserve provider isolation | `analyzers/`, `providers/`, `application/{task_runner,enrichment_service}.py` | Keep prepared manifests, declared resources, subprocess isolation, explicit consent and budgets. Extend validated input/output contracts only when needed. Existing `TaskContext` gets a backward-compatible evidence adapter, not an immediate rewrite. |
-| Extend canonical storage | `storage/{schema,repositories,health}.py`, migrations; `domain/{evidence,research}.py` | Add revision-aware universal evidence, registration and first-use query projections. Never edit migrations 0001–0004. |
+| Extend canonical storage | `storage/{schema,repositories,health}.py`, migrations; `domain/{evidence,research}.py` | Add revision-aware universal evidence, registration and first-use query projections. Never edit released migrations 0001–0010. |
 | Adapt imports and reporting | `ingestion/tabular.py`; `application/{account_import_service,performance_service,report_service}.py`; `reporting/` | Preserve v1 formats/readers; add immutable source snapshots, versioned metric semantics and citations, eligibility-aware current reports and explicit new research formats. |
 | Repair rather than replace analytics | `analytics/{metrics,baselines,cohorts,statistics,validation}.py` | Explicit designs, as-of history, actual feature lineage, identifiable models, duplicate-safe splits and validation of the actual selected pipeline. |
 | Adapt resource bootstrap | `application/bootstrap.py`, `storage/vectors.py` | R6 opens the Qdrant client lazily; existing data-directory locking remains. |
@@ -47,6 +49,19 @@ All paths below are relative to `src/socialdna/`. A proposed filename is a respo
 | Add derived memory | Proposed `memory/{lexical,vector_sync,graph,hybrid}.py`, `providers/embeddings.py`, `application/query_service.py` | R6 SQL/FTS + Qdrant outbox + bounded NetworkX projection, never application-owned hidden facts. |
 
 The planned portable skill and photo/carousel support are U2/U1; neither is claimed as fully delivered today.
+
+### 2.3 Four additional capability areas
+
+All four areas are **partially supported overall**, with specific missing producers and services. See the [code-grounded coverage matrix](docs/intelligence-capability-audit.md#1-coverage-against-working-code) for full/partial/missing subcapabilities and acceptance evidence.
+
+| Area | Working substrate | Missing targeted foundation | Future delivery |
+|---|---|---|---|
+| Professional filmmaking/editing | Scenes, appearance/flow/audio proxies, subtitle tracks, reviewed creative events, eleven pinned recipes and declared comparisons | Professional shot/craft taxonomy, validated interpretation, richer pacing/subtitle/music/transition recipes | C1-A; R9 interactions/comparisons; R10 strategies |
+| Platform recommendation/distribution | Platform-namespaced source metrics, cohorts, time windows, reactions and scoped comparisons | Versioned official statements, distinct platform/surface research specifications and traffic/exposure observations | C1-C; R8 version review; R9 models; R10 experiments |
+| Publishing/discoverability | Post metadata/revisions, caption/hashtag evidence, UTC-hour feature | Native format/language/local clock/completeness, thumbnail variants, title/search/trend evidence and separate objectives | C1-B/C1-C, U1 images; R9/R10 |
+| Profile/account conversion | Handle and supplied profile JSON history; source-defined account metrics; qualified post conversion credits/net follower changes | Typed full profile snapshots/locators, rubric-backed positioning/pillars and compatible branching funnel/cohort outcomes | C1-D, U1 images; R9/R10 |
+
+C1 follows R7 in bounded independent slices. It is not a prerequisite for the cooking slice or initial reevaluation; unknown context must be disclosed rather than invented. R1–R6 code, schemas and completion records are preserved.
 
 ## 3. Execution architecture and communication
 
@@ -118,6 +133,8 @@ R1 adds real media/post/comment/metric bindings and minimal question/hypothesis 
 | Research source / study finding | Verified source revision, page/section/table or permitted excerpt; publication design and applicability remain separate from citation existence. |
 | Statistical result | Exact immutable analysis revision plus term/contrast/diagnostic ID and model/specification version. |
 | Experiment outcome | Exact design/assignment/outcome revisions and registered scope; linkage does not itself establish causal validity. |
+
+C1 adds typed title/metadata/profile-field/link/pin and official-document statement locators only alongside real writers/resolvers. Static thumbnail/profile-image regions use U1 asset evidence, not fabricated video intervals. Current post-text bindings remain caption/hashtag only; arbitrary profile JSON is not a typed profile citation.
 
 `EvidenceResolver.resolve(ref, purpose, as_of)` returns typed source/locator, revision, provenance, availability, eligibility and withdrawal state. It rejects dangling, wrong-kind, out-of-bounds, wrong-subject and impermissible references. SQL FKs enforce registry existence; typed binding constraints and service validation enforce semantic target integrity.
 
@@ -237,6 +254,8 @@ Explicit reevaluation freezes a new manifest, accounts for reused versus new uni
 
 R7 can recommend an experiment brief. R10 adds registered design/assignment/outcome and deviation records, ethically authorized execution data, analysis and updated assessments. It does not automatically control creator accounts or post content. Experiment analysis distinguishes intent-to-treat creative effects, compliance/exposure issues and separately justified mechanism mediation.
 
+Keep the shared research envelope domain-neutral; psychological operationalizations are a subtype, not mandatory invented constructs for platform, packaging or profile questions. R7 records the four-domain alternative/missing-context checklist without implementing C1. Later C1 official-document statements remain distinct from academic `StudyFinding` records, local empirical findings and identified experiments. R8 tracks their applicable revisions without treating a help-page edit as proof of an algorithm change.
+
 ## 9. Storage architecture and cross-store consistency
 
 ### 9.1 SQLite authority and artifacts
@@ -314,6 +333,7 @@ Keep current CLI commands and result envelopes. R1's evidence/registration/repor
 | Retrieve / maintain memory | `query`, `graph neighbors\|path`, bounded `storage reconcile\|reindex` adapters — R6 |
 | Evaluate / revise | `research evaluate\|reevaluate\|history` — R7/R8 |
 | Discover / experiment | Explicit bounded discovery and experiment register/outcome adapters — R9/R10 |
+| Production / growth context | Versioned craft/context/platform-document/profile imports and evidence-backed summaries — C1, planned; exact commands fixed at each slice's delivery |
 | Photos / skill | Photo/carousel import-analysis adapters — U1; portable skill instructions and host smoke tests — U2 |
 
 A future portable `SKILL.md` describes capability discovery, consent, budgets, choosing analysis mode, calling the CLI, resolving evidence, reporting limitations, and when to request better data. Keep host-specific wrappers minimal. Use the [Agent Skills format](https://agentskills.io/specification); validate actual invocation behavior separately on Codex, Claude Code and OpenCode. Format compatibility is not proof of identical host behavior.
@@ -353,6 +373,8 @@ Do not declare a universal local capacity ceiling from a library warning. Benchm
 The [migration strategy](docs/migration-strategy.md) preserves existing tables/IDs, frozen migration scripts and report semantics. Add a revision registry alongside legacy evidence, backfill deterministically and verify it before enabling new research. Do not reinterpret an old comparison as an as-of analysis; corrected designs use a new spec/method version and new result identity.
 
 Delivery follows [PLAN.md](PLAN.md): R1 universal evidence/minimal registration; R2 correctness; R3 events; R4 reactions; R5 behavioral metrics; R6 memory; R7 first full mechanism investigation; R8 reevaluation; R9 bounded broader discovery; R10 experiments. U1/U2 preserve image and portable-skill usability. R4/R5 are deliberately separated; memory follows working canonical producers rather than encoding an inadequate evidence model.
+
+After R7, C1 supplies four independently tested evidence extensions for professional production, publishing/packaging, platform/surface research and profiles/funnels. Corresponding R9/R10 branches require only their delivered inputs; initial R7/R8 and existing cooking discovery do not wait for all C1 slices. U2 exposes a per-domain capability manifest, not a promise that all future workflows exist.
 
 R1's implemented proof is an upgraded old media citation plus real imported comment and metric citations, minimal question/spec registration, restart resolution and withdrawal-aware reporting. R2 adds the separately versioned correctness path described in §18; it does not reinterpret the R1/legacy delivery.
 
@@ -625,3 +647,23 @@ agent-specific state. Canonical imports/analysis and basic no-model retrieval
 never require Qdrant to open. Health checks distinguish derived damage/lag from
 canonical data loss. Rebuilds are explicit and resumable, not mandatory on every
 command. See [operations and verification boundaries](docs/research-memory.md).
+
+## 23. Production and growth-context extension decisions — planned
+
+This documentation decision follows the [four-area audit](docs/intelligence-capability-audit.md); it does not change package version, database head or application code. Generic creative annotations, platform metric namespaces and arbitrary profile JSON are useful foundations but cannot honestly stand in for complete craft, distribution, publishing or conversion intelligence.
+
+| Decision | Rationale and boundary |
+|---|---|
+| One C1 evidence extension track, four small deliveries after R7 | Makes missing canonical inputs explicit without inflating the next psychological vertical slice or adding four parallel engines. C1-A production, C1-B publication/packaging, C1-C platform/surface evidence and C1-D profile/funnel context have independent acceptance gates. |
+| Versioned typed payloads on the existing registry | Preserve R3's closed v1 creative vocabulary, account-export v1 and existing post/account metric subjects. Add professional technique schemas, publication/profile snapshots and platform statements only with writer/resolver/reader tests. No generic JSON reinterpretation or empty tables. |
+| Context clocks and channel-specific outcomes | Publication/capture/knowledge/effective time, local timezone, metadata/profile variant and observation completeness must be explicit. Search, recommendation distribution, follows and business conversions have different subjects/windows/denominators; absence of data is not zero. |
+| Three platform families with explicit surface scope | Reuse research validation, not ranking assumptions. Official documentation, permitted longitudinal analytics and creator experiments are separate evidence lanes with dated applicability. Hidden weights/satisfaction/eligibility remain unknown; no bypass or guaranteed reach. |
+| Professional craft as measured/annotated evidence, not taste as fact | Existing low-resolution appearance/flow/audio proxies cannot establish camera operation, lighting setup or editing intent. Human-reviewed imports work offline; optional detectors require calibration, coverage and abstention. Feature interactions remain declared, versioned and tested. |
+| Branching aggregate funnels with source-qualified attribution | Profile visits, follows and link clicks/conversions are not a guaranteed linear path or individual journey. New profile/link/campaign subjects need actual bindings; current post credits and follower endpoints keep their semantics. |
+| Existing SQL/FTS/Qdrant/NetworkX architecture | Context documents use existing SQLite revisions and first-use projections; artifact hashes preserve authorized visual inputs. Register document builders/typed structural edges only with producers. No new collection per platform/capability, graph database, server or crawler. |
+
+Planned SQL projection keys follow real queries: publication/profile snapshot revision → account/post and capture/effective times; ordered thumbnail/link/pin child → parent snapshot plus ordinal and real asset/post refs; platform statement revision → document version plus exact excerpt; distribution observation → actual subject/definition/cohort/window and source surface mapping. Profile/link/campaign metric bindings are additive validated subject types, not fake post IDs. Low-volume rubrics/templates stay versioned documents until indexed reads justify a table. Exact final DDL belongs to each C1 slice's migration review.
+
+Memory builders retain source evidence, eligibility and scope; graph edges such as profile-snapshot→account, pin→post or statement→document are structural. R9/R10 assessed patterns/recommendations require qualified reified findings, not direct causal-looking technique→success edges. New context revisions invalidate only their dependencies; historical reports keep pinned context. The existing outbox, stale-generation guards and erasure/restore rules apply to all derived copies.
+
+R9 owns bounded comparisons/discovery using these inputs; R10 owns actionable shot/edit, packaging/schedule, distribution-response and profile-conversion experiments/recommendations. Native platform tests count as randomized only when their actual assignment/outcome evidence supports that design. Account/period changes require carryover/spillover checks. U1 enables static thumbnail/profile images; U2 exposes only delivered services with explicit scope and data-access limits. See the [slice tests](docs/intelligence-capability-audit.md#4-bounded-delivery-and-verification) and [statistical safeguards](docs/statistical-design.md#13-production-distribution-publishing-and-conversion-designs--planned).

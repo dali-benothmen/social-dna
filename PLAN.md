@@ -2,13 +2,17 @@
 
 Revised: 2026-11-05. Scope: R1–R6 delivered. R6 prepared-real-model acceptance is opt-in and was not run without supplied weights; no R7 or later implementation is claimed.
 
-Runtime: package `0.0.10`, SQLite head `0010_memory`. Released migrations `0001_foundation`–`0009_behavioral` remain unchanged. Legacy Milestones 0, 1, 3 and 4 are completed deliveries; their limitations remain visible. Legacy Milestones 2, 5 and 6 are **superseded, not completed**. **R7–R10 and U1/U2 remain planned and unimplemented**.
+Runtime: package `0.0.10`, SQLite head `0010_memory`. Released migrations `0001_foundation`–`0010_memory` are frozen. Legacy Milestones 0, 1, 3 and 4 are completed deliveries; their limitations remain visible. Legacy Milestones 2, 5 and 6 are **superseded, not completed**. **R7–R10, C1 and U1/U2 remain planned and unimplemented**.
 
 Authoritative design: [ARCHITECTURE.md](ARCHITECTURE.md), [research contracts](docs/research-contracts.md), [statistical design](docs/statistical-design.md), [migration strategy](docs/migration-strategy.md), and [reference use case](docs/research-use-case.md). The [audit](docs/architecture-audit.md) records the reasons for this revision; the [previous roadmap](docs/history/PLAN.pre-research-revision.md) is historical, not an alternative active plan.
+
+The [four-area capability audit](docs/intelligence-capability-audit.md) adds explicit production, platform/surface distribution, publishing/discoverability and profile/conversion coverage. These are partially supported foundations today, not delivered intelligence systems. C1 supplies bounded future evidence extensions; R7 remains the next implementation milestone.
 
 ## 1. Outcome, limits and delivery rules
 
 SocialDNA is a local-first Python engine and portable Agent Skill that investigates why content may succeed. It preserves observable evidence, evaluates competing explanations with appropriately scoped data, compares creators without hiding confounding, and revises findings as evidence changes. It is not a psychological diagnosis system, a universal virality score, or a machine for proving mechanisms from observational correlations.
+
+The target joins how content is produced, why audiences respond, how specific platform surfaces distribute it, how publishing/search metadata affects discovery, and how profiles convert attention into sustained growth/business outcomes. Search discovery, recommendation exposure and account conversion are separate objectives. Official platform statements, observed associations and identified experiments remain separate evidence lanes; no proprietary ranking-weight recovery or distribution guarantees.
 
 The revised design preserves working media processing, synchronized timelines, provenance, artifacts, account exports, statistical tooling, reproducible reports and CLI execution. SQLite remains authoritative; persistent Qdrant Local retrieval and SQLite-backed NetworkX projections are introduced only when canonical producers and revision semantics exist. No database server, paid API, new distributed service, or automatic model download is required.
 
@@ -20,7 +24,7 @@ Delivery rules:
 - Keep basic media/account analysis fast: do not register a research question, load a graph, index embeddings or invoke a reasoner merely to describe a video.
 - Missing data is not zero; absent detection under sparse sampling is not demonstrated absence; expressed intention is not behavior; association is not causation.
 - Every research result declares its population, availability, estimand, evidence version, uncertainty, alternatives and limitations. `insufficient_data`, rejected and inconclusive results are successful research outcomes when honestly supported.
-- Implementation changes require unit/integration/contract/end-to-end verification, migration/compatibility checks, documentation updates and a scoped working commit when authorized. Implementation authority currently extends through R5 only. Commit messages describe the engineering change without type prefixes or milestone labels.
+- Implementation changes require unit/integration/contract/end-to-end verification, migration/compatibility checks, documentation updates and a scoped working commit when authorized. R1–R6 are delivered; begin another milestone only when authorized. This capability audit authorizes documentation changes, not R7/C1 implementation. Commit messages describe the engineering change without type prefixes or milestone labels.
 
 ## 2. Preserved implementation and historical deliveries
 
@@ -47,14 +51,17 @@ M4 delivered its scoped implementation, but its retrospective baseline, same-cre
 | R6 | Persistent SQL/FTS/Qdrant/SQLite-backed NetworkX research memory | R1–R4; R5 for behavioral projections | Delivered `0.0.10`; real-model acceptance opt-in |
 | R7 | First complete, literature-backed psychological research vertical slice | R2–R6 | Planned |
 | R8 | Incremental hypothesis reevaluation and preserved contradiction history | R7 | Planned |
-| R9 | Bounded nonlinear, cross-creator and cross-niche discovery | R2, R3, R6–R8 | Planned |
-| R10 | Registered experiment outcomes and evidence-qualified recommendations | R7–R9 | Planned |
+| C1 | Versioned production and growth-context evidence, four independent deliveries | R1–R6; after R7; U1 for static visual branches | Planned extension track; see §19 |
+| R9 | Bounded nonlinear, cross-creator and cross-niche discovery, including delivered C1 dimensions | R2, R3, R6–R8; respective C1 slice for a new domain branch | Planned |
+| R10 | Registered experiment outcomes and evidence-qualified creative/distribution/publishing/profile recommendations | R7–R9; respective C1 slice for a new domain branch | Planned |
 | U1 | Individual photo/carousel analysis reusing existing media contracts | R1 | Planned, parallel usability track |
 | U2 | Portable Codex/Claude Code/OpenCode skill and usable reports | U1, R2; capability-gated integration with later R milestones | Planned, parallel usability track |
 
 Audience comments and behavioral metrics are split into R4/R5 because sampling/semantic annotation and metric time-series validity are different testable products. Memory follows canonical producers and revision contracts, rather than freezing the current media-only evidence model. A small literature corpus, hypothesis registration and experiment proposal appear in R7; general discovery and experiment-outcome analysis wait for R9/R10. U1/U2 prevent research infrastructure from postponing ordinary creator workflows.
 
 R6 must work without prepared embeddings through SQL/FTS/graph retrieval; semantic acceptance additionally requires a verified prepared local embedding model. R7 must work with authorized local media, imported human annotations and curated research when no VLM is installed. Creator-owned retention is an optional richer evidence branch, never an invented prerequisite substitute.
+
+C1 is not a prerequisite for R7 or for the existing R8/R9 cooking branch. After R7, deliver C1-A/B/C/D as small tested slices alongside U1/R8 where appropriate; advanced domain branches consume only their delivered prerequisites. R7 must record production/distribution/publishing/profile alternatives or missing context, not implement four additional engines. Export-first offline paths are required; live platform adapters remain optional.
 
 ## 4. Cross-cutting interfaces and compatibility gates
 
@@ -470,6 +477,8 @@ Add reviewed literature import/curation, `psychology/{constructs,operationalizat
 
 Proposed interfaces: `research register|evaluate|show`, curated-study import and grounded report generation. Extraction reliability, literature applicability, local association, generalization and causal identification remain distinct assessments, not one confidence score.
 
+Keep the shared question/hypothesis/assessment envelope domain-neutral, with psychological construct/operationalization fields belonging to a validated subtype. The cooking report includes a bounded checklist of production, distribution, publishing and profile-context alternatives/unknowns; unknowns qualify conclusions rather than triggering new extraction work. C1's platform-document and context producers are explicitly deferred.
+
 ### Dependencies and tasks
 
 Depends on R2–R6. Begin with a small human-reviewed corpus and limited anticipation/sensory appeal/curiosity/cognitive-fluency explanations; each is a candidate, not assumed present. Use optional configured reasoning, never mandatory hosted APIs. Tasks: encode real study evidence/limits; define competing predictions; assemble eligible evidence; compare representative populations and failures; evaluate or withhold associations; write immutable assessment and a discriminating experiment proposal. Human annotations/imports provide the no-VLM path.
@@ -481,6 +490,8 @@ The full twelve-step cooking scenario in [research use case](docs/research-use-c
 ### Automated tests
 
 Fabricated/irrelevant/withdrawn study citations; locator validation; technique/construct/response/outcome distinctions; rival predictions; null/negative evidence; unavailable-owner metrics; no-provider offline execution; statistical result qualification; report claim-level gates; sampling-frame versus top-K separation; cross-process assessment/report reproduction.
+
+Also test non-psychological rival/context representation and explicit unavailable context without invented observations or a C1 dependency. Keep the reference cooking dataset and original acceptance scope bounded.
 
 ### Demonstrable end-to-end behavior
 
@@ -503,6 +514,8 @@ R1 registration, R7 assessment services, import/task completion hooks, evidence 
 Add `research/reevaluation.py`, dependency/invalidation service and comparison/history rendering. Extend canonical dependencies from hypothesis/specification/assessment to data versions, features, population, model, literature and source eligibility. Store reevaluation requests, immutable assessment inputs/results, new-versus-reused evidence membership, supersession/contradiction links, reasons and scoped status transitions. A stale marker is mutable operational state; published assessments are immutable records.
 
 Proposed interfaces: `research reevaluate <id>`, `research history <id>`, and revision-specific retrieval. New data can enqueue eligible work; costly reevaluation is explicit or subject to a user-set budget, never an unbounded background agent.
+
+Once C1 writers exist, register their production/context/metadata/profile/platform-document dependencies and population selectors through this same mechanism. New guidance requests applicability review; it is not proof of an algorithm change. Do not replace historical context with today's snapshot or make C1 a prerequisite for initial cooking reevaluation.
 
 ### Dependencies and tasks
 
@@ -538,6 +551,8 @@ Add `research/{discovery,candidates,counterexamples}.py` and bounded nonlinear t
 
 Proposed interfaces: `research discover --spec <file>` and confirmation evaluation with a separately frozen population. Discovery reports are visibly exploratory.
 
+After the respective C1 delivery, register domain-specific feature/outcome families for professional craft interactions, platform/surface distribution, language/local-time publishing and search/packaging, or profile/funnel conversion. Share validation and ledgers, not platform ranking rules. Each branch declares objective, surface, niche, language, audience, source-policy period, paid exposure and applicable temporal/denominator constraints. Search, recommendation distribution and conversion are not interchangeable success labels.
+
 ### Dependencies and tasks
 
 Depends on R2/R3/R6–R8; retain existing scikit-learn/statsmodels first. Tasks: bounded declared interactions and spline/regularized nonlinear terms; only later justified bounded trees/boosting; nested train-only selection; chronological/creator/content-duplicate splits and held-out niches where feasible; stability and counterexample analysis; planned test-family correction; session-spanning search ledger and repeat-look restrictions. No automatic causal interpretation of prediction/importance.
@@ -549,6 +564,8 @@ Pure interactions and U-shaped effects can be investigated by the actual selecte
 ### Automated tests
 
 Null searches and false-discovery behavior; pure interaction/U-shape; correlated/redundant features; nesting/selection leakage; duplicate media; creator and held-out-niche transfer; contradictory examples; fixed search budget; repeated attempts/holdout reuse; scope-qualified graph patterns; seeded reproducibility and small-cluster refusal.
+
+For C1-backed branches also test surface incompatibility, early-response/later-distribution leakage, incomplete posting windows, local-time/DST effects, metadata/profile edits, incompatible funnel cohorts and missing context. Test real selected pipelines; no universal ranking weights or posting-hour guarantees may emerge from pooled observational data.
 
 ### Demonstrable end-to-end behavior
 
@@ -572,6 +589,8 @@ Add `research/{experiments,recommendations}.py`. Store registered experiment ver
 
 Proposed interfaces: `experiment register|import-results|analyze|show`, with recommendations rendered from eligible findings rather than generated without provenance.
 
+Capability-gated variants include shot/edit/subtitle/music plans, title-thumbnail/search packaging, publishing schedule, distribution-response and profile/link/pin changes. A recommendation declares platform/surface, niche/language/audience, objective/channel, evidence date, supporting/contradicting revisions, uncertainty and feasible next test. Distinguish craft heuristics, official advice, observational findings and eligible experiments. New domains require their C1 inputs; the original cooking experiment does not wait for all four.
+
 ### Dependencies and tasks
 
 Depends on R7–R9; no publishing API or autonomous external action. Tasks: register bounded design; import creator-authorized results; validate assignment/measurement/attrition; analyze planned estimands; record deviations and threats; feed results into a new hypothesis assessment; generate original technique alternatives while preserving creative versus psychological uncertainty.
@@ -579,6 +598,8 @@ Depends on R7–R9; no publishing API or autonomous external action. Tasks: regi
 ### Acceptance criteria
 
 A sound randomized design may support a scoped creative effect; a curiosity/anticipation mechanism requires additional discriminating measurement/identification. Posting two variants sequentially is not mislabeled randomization. Recommendations cite applicable findings and failures and can state “test first.” Publishing, recruiting, spending or contacting viewers remains outside analysis authorization.
+
+Use the actual assignment unit: post/creative variant, impression only when a permitted native packaging experiment supplies assignment, or account/period for profile/schedule changes. Address carryover, spillover, concurrent changes, clustering and delayed outcomes. Profile pre/post counts do not prove profile-caused follows or revenue; an attention lift does not prove sustained growth. Include a non-cooking, non-psychological recommendation fixture for each delivered domain branch.
 
 ### Automated tests
 
@@ -638,7 +659,7 @@ Add `skills/socialdna/SKILL.md` with narrowly scoped references, command/JSON sc
 
 ### Dependencies and tasks
 
-Depends on U1/R2 for the first core usability delivery; later R3–R10 only enable corresponding workflows after their tests pass. At implementation time use the skill-creator guidance and verify the then-current host compatibility rules. Tasks: installation/doctor guides; local video/photo/account comparisons; caption/hashtag evidence; permission/data-access questions; cited reports; safe experiment proposals; JSON errors and resource estimates; packaging/migration/restart hardening. No mandatory hosted service.
+Depends on U1/R2 for the first core usability delivery; later R3–R10/C1 only enable corresponding workflows after their tests pass. At implementation time use the skill-creator guidance and verify the then-current host compatibility rules. Tasks: installation/doctor guides; local video/photo/account comparisons; caption/hashtag evidence; permission/data-access questions; cited reports; safe experiment proposals; JSON errors and resource estimates; packaging/migration/restart hardening. No mandatory hosted service. The capability manifest reports production, platform/surface, publishing/search and profile/funnel coverage separately; it must not advertise planned C1 workflows as available.
 
 ### Acceptance criteria
 
@@ -658,6 +679,8 @@ The old `v0.1`–`v0.4` milestone labels are withdrawn planning gates, not promi
 
 A research-preview release requires R1–R8 plus the corresponding U2 workflow: one complete cooking use case, eligible universal citations, representative comparisons, persistent retrieval, a falsifiable literature-backed explanation and a demonstrable weakened/rejected revision. Broader-discovery/experiment-ready status requires R9/R10; public `1.0` additionally requires U1/U2 hardening and documented platform/data-access limitations. No milestone is considered complete solely because a model produced plausible prose.
 
+These existing release gates are preserved, not a claim that the full four-area target is covered. Advertising complete production/distribution/discoverability/profile intelligence additionally requires the respective C1/U1/R9/R10 branches, source-access coverage and empirical validation described in the [capability audit](docs/intelligence-capability-audit.md).
+
 Common implementation verification:
 
 - Unit/property tests for contracts, time/availability semantics, numeric methods and invalid states.
@@ -673,4 +696,31 @@ Official platform adapters are optional, permission-aware additions after export
 
 Data-access, self-selected comments, small creator/niche counts, paid distribution, unavailable historical covariates, measurement error and hidden confounding can make a question unanswerable. More embeddings, larger reasoners or more posts from the same few creators do not remove these limits. A psychological mechanism remains a hypothesis unless a justified measurement/experimental identification supports it; randomized creative effects alone do not establish mediation.
 
-The next implementation milestone is **R2**. It was not started as part of R1; all later R/U work remains planned until explicitly requested.
+The next implementation milestone is **R7**. This audit did not start it; all later R/C/U work remains planned until explicitly requested.
+
+## 19. C1 — Versioned production and growth-context evidence
+
+Status: **planned, unimplemented; four bounded deliveries after R7, not one large implementation**. This is core future capability coverage, not a requirement to build live API adapters. Detailed payloads, boundaries and per-slice acceptance/tests are in the [capability audit](docs/intelligence-capability-audit.md#2-shared-extension-architecture--planned-not-implemented).
+
+### Objective and integration
+
+Supply the canonical inputs missing from professional craft, platform distribution, publishing/search and profile conversion research. Reuse R1 revisions/evidence, R2 comparisons/features, R3 annotations, R4 reactions, R5 source-defined outcomes and R6 projections. Existing R7/R8 cooking research stays independently deliverable. Each new R9/R10 domain branch depends only on its relevant C1 slice. U1 is needed for actual static thumbnail/profile-image analysis; text-only imports must work without a model or live connector.
+
+### Modules, interfaces and delivery boundaries
+
+Proposed file names below are responsibility boundaries, not scaffolding instructions. New record/service/CLI signatures are finalized by each slice's tested writer/reader. Add a new migration only where needed; never edit released `0001`–`0010`.
+
+| Delivery | Planned work and candidate files | Dependencies and integration |
+|---|---|---|
+| C1-A: production evidence | Extend `domain/creative.py`, `application/creative_service.py`, `storage/creative_repository.py`, `cli/creative_commands.py` and `analytics/creative_recipes.py` through a new versioned professional vocabulary/rubrics and a small pinned craft recipe set. Optional detectors remain separately validated. | R1–R3/R6; after R7. Human-reviewed no-model import first; R2 can compare available features, R9 adds broader interactions. |
+| C1-B: publishing/packaging context | Add cohesive `domain/context.py`, `ingestion/context.py`, `storage/context_repository.py`, `application/context_service.py` and thin CLI adapter as needed. Version metadata/language/timezone/completeness/thumbnail variants, exact title/asset locators, schedule/cadence recipes and dated keyword/trend context. | R1/R2/R3/R6; after R7; U1 for static visual lane. Preserve account-export v1 and feed eligible features into R9. |
+| C1-C: platform research inputs | Add `domain/platform_research.py` and import/service helpers for official-document statements, platform/surface specifications, source capability manifests and mapped traffic-window observations. Reuse context storage/CLI patterns and R5 measurements, not a new connector framework. | R1/R5/R6 and R7 shared research envelope. Reuse R8 invalidation when delivered; R9 compares distinct surface-specific questions. No live API prerequisite. |
+| C1-D: profile/funnel context | Extend context schemas/import/service for typed profile snapshots, text/photo/link/pin evidence, frozen branding/pillar rubrics and compatible funnel-stage summaries. Add actual profile/link/campaign subject bindings to behavioral contracts only when used. | R1/R5/R6; after R7; U1 for static visual lane. C1-B context helpers may be reused but unrelated publishing analytics are not required. R9/R10 consume validated summaries and attribution limits. |
+
+### Acceptance criteria and tests
+
+Deliver each slice as a working import → typed evidence → feature/context report → new-process reload, with compatible old imports/reports preserved. The [slice verification matrix](docs/intelligence-capability-audit.md#4-bounded-delivery-and-verification) defines the exact demonstrations and rejection fixtures: production ambiguity/coverage; timezone/DST/incomplete cadence; official-document/surface/version and feedback leakage; profile clocks/branching funnels/denominators/credit duplication. Include source withdrawal/erasure, memory builder eligibility and no-provider CLI tests. Optional model performance and real-corpus validity require separate measured evidence, not generated-fixture assertions.
+
+### Explicitly deferred
+
+Broad nonlinear/cross-creator discovery belongs to R9; recommendations and creator experiment outcomes belong to R10; host workflows belong to U2. No automatic account edits, posting, experiments, scraping, new infrastructure, full professional detector suite or universal algorithm model is part of a C1 slice. Request authority for one delivery at a time.

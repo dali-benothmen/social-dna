@@ -92,6 +92,8 @@ Begin R7 with a small reviewed corpus and at most a few relevant mechanism famil
 
 Hypotheses may be associated-only, mechanism-proposing, or experiment-oriented. Hypothesizing a mechanism does not raise the claim level above hypothesis. Statistical association between a technique and an outcome is recorded separately from support for a mediator.
 
+The shared question/hypothesis/assessment envelope is domain-neutral. Psychological constructs and operationalizations belong to the mechanism subtype, not every production, distribution, search or profile question. R7 records those domains as alternatives/context/unknowns within its bounded cooking slice. C1 later introduces their actual producers; official platform statements are not coerced into academic `StudyFinding` records.
+
 For the cooking question, distinct proposed explanations include anticipated reward, sensory appeal, an information gap/curiosity, and cognitive fluency/clarity. Literature may support their plausibility in other settings. A reviewer must record whether its manipulation, population, and outcome actually transfer to cooking videos. Broad interest, expressed intention, or retention alone usually fails to distinguish these explanations. If all rivals predict the same available outcome, the assessment explicitly says **non-discriminating evidence** and proposes a better test.
 
 ### Evidence grades are not model confidence
@@ -208,3 +210,18 @@ No milestone can substitute successful schema validation for empirical research 
 - A withdrawn source whose stale vector work cannot restore it and whose dependent conclusion loses eligibility or support.
 
 The corresponding milestone tests must also cover real service calls, CLI envelopes, persisted reloads, and human/imported annotations without optional model dependencies. Scientific validation datasets and calibration studies remain separate deliverables; their existence cannot be inferred from passing software tests.
+
+## 8. Production and growth-context contracts — planned C1
+
+These are logical additions, **not current schemas or accepted import fields**. The [four-area audit](intelligence-capability-audit.md#2-shared-extension-architecture--planned-not-implemented) is the detailed payload/coverage contract; [PLAN.md §19](../PLAN.md#19-c1--versioned-production-and-growth-context-evidence) assigns writers, dependencies and tests. Reuse shared revision/evidence identity rather than creating a new research engine.
+
+| Planned contract family | Required extension and invariant |
+|---|---|
+| C1-A professional technique/rubric and recipes | Explicit new annotation/definition version beyond R3's ten-label vocabulary; shot/region/time/coverage, outcome-blinding and review provenance; measured proxies distinct from interpreted craft. Pinned pacing, subtitle, music/transition and interaction recipes preserve exact supplying revisions and missingness. Existing v1 semantics remain frozen. |
+| C1-B publication/metadata context | Actual post/account refs, native format/language, title/caption/tag/keyword and thumbnail variants; capture/known-validity/publication clocks; original offset and supplied IANA timezone; account observation-window completeness; dated trend/query sources. Exact title/static-asset locators, not caption or fake-video reuse. |
+| C1-C platform surfaces/documents/statements | Platform/surface/format/market/language/cohort/objective and source versions; official URL/publisher/content hash/retrieval and known effective dates, excerpt locator, review/supersession. Documented statements, observed associations and experiments keep distinct evidence types. |
+| C1-C distribution observations | Typed actual subject, source-defined metric/denominator/cohort/window, source traffic code plus versioned surface mapping, organic/paid/unknown context, eligibility/availability/lag. Search traffic, impressions, reach and views are not interchangeable; unknown source stays unknown. |
+| C1-D profile snapshot/rubric | Actual account revision, typed handle/name/bio/photo/ordered links/pins/CTA fields, field presence and source-validity/capture clocks. Exact field/link/pin/static-image evidence; owner declarations distinct from interpreted positioning/pillars/consistency. |
+| C1-D funnel and outcome context | Defined stage/branch, actual subject/profile variant/link/campaign when supplied, compatible cohort/windows/uniqueness/denominators and deduplication/attribution. No individual path inferred from aggregates, no nearest-post follower credit, no invented private conversion rate. |
+
+Each family requires its canonical writer, FK/kind/ownership validation, typed evidence resolver, idempotent reader/report and eligibility/erasure tests before memory indexes it. Profile/link/campaign metric subjects extend the current post/account registry only with real producers; a free-form campaign label is not a registered subject. Low-volume specifications remain validated documents; query projections are first-use additions. U1 supplies real static-image evidence; R8 tracks revisions once writers exist; R9 analyzes scoped comparisons and R10 produces qualified recommendations/experiment outcomes. U2 cannot expose planned contracts as working commands.

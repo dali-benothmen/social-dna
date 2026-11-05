@@ -164,6 +164,19 @@ These tests may be infeasible in ordinary account exports. Absence of their addi
 
 ## Minimum end-to-end acceptance demonstration
 
+### Cross-dimension alternative explanations
+
+R7's bounded cooking investigation must explicitly record the following competing context or missing data, not assume psychological mechanisms explain everything:
+
+- Production: shot size/angle, lighting/color appearance, pacing, subtitle treatment and music/sound timing may co-vary with a finished-meal opening. Use existing measured/reviewed features where available; unsupported professional interpretations remain unknown until C1-A.
+- Distribution: platform/surface, traffic source, paid exposure, source-policy period and audience/topic context may affect observed outcomes. R5's platform-defined metrics are not a recovered ranking model; C1-C later supplies typed documentation/surface evidence.
+- Publishing/discoverability: title/thumbnail/caption/hashtags, local schedule, cadence, language and trends may explain differences. UTC hour is not a creator timezone, and a selected sample is not complete posting history. C1-B/U1 supply richer dated context.
+- Profile/conversion: changing bio/photo/pins/links/positioning and existing account strength may influence follows or business outcomes independently of an opening. Profile JSON is not a complete typed profile audit; follower stock changes are not post-attributed conversions. C1-D supplies compatible snapshot/funnel evidence.
+
+The absence of this context qualifies the finding; it does not trigger a requirement to implement all four analyses in R7. Shared hypotheses/assessments admit non-psychological rivals without invented constructs. [The four-area audit](intelligence-capability-audit.md) assigns later C1 inputs, R9 discovery/comparisons and R10 actionable creative/publishing/profile experiments. Search, recommendation exposure and conversion remain distinct questions; no view lift alone establishes all three.
+
+### Preserved bounded demonstration
+
 Use a deterministic, permission-labelled fixture corpus with reviewed creative and reaction annotations, complete provenance, comparable scalar outcomes, ordinary/failure examples, and a reviewed miniature literature corpus. It is a software acceptance dataset, not empirical proof that result-first openings work. Optional real media/models can enrich it without replacing the no-model test path.
 
 R7 must demonstrate steps 1–10 and an honest step-11 brief, including an insufficient/non-discriminating rival result. A creator-owned analytics fixture adds step 6's rich-metric path after R5. Missing O analytics must take the explicitly separate scalar fallback or descriptive-only path. R8 completes step 12 with evidence that changes the conclusion. R9 expands search/transfer only after this narrow workflow works; R10 adds experiment registration/outcomes without claiming automatic mechanism identification.

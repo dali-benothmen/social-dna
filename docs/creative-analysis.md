@@ -4,6 +4,14 @@ Available in `0.0.7`, database head `0007_creative`. This is the R3 observable-c
 slice, not psychological discovery, automatic experiment design or semantic memory.
 No dependency, model download, hosted API or new server is required.
 
+Scope remains the released ten-label creative vocabulary and eleven pinned recipes,
+not a complete professional shot/editing taxonomy. Generic `unclassified` prose does
+not create a new typed technique. The [four-area audit](intelligence-capability-audit.md)
+defines future C1-A versioned craft annotations/recipes and R9/R10 performance research
+and actionable strategies. Existing v1 formats and frozen values remain unchanged.
+R6 later adds [memory projections](research-memory.md) for these canonical records;
+it does not add professional-craft recognition or evaluated mechanism findings.
+
 ## Working paths
 
 1. Register authorized local video bytes with `import local` or `analyze video`.

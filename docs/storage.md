@@ -1,17 +1,21 @@
-# Local storage (implemented `0.0.5`)
+# Local storage
 
-This page describes existing storage behavior. Historical Milestones 0, 1, 3, and 4
-and R1 are implemented. R1 adds universal citation/registration storage; semantic/
-graph memory remains planned in R6. See [R1 operations](research-foundation.md),
+This page describes the preserved storage foundation through R1 and current R6
+lifecycle boundaries (`0.0.10`, head `0010_memory`). R1 adds universal citation/
+registration storage; R6 delivers semantic/lexical/graph memory. See
+[research memory](research-memory.md) for the complete newer schema/operations,
+[R1 operations](research-foundation.md),
 [research contracts](research-contracts.md), [migration strategy](migration-strategy.md),
 and the [roadmap](../PLAN.md) for planned changes.
 
 `open_application(Settings(...))` is the lifecycle boundary used by every command.
 It resolves the filesystem, rejects detected network mounts, creates a local data
 directory, acquires its OS lock, applies migrations in a real SQLite transaction,
-opens exactly one Qdrant Local client, and closes both stores on success or failure.
-Every application context requires the lock, including storage inspection commands,
-because first-use initialization and Qdrant access both require exclusive coordination.
+owns one lazy Qdrant Local handle, and closes opened resources on success or failure.
+Canonical import/SQL/FTS/graph paths do not open the embedded vector client unless
+needed. Mutating application contexts retain the directory lock, including ordinary
+storage inspection through this lifecycle; explicitly read-only commands have separate
+checkpoint/WAL restrictions. Qdrant access also requires exclusive coordination.
 
 ## Canonical schema
 
@@ -40,14 +44,16 @@ append-only `metric_observations`, `derived_metrics`, `cohorts`, `cohort_members
 statistical inputs/results and reports support reproducibility; they do not yet
 provide a hypothesis-assessment lifecycle.
 
-Revision `0005_evidence` is the current head. It adds `entity_identities`, immutable
+Revision `0005_evidence` introduced `entity_identities`, immutable
 `entity_revisions`, `legacy_entity_bindings`, `evidence_records`, immutable
 `evidence_revisions`, media/comment/metric typed bindings, `evidence_aliases`,
 `evidence_links`, `evidence_withdrawals` and restartable `evidence_backfill` cursors.
 Original media UUIDs stay unchanged. Registered questions, draft hypotheses and
 citation reports use validated versioned entity documents, not fake media/tasks.
-Withdrawals are terminal new-use revocations, not full erasure. Vector-registry/
-outbox, persistent graph and psychological evaluation remain planned.
+Withdrawals are terminal new-use revocations, not full erasure. R4 later adds explicit
+audience erasure; R6 supplies vector registry/outbox, FTS and persistent graph
+projections. Psychological evaluation remains planned in R7. Later migrations and
+their actual constraints are documented in the corresponding operational guides.
 Migration numbering is independent of roadmap milestone numbering.
 
 All SQLAlchemy connections enable foreign keys, WAL, a bounded busy timeout,
@@ -83,7 +89,7 @@ inspection. Automatic destructive cleanup is not implemented.
 ## Health checks
 
 `storage status` reports the database revision/tables, Qdrant collections, resolved
-paths, filesystem, and deferred graph status. `storage verify` runs SQLite integrity
+paths, filesystem, memory readiness/lag and SQLite-backed graph status. `storage verify` runs SQLite integrity
 and foreign-key checks, verifies table/column shape and migration checksums, probes
 FTS5 using a temporary table, verifies every registered artifact checksum, detects
 unregistered artifacts, and reads Qdrant's local collection metadata.
@@ -93,8 +99,9 @@ FFmpeg/ffprobe executable versions, and optional model readiness metadata. Missi
 media tools are warnings for health/storage commands; video analysis requires them
 and returns dependency-unavailable exit code 3 before creating a run.
 
-No graph relationships, semantic embeddings, or cross-store indexes are claimed
-until their milestones implement and test them. R1 adds `storage backup|restore`,
+R6 graph relationships are qualified structural projections; semantic embeddings
+require an explicitly prepared registered space/model. They do not constitute evaluated
+research findings or prove retrieval relevance. R1 adds `storage backup|restore`,
 verified pre-upgrade backups and source-eligibility verification. SQLite's backup
 API and managed artifact checks replace unsafe live database-file copying. Restore
 requires a new directory and either a same-lineage latest withdrawal authority or
@@ -124,12 +131,15 @@ rows. Failed/incomplete attempts have no committed canonical output. The writer 
 allows interrupted tasks to be retried without a background lease-reaper service.
 See [video-analysis.md](video-analysis.md) for the execution and recovery contract.
 
-## Implemented R1 and planned evolution
+## Preserved foundation and planned context extensions
 
 R1 adds typed, versioned evidence locators while preserving existing media
-evidence IDs and report snapshots. R6 will add reconstructible lexical/vector/graph
-projections derived from canonical SQLite revisions; it will not make Qdrant or
-NetworkX authoritative. Existing released migrations must not be edited. Legacy
+evidence IDs and report snapshots. R6 adds reconstructible lexical/vector/graph
+projections derived from canonical SQLite revisions; neither Qdrant nor NetworkX
+is authoritative. Future C1 production/publication/platform/profile records reuse
+these stores and add typed projections only with actual writers/readers; no new
+server or per-capability vector collection. See the [capability audit](intelligence-capability-audit.md).
+Existing released migrations must not be edited. Legacy
 rows must not gain fabricated comment timestamps, retrospective feature availability,
 or psychological interpretations during backfill. The staged compatibility and
 withdrawal rules are defined in the [migration strategy](migration-strategy.md).
