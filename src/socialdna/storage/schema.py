@@ -7,6 +7,7 @@ from socialdna.storage.migrations.versions.v0004_analytics import extend_metadat
 from socialdna.storage.migrations.versions.v0005_evidence import extend_metadata as evidence
 from socialdna.storage.migrations.versions.v0006_designs import extend_metadata as designs
 from socialdna.storage.migrations.versions.v0007_creative import extend_metadata as creative
+from socialdna.storage.migrations.versions.v0008_audience import extend_metadata as audience
 
 metadata = foundation_metadata()
 extend_metadata(metadata)
@@ -15,3 +16,4 @@ analytics(metadata)
 evidence(metadata)
 designs(metadata)
 creative(metadata)
+audience(metadata)

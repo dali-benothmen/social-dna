@@ -1,8 +1,8 @@
 # SocialDNA implementation plan
 
-Revised: 2026-11-05. Scope: R1–R3 completed and verified. No R4 or later implementation is claimed.
+Revised: 2026-11-05. Scope: R1–R4 completed and verified. No R5 or later implementation is claimed.
 
-Runtime: package `0.0.7`, SQLite head `0007_creative`. Released migrations `0001_foundation`–`0006_designs` remain unchanged. Legacy Milestones 0, 1, 3 and 4 are completed deliveries; their limitations remain visible. Legacy Milestones 2, 5 and 6 are **superseded, not completed**. R1–R3 are completed and verified; **R4–R10 and U1/U2 remain planned and unimplemented**.
+Runtime: package `0.0.8`, SQLite head `0008_audience`. Released migrations `0001_foundation`–`0007_creative` remain unchanged. Legacy Milestones 0, 1, 3 and 4 are completed deliveries; their limitations remain visible. Legacy Milestones 2, 5 and 6 are **superseded, not completed**. **R5–R10 and U1/U2 remain planned and unimplemented**.
 
 Authoritative design: [ARCHITECTURE.md](ARCHITECTURE.md), [research contracts](docs/research-contracts.md), [statistical design](docs/statistical-design.md), [migration strategy](docs/migration-strategy.md), and [reference use case](docs/research-use-case.md). The [audit](docs/architecture-audit.md) records the reasons for this revision; the [previous roadmap](docs/history/PLAN.pre-research-revision.md) is historical, not an alternative active plan.
 
@@ -20,7 +20,7 @@ Delivery rules:
 - Keep basic media/account analysis fast: do not register a research question, load a graph, index embeddings or invoke a reasoner merely to describe a video.
 - Missing data is not zero; absent detection under sparse sampling is not demonstrated absence; expressed intention is not behavior; association is not causation.
 - Every research result declares its population, availability, estimand, evidence version, uncertainty, alternatives and limitations. `insufficient_data`, rejected and inconclusive results are successful research outcomes when honestly supported.
-- Implementation changes require unit/integration/contract/end-to-end verification, migration/compatibility checks, documentation updates and a scoped working commit when authorized. Implementation authority currently extends through R3 only. Commit messages describe the engineering change without type prefixes or milestone labels.
+- Implementation changes require unit/integration/contract/end-to-end verification, migration/compatibility checks, documentation updates and a scoped working commit when authorized. Implementation authority currently extends through R4 only. Commit messages describe the engineering change without type prefixes or milestone labels.
 
 ## 2. Preserved implementation and historical deliveries
 
@@ -42,7 +42,7 @@ M4 delivered its scoped implementation, but its retrospective baseline, same-cre
 | R1 | Universal evidence with usable metric/comment citations and minimal research registration | Existing `0.0.4` foundation | Completed and verified, `0.0.5` |
 | R2 | Correct historical baselines, comparison designs, feature timing and actual-pipeline validation | R1 | Completed and verified, `0.0.6` |
 | R3 | Semantic creative events and reproducible multimodal feature recipes | R1; R2 for analytics joins | Completed and verified, `0.0.7` |
-| R4 | Audience collection provenance, reaction annotations and qualified content links | R1, R3 | Planned |
+| R4 | Audience collection provenance, reaction annotations and qualified content links | R1, R3 | Completed and verified, `0.0.8` |
 | R5 | Behavioral metric series, denominators, attribution and account outcomes | R1, R2; R3 for event overlays | Planned |
 | R6 | Persistent SQL/FTS/Qdrant/SQLite-backed NetworkX research memory | R1–R4; R5 for behavioral projections | Planned |
 | R7 | First complete, literature-backed psychological research vertical slice | R2–R6 | Planned |
@@ -233,7 +233,56 @@ Analyze an authorized cooking video with supplied event annotations or a prepare
 
 ## 8. R4 — Audience-response integration
 
-Status: **planned, unimplemented**.
+Status: **completed and verified in `0.0.8` / `0008_audience`**, 2026-11-05.
+
+Delivered: strict collection manifests over existing permitted comment/post revisions;
+exact Unicode reaction spans and the pinned expressed-reaction rubric; reviewed and
+provider-attributed proposed annotations; versioned curated clusters with real members,
+representatives and counterexamples; qualified actual post/event links; frozen
+collected-comment summaries and JSON/Markdown reports; audience evidence in research
+reports and an opt-in media context lane. Withdrawal is transitive. Separately confirmed
+erasure removes registered active-library text/raw imports/derived reports, blocks
+resurrection and replays terminal obligations before restored-library access/backfill.
+See [operations and limits](docs/audience-analysis.md) and
+[decisions](ARCHITECTURE.md#20-audience-implementation-decisions).
+
+No automatic semantic classifier/clustering, audience prevalence, verified behavior,
+retention analytics, embeddings/graph or psychological evaluation is claimed. Curated
+memberships and optional literal-English proposals deliver the approved no-model path.
+Expiry blocks new use; actual deletion requires explicit erasure. External source files,
+exports and backups require separately authorized cleanup.
+
+Implementation map: `audience/{collections,annotations,clusters,linking}.py`,
+`application/audience_service.py`, `storage/{audience_repository,audience_retention}.py`,
+`cli/audience_commands.py`, `reporting/audience.py` and `0008_audience`; focused
+extensions to existing evidence/import/report/timeline/backup/health paths. Templates
+are in `examples/audience/`; operational contracts are in the audience guide above.
+
+Verification record (Linux/Python 3.11):
+
+- Full `pytest -q`: **299 passed, 2 skipped** in 652 seconds. The skips require an
+  explicitly prepared optional model library/interpreter; no download was attempted.
+- Final focused audience/unit/migration/backup suite: **55 passed**. This includes
+  two tests added after full-suite collection; **301 distinct passing tests** and
+  two optional skips are covered overall. Final literal-language uncertainty unit
+  checks: **17 passed**. These controlled fixtures test software/provenance behavior,
+  not multilingual annotation quality or psychological validity.
+- Real FFmpeg event linkage, original Unicode, ranked/partial denominators,
+  creator/duplicate exclusions, uncertainty/disagreement, imported model provenance,
+  curated cluster revisions, as-of selection, escaped reports and cross-process
+  CLI/restart/citations passed. Withdrawal preserves permitted archived bytes.
+- Confirmed comment/source erasure, corrected-history and free-text reason cleanup,
+  stale confirmation/re-import refusal, interrupted cleanup/trigger restoration,
+  pending-backup refusal and same-lineage pre-erasure/pre-R1 restore reconciliation
+  passed. Active SQLite/managed files are checked for unique erased text.
+- Upgrades from all seven released heads preserve IDs/report bytes; injected
+  `0008` parent-rebuild failure rolls back with FK enforcement restored. Released
+  `0001`–`0007` migration files are unchanged.
+- Ruff lint/format, strict mypy (113 source files), documentation links,
+  `git diff --check`, offline locked resolution and wheel/sdist builds passed.
+  Isolated offline wheel/sdist installs exercise existing analytics/video/creative
+  workflows plus audience review, cluster/link analysis, citations, persisted
+  reports, confirmed erasure and post-erasure storage verification.
 
 ### Objective
 

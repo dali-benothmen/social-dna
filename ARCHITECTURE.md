@@ -1,6 +1,6 @@
 # SocialDNA architecture
 
-Revised: 2026-11-05. Implementation: **0.0.7**, database head **0007_creative**. R1's evidence/registration foundation, R2's bounded statistical corrections and R3's creative-event/recipe slice are completed and verified; **R4–R10 and U1/U2 remain planned**. The architecture incorporates the approved [intelligence audit](docs/architecture-audit.md). See [R1 operations](docs/research-foundation.md), [versioned analytics](docs/versioned-analytics.md) and [creative analysis](docs/creative-analysis.md) for the exact available surface and limitations.
+Revised: 2026-11-05. Implementation: **0.0.8**, database head **0008_audience**. R1's evidence/registration foundation, R2's statistical corrections, R3's creative-event/recipe slice and R4's source-qualified audience workflow are completed and verified; **R5–R10 and U1/U2 remain planned**. The architecture incorporates the approved [intelligence audit](docs/architecture-audit.md). See [R1 operations](docs/research-foundation.md), [versioned analytics](docs/versioned-analytics.md), [creative analysis](docs/creative-analysis.md) and [audience analysis](docs/audience-analysis.md) for the exact available surface and limitations.
 
 The [implementation plan](PLAN.md) defines delivery and acceptance gates. Detailed contracts live in [research contracts](docs/research-contracts.md), [statistical design](docs/statistical-design.md), [migration strategy](docs/migration-strategy.md), and the [twelve-step cooking use case](docs/research-use-case.md). The [previous architecture](docs/history/ARCHITECTURE.pre-research-revision.md) is a historical record, not a competing specification. Architecture/plan line references inside the unchanged audit refer to those pre-revision documents.
 
@@ -168,6 +168,11 @@ Retain current minimized comments. Add collection manifests before inferring pre
 Comment publication time is never playback time. A textual “0:02” reference is explicit but can still be inaccurate; preserve that qualification. “I will cook this” is an expressed intention, not cooking, purchase or verified conversion. A top-ranked sample cannot estimate all viewers' reaction prevalence. Multiple cluster memberships are not additional independent viewers.
 
 Audience sources and quoted text are untrusted data, never instructions to the host. Avoid retaining author identities unnecessarily. R4 includes authorized retention/redaction across annotations/summaries/artifacts; R6 extends it to all derived stores.
+
+The implemented path imports human review and versioned curated memberships; optional
+literal-English proposals are explicitly requested and never become reviewed results.
+It does not automatically infer semantic clusters or train an audience classifier.
+See [implementation decisions](#20-audience-implementation-decisions).
 
 ### 6.2 Behavioral metrics: R5
 
@@ -518,4 +523,44 @@ Retained historical artifacts remain immutable; withdrawal is not erasure.
 The acceptance fixtures exercise real media bytes and production paths under controlled
 annotations. They do not establish cooking-recognition accuracy, inter-reviewer agreement,
 external model quality or psychological validity. Real-corpus annotation validation is
-still required before research claims. R4–R10 and U1/U2 remain unimplemented.
+still required before research claims. R4 is delivered below; R5–R10 and U1/U2
+remain unimplemented.
+
+## 20. Audience implementation decisions
+
+R4 is implemented in `0.0.8` / `0008_audience`. Exact operational contracts,
+budgets, commands and examples are in [audience analysis](docs/audience-analysis.md).
+The required vertical slice remains entirely offline and adds no dependency.
+
+| Decision | Implementation and justification |
+|---|---|
+| Existing permitted comments remain canonical | Collection manifests reference real captured post/comment revisions. Original text, IDs and source clocks are not replaced by model-generated summaries. No author identifiers are introduced. Ownership/permission assertions are attributed, not independently verified. |
+| Preserve collection context before counting | Ordering, filters, sampling frame, pagination/truncation, requested/collection times, declared versus actual counts and missing moderation coverage remain explicit. Counts use retained eligible identities or exact-text groups, not known platform totals or viewers. No viewer prevalence or binomial confidence interval is inferred. |
+| Separate review coverage from label certainty | Exact Unicode spans and pinned rubric definitions support human proposed/reviewed/disputed labels. Whole-rubric review requires a full-comment span. Negation, irony, ambiguity and contradictory reviews remain uncertain even when review coverage is complete. Missing annotations are not absence. |
+| Curated clustering is the first real path | Versioned supplied memberships include representative/counterexample roles and attributed summaries. Membership-score semantics are explicitly not supplied. Optional literal-English proposals remain unreviewed. No unvalidated embedding clusterer or new classifier/runtime is required. |
+| Links preserve claim strength | Literal timestamp/quote, human interpretation and model proposal are different origins. Actual eligible post/event targets and exact evidence are checked. Literal timestamps fit original anchors; inferred links never acquire positions from publication time. Target context is captured beside reaction evidence, not described as causal reinforcement. |
+| One engine and revision registry | Thin audience CLI adapters call shared import/show/analyze/retention services. Canonical documents use existing entity/evidence revisions; immutable FK projections preserve ordered collection/set/cluster membership, exact dependency rows and real analysis runs. No fake media/task or parallel revision system is added. |
+| Lazy, bounded materialization | Identical inputs reuse a frozen analysis; changed review/collection inputs create revisions and new fingerprints. Current eligibility is checked before reuse. The opt-in timeline lane and R1 research report reader expose qualified context without changing old video/report bytes. |
+| Withdrawal and erasure remain distinct | Withdrawal withholds new use while permitted archived bytes remain. Explicit erasure previews collateral whole-document/blob removal, requires current confirmation plus reason/actor, and records terminal identity/revision/evidence/artifact tombstones before scrubbing. Reproduction degradation is visible rather than hidden. |
+| Crash-safe active-library cleanup | A resumable journal scrubs canonical/derived JSON and affected source/protocol metadata, removes exact managed blobs and checkpoints/vacuums SQLite. Immutable history triggers are temporarily suspended only inside the scrub transaction and restored before commit. Pending cleanup blocks normal exposure and rolls forward at startup. This does not promise physical-media wiping or deletion of independent copies. |
+| Restore cannot resurrect forbidden comments | Latest same-lineage restore authority carries both withdrawal and erasure records. Replay precedes normal reads/backfill; already verified restored checkpoints are not cloned into new forbidden pre-upgrade backups. Legacy non-comment facts may be backfilled from retained structured rows, but tombstoned comments are skipped and terminal source eligibility remains enforced. |
+
+The evidence-locator CHECK is extended by the existing atomic, FK-checked parent
+rebuild procedure; released `0001`–`0007` scripts remain unchanged. Actual collection,
+reaction, cluster, link, set, analysis, binding/dependency and retention tables all
+have exercised writers/readers. Empty downgrade is supported; populated history
+requires separate-directory restore. Qdrant/FTS/NetworkX audience projections remain
+R6, so this release does not claim deletion behavior for unimplemented indexes.
+
+Erasure covers registered active-library copies, including dependent research
+reports when they cite affected audience evidence. A whole mixed raw export or
+curated sheet may be removed while unrelated structured comments remain authorized.
+Independent comment identities with identical wording are not treated as the same
+person. External exports, pasted text, filesystem snapshots and backup bytes require
+separate authorized cleanup. Expiry blocks access but does not pretend to erase
+bytes automatically. These boundaries avoid silently expanding deletion scope.
+
+Controlled fixtures test production import/revision/evidence/report/media/restore
+paths, Unicode and uncertainty behavior, not annotation accuracy or psychological
+validity. Behavioral series/retention/outcome semantics remain R5; full mechanism
+investigation remains R7 and later.

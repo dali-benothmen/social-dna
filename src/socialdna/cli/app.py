@@ -8,6 +8,7 @@ import typer
 from socialdna import __version__
 from socialdna.application.bootstrap import initialize
 from socialdna.cli.account_commands import register as register_accounts
+from socialdna.cli.audience_commands import register as register_audience_commands
 from socialdna.cli.common import ConfigFile, DataDir, Format, execute
 from socialdna.cli.creative_commands import register as register_creative_commands
 from socialdna.cli.errors import error_result
@@ -315,6 +316,7 @@ def timeline_command(
     ctx: typer.Context,
     media_id: str,
     creative: bool = False,
+    audience: bool = False,
     start: str = "0s",
     end: str | None = None,
     run: str | None = None,
@@ -335,6 +337,7 @@ def timeline_command(
                 parse_offset(end) if end is not None else None,
                 run_id=run,
                 include_creative=creative,
+                include_audience=audience,
             )
 
     execute(ctx, "timeline.show", operation, data_dir, config, output_format)
@@ -419,5 +422,6 @@ def main() -> None:
 
 
 register_creative_commands(app)
+register_audience_commands(app, analysis)
 register_accounts(ingestion, analysis, compare_app)
 register_research_commands(app, storage)

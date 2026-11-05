@@ -51,7 +51,7 @@ def render_research(report: dict[str, Any]) -> str:
                 + " to "
                 + _safe(locator["window_end"])
             )
-        else:
+        elif locator["kind"] == "media_span":
             interval = locator["interval"]
             lines.append(
                 "Media: "
@@ -60,7 +60,21 @@ def render_research(report: dict[str, Any]) -> str:
             )
             if locator["excerpt"]:
                 lines.append("Excerpt: " + _safe(locator["excerpt"]))
+        else:
+            lines.append("Typed citation: " + _safe(locator))
         lines.extend(["", "Source: " + _safe(citation["source"]["id"]), ""])
+    if report.get("audience_evidence"):
+        lines.extend(
+            [
+                "## Qualified audience evidence",
+                "",
+                "Collected expressions are not viewer prevalence, verified behavior "
+                "or causal mechanisms.",
+                "",
+            ]
+        )
+        for item in report["audience_evidence"]:
+            lines.append("- " + _safe(item))
     lines.extend(["## Limitations", ""])
     lines.extend("- " + _safe(item) for item in report["limitations"])
     return "\n".join(lines) + "\n"

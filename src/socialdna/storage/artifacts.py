@@ -53,6 +53,9 @@ class ArtifactStore:
                 destination.flush()
                 os.fsync(destination.fileno())
             checksum = digest.hexdigest()
+            from socialdna.storage.audience_retention import guard
+
+            guard(connection, "artifact", stable_id("artifact", checksum))
             relative = f"artifacts/objects/{checksum[:2]}/{checksum}"
             target = self.path_for(relative)
             target.parent.mkdir(parents=True, exist_ok=True)
@@ -126,6 +129,9 @@ class ArtifactStore:
         )
 
     def get(self, connection: Connection, artifact_id: str) -> RowMapping:
+        from socialdna.storage.audience_retention import guard
+
+        guard(connection, "artifact", artifact_id)
         table = metadata.tables["artifact_objects"]
         return connection.execute(select(table).where(table.c.id == artifact_id)).mappings().one()
 

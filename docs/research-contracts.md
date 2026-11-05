@@ -1,6 +1,6 @@
 # Research contracts
 
-Status: R1 identity/evidence/registration, R2 statistical bindings/feature lineage/test ledgers and R3 creative events/pinned recipes are implemented in `0.0.7`; later audience/behavioral/evaluation contracts below remain planned. Date: 2026-11-05. See [R1 operations](research-foundation.md), [versioned analytics](versioned-analytics.md) and [creative analysis](creative-analysis.md) for actual signatures and limits; conceptual interfaces below are not all executable APIs.
+Status: R1 identity/evidence/registration, R2 statistical bindings/feature lineage/test ledgers, R3 creative events/pinned recipes and R4 audience collections/reactions/links are implemented in `0.0.8`; later behavioral/evaluation contracts below remain planned. Date: 2026-11-05. See [R1 operations](research-foundation.md), [versioned analytics](versioned-analytics.md), [creative analysis](creative-analysis.md) and [audience analysis](audience-analysis.md) for actual signatures and limits; conceptual interfaces below are not all executable APIs.
 
 This document makes the research payloads and invariants in [ARCHITECTURE.md](../ARCHITECTURE.md) concrete. It does not replace the implemented video timeline, comment imports, scalar metrics, or frozen statistical analyses. [Statistical design](statistical-design.md) defines comparison/validation methods; [migration strategy](migration-strategy.md) defines additive adoption. The complete reference flow is in [the cooking use case](research-use-case.md).
 
@@ -19,7 +19,7 @@ These contracts are **not an instruction to create one table per noun**. Initial
 | `EvidenceResolver.resolve(ref, purpose, as_of)` | Return a typed locator, source authority, provenance, eligibility, and availability; reject dangling/wrong-kind references | R1 |
 | `CreativeEventService.annotate(media_ref, specification, evidence_refs)` / `verify(event_ref, adjudication)` | Persist proposed or reviewed events with coverage and boundary uncertainty; preserve both revisions | R3 |
 | `FeatureMaterializer.materialize(subjects, recipe_refs, cutoff, mode)` | Return versioned values and complete input/availability lineage; never silently use a newer recipe | R2 lineage; R3 semantic recipes |
-| `AudienceService.annotate(collection_ref, annotation_spec)` / `link(reaction_ref, target_ref, link_spec)` | Preserve text spans and sampling scope; distinguish explicit references from proposed semantic links | R4 |
+| `audience_service.import_into_application(app, AnnotationSet)` | Import exact spans, curated memberships and qualified links in one frozen set; preserve source/rubric/provider/review scope | R4, implemented |
 | `ResearchService.register(question_spec, hypothesis_specs)` | Freeze question and minimal hypothesis specifications in R1; add reviewed constructs, rival predictions, and richer data needs in R7 | R1 base; R7 psychology |
 | `ResearchService.evaluate(hypothesis_ref, data_manifest, analysis_spec)` | Create an immutable assessment, result references, qualified finding revision, and dependency manifest | R7 |
 | `ResearchService.reevaluate(hypothesis_ref, new_manifest, policy)` / `history(hypothesis_id)` | Preserve prior assessments; separate reused/new evidence; record changed support and reasons | R8 |
@@ -35,8 +35,8 @@ The following are logical projection names for the owning milestones to material
 |---|---|---|
 | R3, implemented | `creative_annotation_sets`, `creative_events`, `creative_coverages`, `creative_event_relations`; ordered set memberships, event anchors/inputs and typed evidence bindings | Canonical documents live in immutable entity revisions. Projection PKs are `revision_id`; anchor/input PK `(event_revision_id, ordinal)`. Set/event media/technique/time indexes and real entity/evidence/media/run/task FKs support actual reads. Discontinuous anchors remain separate rows. |
 | R2–R3, implemented | `feature_recipes`, `feature_values` | Value PK `id` hashes subject revision, pinned recipe/key, exact relevant lineage and measurement/missingness. Exactly one real post/media FK; numeric value or explicit unavailable coverage/reason. Recipe specs are immutable versioned JSON with real supplying technique refs. General categorical discovery remains future work. |
-| R4 | `audience_collections`, `audience_collection_members` | Collection PK `collection_revision_id`, post/source FKs and capture-time index; membership PK `(collection_revision_id, comment_revision_id)`. One comment revision can belong to multiple collections without becoming multiple independent comments. |
-| R4 | `reaction_annotations`, `reaction_cluster_members`, `content_reaction_links` | Annotation PK `annotation_revision_id`, comment revision FK, checked character bounds, rubric revision and label indexes; membership PK `(cluster_revision_id, annotation_revision_id)`; link PK `link_revision_id`, reaction/target FKs, origin/status indexes. |
+| R4, implemented | `audience_collections`, `audience_collection_members`, `audience_annotation_sets`, ordered set memberships | Document PK `revision_id`; membership PK `(collection_revision_id, ordinal)` with unique comment revision FK. Post/source ownership and spans are validated against canonical revisions. Collection key/time and set collection/key indexes support actual readers. One comment in multiple collections is not multiple independent people. |
+| R4, implemented | `reaction_annotations`, `reaction_clusters`, `reaction_cluster_members`, `content_reaction_links`, `audience_analyses`, dependencies and evidence bindings | Annotation/comment/span, cluster/member, link/reaction/target and analysis/run references have real FKs; canonical JSON preserves rubric/protocol, bounds, labels, review and uncertainty. Cluster membership PK `(cluster_revision_id, reaction_revision_id)` preserves roles. Reverse dependency indexes support lineage. `audience_redactions` and terminal `audience_tombstones` support actual cleanup and restore reconciliation. |
 | R5 | `metric_series`, `metric_bins` | Series PK `series_revision_id`, subject/definition/cohort/window indexes; bin PK `(series_revision_id, ordinal)`, typed source coordinate columns, coordinate-kind constraints, optional media conversion reference and evidence revision FK. |
 | R7–R8 | `research_assessments`, `assessment_dependencies` | Assessment PK `assessment_revision_id`, hypothesis/specification/prior-assessment FKs and time index; dependency PK owner assessment + dependency revision + role, reverse dependency index. Data-selection manifests additionally detect newly eligible records not present in the old dependency set. |
 
@@ -115,7 +115,7 @@ Reuse permitted, minimized `comments` and their import provenance. Add collectio
 | Contract | Required fields and constraints |
 |---|---|
 | `AudienceCollection` | Source/post revisions; permission/retention policy; requested period; collection time; ordering/filter parameters; pagination/limit/truncation; supplied/eligible/known-total counts; sampling method; completeness `complete_for_declared_frame`, `partial`, or `unknown`; source lag when known; excluded/deleted/moderated coverage; raw artifact/provenance references. |
-| `ReactionAnnotation` | Comment revision and quoted character span; annotation-spec revision; language; label such as expressed intention/question/objection/reaction; negation/irony/ambiguity flags; proposed/reviewed state; method and span evidence. Exact spans must match normalized-source mapping. |
+| `ReactionAnnotation` | Comment revision and quoted original Unicode character span; annotation-spec revision; language; label such as expressed intention/question/objection/reaction; negation/irony/ambiguity flags; proposed/reviewed/disputed state; method and span evidence. Normalized offsets cannot substitute for original-source positions. |
 | `ReactionCluster` / membership | Versioned cluster definition/summary; collection scope; annotation/comment member revisions and roles; clustering method/version; membership score semantics; representative and contradictory excerpts; duplicate policy. Summaries cannot exist without resolvable members. |
 | `ContentReactionLink` | Reaction revision, target post/event revision, evidence, method, alternatives, uncertainty, reviewer; origin `explicit_reference`, `human_interpretation`, or `model_proposal`. An explicit supplied “0:02” reference preserves its text and parsed location but does not prove when the writer watched or reacted. |
 
@@ -124,6 +124,13 @@ A collected-comment rate has an explicit denominator: for example, 8 of 120 elig
 “I need to make this tonight” is expressed intention. Verified preparation, a follow, a save, and a purchase require separately sourced observations. A model-proposed link to the opening does not upgrade the comment into direct evidence that the opening caused intention. Annotation/retrieval can use all permitted text; causal claims cannot.
 
 R4 introduces collection manifests, typed span evidence, memberships, and link services. A no-model reviewed-annotation import is the first working route. Optional classifiers/clustering follow the same contracts. Reannotation creates new revisions; cluster summaries/embeddings and dependent assessments are invalidated accordingly.
+
+Implemented R4 uses `audience_record` locators for collection/reaction/cluster/link/set/
+analysis revisions, in addition to the literal R1 comment-span citations. Curated
+cluster membership is `supplied_membership_v1`, with membership scores explicitly
+not supplied. No embeddings/assessments exist yet to invalidate. The actual
+annotation/link import boundary is `import_into_application(app, AnnotationSet)`;
+separate conceptual `annotate`/`link` design sketches are not executable APIs.
 
 ## 5. Behavioral metric contracts
 

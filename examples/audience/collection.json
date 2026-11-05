@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0",
+  "key": "owned-ranked-comments",
+  "permission_basis": "REPLACE with actual authority for retained comment text",
+  "source_uri": "urn:REPLACE:authorized-export",
+  "posts": [{"kind": "post", "id": "REPLACE_POST_ID", "revision_id": "REPLACE_POST_REVISION"}],
+  "members": [{
+    "comment": {"kind": "comment", "id": "REPLACE_COMMENT_ID", "revision_id": "REPLACE_COMMENT_REVISION"},
+    "language": "en",
+    "creator_authored": null
+  }],
+  "collected_at": "2026-11-01T12:00:00Z",
+  "ordering": "ranked",
+  "filters": {},
+  "sampling_method": "ranked",
+  "completeness": "partial",
+  "declared_frame": "REPLACE with actual collection frame, ordering and exclusions",
+  "pagination_complete": false,
+  "truncated": true,
+  "supplied_count": 1,
+  "known_total": null,
+  "deleted_moderated_coverage": "Unknown; do not interpret missing comments as zero",
+  "retention": "authorized_retention"
+}

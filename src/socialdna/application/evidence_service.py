@@ -12,6 +12,7 @@ from socialdna.core.hashing import hash_config
 from socialdna.core.ids import stable_id
 from socialdna.core.time import utc_now
 from socialdna.domain.evidence import (
+    AudienceLocator,
     CommentLocator,
     CreativeEventLocator,
     EntityRef,
@@ -47,6 +48,7 @@ class EvidenceResolver:
         post_id: str | None = None,
         run_id: str | None = None,
         _ancestors: frozenset[str] = frozenset(),
+        _memo: dict[str, ResolvedEvidence] | None = None,
     ) -> ResolvedEvidence:
         if purpose not in ("inspect", "new_claim"):
             raise ConfigurationError("Unknown evidence resolution purpose")
@@ -81,9 +83,36 @@ class EvidenceResolver:
             row = self.repository.get("evidence_revisions", revision_id)
             if row["evidence_id"] != identity:
                 raise ConfigurationError("Evidence identity does not match its revision")
+        from socialdna.storage.audience_retention import is_redacted
+
+        if is_redacted(self.connection, "evidence_revision", row["id"]):
+            if purpose == "new_claim":
+                raise ConfigurationError(
+                    "Evidence was erased; new use and reproduction are unavailable"
+                )
+            subject = self.repository.get("entity_revisions", row["subject_revision_id"])
+            return ResolvedEvidence(
+                ref=EvidenceRef(id=identity, revision_id=row["id"]),
+                locator_kind=row["locator_kind"],
+                subject=self.repository.ref(subject),
+                locator=None,
+                source={"id": row["source_id"], "uri": None, "permission_basis": None},
+                provenance_id=row["provenance_id"],
+                producer_run_id=row["producer_run_id"],
+                producer_task_id=row["producer_task_id"],
+                captured_at=row["captured_at"],
+                available_at=row["available_at"],
+                eligible=False,
+                limitations=(
+                    "Audience evidence was erased; only permitted tombstone metadata remains.",
+                ),
+            )
+        memo = _memo if _memo is not None else {}
         payload = json.loads(row["locator_json"])
         if row["id"] in _ancestors or len(_ancestors) >= 32:
             raise StorageIntegrityError("Cyclic or excessively deep evidence dependency chain")
+        if _ancestors and row["id"] in memo:
+            return memo[row["id"]]
         if hash_config(payload) != row["content_hash"]:
             raise StorageIntegrityError("Evidence locator hash mismatch")
         try:
@@ -96,6 +125,8 @@ class EvidenceResolver:
         ):
             raise StorageIntegrityError("Evidence locator and registry subject disagree")
         related = [locator.subject]
+        if isinstance(locator, AudienceLocator):
+            related.append(locator.collection)
         if isinstance(locator, (MediaLocator, CreativeEventLocator)):
             related.append(locator.media)
             if isinstance(locator, CreativeEventLocator) and locator.kind == "creative_event":
@@ -122,6 +153,20 @@ class EvidenceResolver:
                 actual_post = locator.post.id
             elif isinstance(locator, PostTextLocator):
                 actual_post = locator.subject.id
+            elif isinstance(locator, AudienceLocator):
+                collection = json.loads(self.repository.entity(locator.collection)["payload_json"])
+                if locator.subject.kind == "reaction_annotation":
+                    reaction = json.loads(self.repository.entity(locator.subject)["payload_json"])
+                    comment = self.repository.entity(
+                        EntityRef.model_validate(reaction["annotation"]["comment"])
+                    )
+                    actual_post = json.loads(comment["payload_json"])["post_id"]
+                else:
+                    actual_post = (
+                        post_id
+                        if post_id in {p["id"] for p in collection["spec"]["posts"]}
+                        else None
+                    )
             elif isinstance(locator, MetricLocator):
                 actual_post = (
                     locator.measured_subject.id if locator.measured_subject.kind == "post" else None
@@ -154,6 +199,8 @@ class EvidenceResolver:
         sources = {item["source_id"] for item in entities if item["source_id"]}
         if row["source_id"]:
             sources.add(row["source_id"])
+        if any(is_redacted(self.connection, "source", source_id) for source_id in sources):
+            limitations.append("Source was erased; new use is unavailable")
         withdrawals = metadata.tables["evidence_withdrawals"]
         reasons: list[str] = list(
             self.connection.scalars(
@@ -173,7 +220,7 @@ class EvidenceResolver:
             )
             for dependency_id in dependency_ids:
                 dependency = self.resolve(
-                    dependency_id, as_of=as_of, _ancestors=_ancestors | {row["id"]}
+                    dependency_id, as_of=as_of, _ancestors=_ancestors | {row["id"]}, _memo=memo
                 )
                 if not dependency.eligible:
                     limitations.append(f"Derived input {dependency_id} is ineligible")
@@ -212,9 +259,34 @@ class EvidenceResolver:
                     EvidenceRef.model_validate(dependency),
                     as_of=as_of,
                     _ancestors=_ancestors | {row["id"]},
+                    _memo=memo,
                 )
                 if not resolved.eligible:
                     limitations.append("Creative input is ineligible: " + resolved.ref.id)
+        if isinstance(locator, AudienceLocator):
+            from socialdna.storage.audience_repository import entity_active
+
+            document = json.loads(entities[0]["payload_json"])
+            collection = json.loads(self.repository.entity(locator.collection)["payload_json"])
+            expires = collection["spec"]["expires_at"]
+            if expires and expires <= utc_now():
+                limitations.append("Audience collection retention permission has expired")
+            for item in document["entity_inputs"]:
+                try:
+                    entity_active(self.connection, EntityRef.model_validate(item), as_of)
+                except ConfigurationError as exc:
+                    limitations.append("Audience input is ineligible: " + str(exc))
+            for item in document["evidence_inputs"]:
+                dependency = self.resolve(
+                    EvidenceRef.model_validate(item),
+                    as_of=as_of,
+                    _ancestors=_ancestors | {row["id"]},
+                    _memo=memo,
+                )
+                if not dependency.eligible:
+                    limitations.append(
+                        "Audience input citation is ineligible: " + dependency.ref.id
+                    )
         if as_of:
             try:
                 cutoff = timestamp(as_of)
@@ -227,7 +299,7 @@ class EvidenceResolver:
         eligible = not limitations
         if purpose == "new_claim" and not eligible:
             raise ConfigurationError("Ineligible evidence: " + "; ".join(limitations))
-        return ResolvedEvidence(
+        result = ResolvedEvidence(
             ref=EvidenceRef(id=identity, revision_id=row["id"]),
             locator_kind=row["locator_kind"],
             subject=locator.subject,
@@ -245,6 +317,8 @@ class EvidenceResolver:
             eligible=eligible,
             limitations=tuple(limitations),
         )
+        memo[row["id"]] = result
+        return result
 
     def _validate_binding(
         self,
@@ -254,7 +328,8 @@ class EvidenceResolver:
         | MetricLocator
         | StatisticalLocator
         | PostTextLocator
-        | CreativeEventLocator,
+        | CreativeEventLocator
+        | AudienceLocator,
     ) -> None:
         counts = {}
         for name in (
@@ -263,6 +338,7 @@ class EvidenceResolver:
             "metric_evidence_bindings",
             "statistical_evidence_bindings",
             "direct_media_evidence_bindings",
+            "audience_evidence_bindings",
             "post_text_evidence_bindings",
             "creative_evidence_bindings",
         ):
@@ -277,7 +353,30 @@ class EvidenceResolver:
         if sum(value is not None for value in counts.values()) != 1:
             raise StorageIntegrityError("Evidence requires exactly one typed locator binding")
         subject = json.loads(self.repository.entity(locator.subject)["payload_json"])
-        if isinstance(locator, CreativeEventLocator):
+        if isinstance(locator, AudienceLocator):
+            from socialdna.storage.audience_repository import KINDS
+
+            binding = counts["audience_evidence_bindings"]
+            if (
+                not binding
+                or locator.subject.kind not in KINDS
+                or locator.collection.kind != "audience_collection"
+                or binding["subject_revision_id"] != locator.subject.revision_id
+                or binding["collection_revision_id"] != locator.collection.revision_id
+            ):
+                raise StorageIntegrityError(
+                    "Audience citation has a wrong-kind or mismatched binding"
+                )
+            expected = (
+                locator.subject
+                if locator.subject.kind == "audience_collection"
+                else EntityRef.model_validate(subject["collection"])
+            )
+            if expected != locator.collection:
+                raise StorageIntegrityError(
+                    "Audience citation refers to the wrong collection revision"
+                )
+        elif isinstance(locator, CreativeEventLocator):
             binding = counts["creative_evidence_bindings"]
             key = (
                 "event_revision_id" if locator.kind == "creative_event" else "coverage_revision_id"
@@ -481,6 +580,16 @@ def assert_active_inputs(
     evidence_ids: tuple[str, ...] = (),
 ) -> None:
     """Privacy gate for legacy producers; does not reinterpret their statistics."""
+    from socialdna.storage.audience_retention import guard
+
+    for identity in source_ids:
+        guard(connection, "source", identity)
+    if evidence_ids:
+        evidence = metadata.tables["evidence_revisions"]
+        for identity in connection.scalars(
+            select(evidence.c.id).where(evidence.c.evidence_id.in_(evidence_ids))
+        ):
+            guard(connection, "evidence_revision", identity)
     table = metadata.tables["evidence_withdrawals"]
     reason = connection.scalar(
         select(table.c.reason).where(

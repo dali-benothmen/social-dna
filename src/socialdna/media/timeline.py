@@ -25,6 +25,7 @@ def timeline(
     *,
     run_id: str | None = None,
     include_creative: bool = False,
+    include_audience: bool = False,
 ) -> dict[str, Any]:
     with application.database.transaction() as connection:
         assets, runs = metadata.tables["media_assets"], metadata.tables["analysis_runs"]
@@ -181,4 +182,8 @@ def timeline(
                 media_id,
                 revision=EntityRef.model_validate(creative_ref) if creative_ref else None,
             )
+    if include_audience:
+        from socialdna.application.audience_service import media_links
+
+        result["audience"] = media_links(application, media_id)
     return result

@@ -53,6 +53,9 @@ def open_application(settings: Settings) -> Iterator[Application]:
             prepare_upgrade(paths, database)
             migrate(database)
             reconcile_restore(paths, database)
+            from socialdna.storage.audience_retention import resume
+
+            resume(database, paths)
             from socialdna.storage.evidence_repository import backfill_evidence
 
             backfill_evidence(database)

@@ -26,6 +26,142 @@ def run(arguments: list[str], *, cwd: Path) -> str:
     return result.stdout
 
 
+def audience_smoke(base: list[str], isolated: Path, post_ids: list[str]) -> None:
+    """Exercise the public installed commands, not checkout-only Python imports."""
+
+    def cli(*args: str) -> dict:
+        return json.loads(run([*base, *args], cwd=isolated))["data"]
+
+    comments = []
+    for post in post_ids:
+        comments.extend(cli("audience", "comments", "--post", post)["comments"])
+    if len(comments) != 2 or not all(c["eligible"] for c in comments):
+        raise RuntimeError("Installed comment listing lost its permitted captured records")
+    post = comments[0]["post_ref"]
+    collection_path = isolated / "audience-collection.json"
+    collection_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "1.0",
+                "key": "installed-audience",
+                "permission_basis": "Owned synthetic acceptance fixture",
+                "source_uri": "urn:owned:installed-audience",
+                "posts": [post],
+                "members": [
+                    {"comment": c["ref"], "language": "en", "creator_authored": False}
+                    for c in comments
+                ],
+                "collected_at": datetime.now(UTC).isoformat(),
+                "ordering": "ranked",
+                "sampling_method": "ranked",
+                "completeness": "partial",
+                "declared_frame": "Two controlled collected comments, not viewers",
+                "supplied_count": 2,
+                "known_total": None,
+                "pagination_complete": False,
+                "truncated": True,
+                "deleted_moderated_coverage": "Unknown",
+            }
+        )
+    )
+    collection = cli("audience", "import-collection", str(collection_path))
+    annotations = []
+    for index, comment in enumerate(comments):
+        annotations.append(
+            {
+                "key": f"reaction-{index}",
+                "comment": comment["ref"],
+                "start_char": 0,
+                "end_char": len(comment["body"]),
+                "quote": comment["body"],
+                "labels": ["expressed_intention" if "need to" in comment["body"] else "objection"],
+                "language": "en",
+                "negated": False,
+                "ironic": False,
+                "ambiguous": False,
+                "state": "reviewed",
+                "reviewer": "acceptance fixture",
+                "complete_rubric_review": True,
+                "rationale": "Controlled review of expressed wording, not verified behavior",
+            }
+        )
+    annotation_path = isolated / "audience-annotations.json"
+    annotation_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "1.0",
+                "key": "reviewed",
+                "collection": collection["ref"],
+                "permission_basis": "Owned synthetic acceptance annotations",
+                "protocol": {
+                    "origin": "human",
+                    "author": "acceptance fixture",
+                    "procedure": "expressed-reactions-1 controlled assertions",
+                    "outcome_access": "blinded",
+                },
+                "annotations": annotations,
+                "clusters": [
+                    {
+                        "key": "fixture",
+                        "title": "Supplied reactions",
+                        "summary": "Controlled expressions and a counterexample, not behavior",
+                        "state": "reviewed",
+                        "reviewer": "acceptance fixture",
+                        "members": [
+                            {"reaction_key": annotations[0]["key"], "role": "representative"},
+                            {"reaction_key": annotations[1]["key"], "role": "counterexample"},
+                        ],
+                    }
+                ],
+                "links": [
+                    {
+                        "key": "post-context",
+                        "reaction_key": annotations[0]["key"],
+                        "target": post,
+                        "origin": "human_interpretation",
+                        "description": "Proposed interpretation, not a causal explanation",
+                        "state": "reviewed",
+                        "reviewer": "acceptance fixture",
+                        "uncertainty": "high",
+                    }
+                ],
+            }
+        )
+    )
+    cli("audience", "import-annotations", str(annotation_path))
+    result = cli("analyze", "audience", "--collection", collection["ref"]["id"])
+    if result["rates"]["expressed_intention"]["confirmed_reviewed_annotation_count"] != 1:
+        raise RuntimeError("Installed reviewed audience counts are incorrect")
+    if result["links"][0]["playback_reference_ms"] is not None:
+        raise RuntimeError("Installed inferred link acquired a fabricated timestamp")
+    citation = cli("evidence", "resolve", result["evidence"]["id"])
+    if not citation["eligible"] or citation["locator_kind"] != "audience_record":
+        raise RuntimeError("Installed audience citation lost its exact binding")
+    report = cli("report", "generate", "--run", result["run_id"])
+    if report["content"]["report_type"] != "audience":
+        raise RuntimeError("Installed audience report did not survive restart")
+    target = comments[0]["ref"]["id"]
+    preview = cli("audience", "redact", "--comment", target)
+    cli(
+        "audience",
+        "redact",
+        "--comment",
+        target,
+        "--confirm",
+        preview["confirmation"],
+        "--reason",
+        "Synthetic acceptance cleanup",
+        "--actor",
+        "installed smoke test",
+    )
+    if (
+        Path(report["path"]).exists()
+        or cli("evidence", "resolve", result["evidence"]["id"])["eligible"]
+    ):
+        raise RuntimeError("Installed erasure did not remove reports and withhold citations")
+    cli("storage", "verify")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--uv", default="uv")
@@ -89,6 +225,22 @@ def main() -> None:
                     raise RuntimeError(f"Installed distribution failed health checks: {result}")
             export = isolated / "account.json"
             shutil.copyfile(root / "examples/imports/account.json", export)
+            dataset = json.loads(export.read_text())
+            dataset["source"]["comments_permitted"] = True
+            dataset["records"].extend(
+                [
+                    {
+                        "record_type": "comment",
+                        "platform": "demo",
+                        "post_external_id": "post-a",
+                        "external_id": str(index),
+                        "body": text,
+                        "published_at": "2026-01-03T00:00:00Z",
+                    }
+                    for index, text in enumerate(["I need to make this tonight!", "Too expensive."])
+                ]
+            )
+            export.write_text(json.dumps(dataset))
             base = [
                 str(executable),
                 "--data-dir",
@@ -99,6 +251,7 @@ def main() -> None:
             ]
             imported = json.loads(run([*base, "import", "json", str(export)], cwd=isolated))
             account_id = imported["data"]["account_ids"][0]
+            audience_posts = imported["data"]["post_ids"]
             analyzed = json.loads(
                 run(
                     [*base, "analyze", "account", account_id, "--metric", "demo.views.v1"],
@@ -346,6 +499,10 @@ def main() -> None:
                     f"PASS: {distribution.name} installed creative import, recipe, "
                     "citation and report restart"
                 )
+            audience_smoke(base, isolated, audience_posts)
+            print(
+                f"PASS: {distribution.name} installed audience review, citation, report and erasure"
+            )
             print(f"PASS: {distribution.name} isolated install, initialization and verification")
 
 

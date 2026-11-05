@@ -11,6 +11,7 @@ from socialdna.core.hashing import canonical_json, hash_config
 from socialdna.core.ids import stable_id
 from socialdna.core.time import MediaInterval, utc_now
 from socialdna.domain.evidence import (
+    AudienceLocator,
     CommentLocator,
     CreativeEventLocator,
     EntityRef,
@@ -37,6 +38,13 @@ LEGACY_KINDS = {
     "ocr_box": ("ocr_boxes", "id"),
 }
 AUTHORED_KINDS = {
+    "reaction_rubric",
+    "audience_collection",
+    "audience_annotation_set",
+    "reaction_annotation",
+    "reaction_cluster",
+    "content_reaction_link",
+    "audience_analysis",
     "research_question",
     "hypothesis",
     "citation_report",
@@ -65,6 +73,9 @@ class EvidenceRepository:
         return dict(row)
 
     def entity(self, ref: EntityRef) -> dict[str, Any]:
+        from socialdna.storage.audience_retention import guard
+
+        guard(self.connection, "entity_revision", ref.revision_id)
         row = self.get("entity_revisions", ref.revision_id)
         if (row["kind"], row["entity_id"]) != (ref.kind, ref.id):
             raise ConfigurationError("Entity kind/identity does not match its revision")
@@ -111,6 +122,17 @@ class EvidenceRepository:
             "creative_coverage",
         ):
             from socialdna.storage.creative_repository import validate_projection
+
+            validate_projection(self, ref, json.loads(row["payload_json"]))
+        if row["kind"] in (
+            "audience_collection",
+            "audience_annotation_set",
+            "reaction_annotation",
+            "reaction_cluster",
+            "content_reaction_link",
+            "audience_analysis",
+        ):
+            from socialdna.storage.audience_repository import validate_projection
 
             validate_projection(self, ref, json.loads(row["payload_json"]))
         provenance = self.get("provenance_records", row["provenance_id"])
@@ -173,9 +195,17 @@ class EvidenceRepository:
         mode: str = "authored",
         available_at: str | None = None,
     ) -> EntityRef:
+        from socialdna.storage.audience_retention import guard
+
+        if kind == "comment":
+            guard(self.connection, "comment", identity)
         if kind not in LEGACY_KINDS and kind not in AUTHORED_KINDS:
             raise ConfigurationError(f"Unregistered entity kind: {kind}")
         provenance = self.get("provenance_records", provenance_id)
+        if provenance["source_record_id"] and not (
+            mode == "legacy_capture" and kind in LEGACY_KINDS and kind != "comment"
+        ):
+            guard(self.connection, "source", provenance["source_record_id"])
         digest = hash_config(payload)
         revision_id = stable_id("entity-revision", kind, identity, digest, provenance_id, mode)
         table = metadata.tables["entity_revisions"]
@@ -290,7 +320,8 @@ class EvidenceRepository:
         | MetricLocator
         | StatisticalLocator
         | PostTextLocator
-        | CreativeEventLocator,
+        | CreativeEventLocator
+        | AudienceLocator,
         provenance_id: str,
         *,
         task_id: str | None = None,
@@ -510,6 +541,11 @@ def backfill_evidence(database: Any, *, batch_size: int = 200) -> None:
                 )
                 repository = EvidenceRepository(connection)
                 for identity in ids:
+                    if kind == "comment":
+                        from socialdna.storage.audience_retention import is_redacted
+
+                        if is_redacted(connection, "comment", identity):
+                            continue
                     if kind == "evidence":
                         repository.media_evidence(identity)
                     elif not repository.latest(kind, identity):

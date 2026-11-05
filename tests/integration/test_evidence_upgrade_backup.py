@@ -17,7 +17,7 @@ from socialdna.core.hashing import hash_file
 from socialdna.core.ids import stable_id
 from socialdna.core.time import utc_now
 from socialdna.storage.artifacts import ArtifactStore
-from socialdna.storage.backup import backup_library, restore_library, verify_backup
+from socialdna.storage.backup import backup_library, create_backup, restore_library, verify_backup
 from socialdna.storage.database import Database
 from socialdna.storage.evidence_repository import EvidenceRepository, backfill_evidence
 from socialdna.storage.migration_runner import current_revision, migrate, migration_config
@@ -102,6 +102,7 @@ def released_library(settings: Settings, head: str) -> tuple[str, bytes]:
         "0004_analytics",
         "0005_evidence",
         "0006_designs",
+        "0007_creative",
     ],
 )
 def test_released_upgrade_keeps_ids_and_report_bytes_and_makes_verified_backup(
@@ -112,7 +113,7 @@ def test_released_upgrade_keeps_ids_and_report_bytes_and_makes_verified_backup(
     evidence_id, archived = released_library(settings, head)
     with open_application(settings) as application:
         with application.database.transaction() as connection:
-            assert current_revision(connection) == "0007_creative"
+            assert current_revision(connection) == "0008_audience"
             assert (
                 connection.scalar(select(metadata.tables["creators"].c.display_name)) == "Keep me"
             )
@@ -138,13 +139,18 @@ def test_released_upgrade_keeps_ids_and_report_bytes_and_makes_verified_backup(
                 assert EvidenceResolver(connection).resolve(evidence_id).ref.id == evidence_id
 
 
+@pytest.mark.parametrize(
+    "head,version", [("0005_evidence", "v0006_designs"), ("0007_creative", "v0008_audience")]
+)
 def test_populated_evidence_parent_rebuild_rolls_back_and_preserves_bindings(
     settings: Settings,
     tmp_path: Path,
+    head: str,
+    version: str,
 ) -> None:
     from socialdna.storage.migration_runner import MIGRATIONS
 
-    evidence_id, _ = released_library(settings, "0005_evidence")
+    evidence_id, _ = released_library(settings, head)
     database = Database(DataPaths(settings.data_dir).database)
     try:
         backfill_evidence(database)
@@ -155,7 +161,7 @@ def test_populated_evidence_parent_rebuild_rolls_back_and_preserves_bindings(
             assert before
         location = tmp_path / "failing-rebuild"
         shutil.copytree(MIGRATIONS, location)
-        migration = location / "versions/v0006_designs.py"
+        migration = location / "versions" / (version + ".py")
         migration.write_text(
             migration.read_text().replace(
                 "\ndef downgrade()",
@@ -165,7 +171,7 @@ def test_populated_evidence_parent_rebuild_rolls_back_and_preserves_bindings(
         with pytest.raises(RuntimeError, match="injected rebuild"):
             migrate(database, location=location)
         with database.transaction() as connection:
-            assert current_revision(connection) == "0005_evidence"
+            assert current_revision(connection) == head
             assert (
                 connection.exec_driver_sql("SELECT * FROM evidence_revisions ORDER BY id").all()
                 == before
@@ -181,6 +187,53 @@ def test_populated_evidence_parent_rebuild_rolls_back_and_preserves_bindings(
             assert EvidenceResolver(connection).resolve(evidence_id).ref.id == evidence_id
     finally:
         database.close()
+
+
+def test_pre_evidence_restore_replays_erasure_before_legacy_comment_backfill(
+    settings: Settings, tmp_path: Path
+) -> None:
+    from socialdna.application.audience_service import redact
+
+    released_library(settings, "0004_analytics")
+    paths = DataPaths(settings.data_dir)
+    database = Database(paths.database)
+    body = "Unique legacy comment requiring permanent active-library erasure"
+    try:
+        with database.transaction() as connection:
+            connection.exec_driver_sql(
+                "INSERT INTO posts (id,platform,external_id,content_type) "
+                "VALUES ('old-post','demo','p0','video')"
+            )
+            connection.exec_driver_sql(
+                "INSERT INTO comments (id,post_id,external_id,body,published_at) "
+                "VALUES ('old-comment','old-post','c0',?,'2026-01-01T00:00:00Z')",
+                (body,),
+            )
+            for kind, identity in [("comment", "old-comment"), ("post", "old-post")]:
+                connection.exec_driver_sql(
+                    "INSERT INTO provenance_links VALUES (?,?,'old-provenance','source')",
+                    (kind, identity),
+                )
+        backup = tmp_path / "pre-evidence-checkpoint"
+        create_backup(paths, backup)
+    finally:
+        database.close()
+    with open_application(settings) as app:
+        plan = redact(app, comment_id="old-comment")
+        redact(app, comment_id="old-comment", confirmation=plan["confirmation"], reason="Erase")
+    restored = tmp_path / "restored-pre-evidence"
+    restore_library(backup, restored, withdrawals_from=settings.data_dir)
+    with open_application(Settings(data_dir=restored)) as app:
+        with app.database.transaction() as connection:
+            assert connection.scalar(select(metadata.tables["comments"].c.body)) == "[redacted]"
+            # No fresh legacy capture may restore the erased original wording.
+            payloads = connection.scalars(
+                select(metadata.tables["entity_revisions"].c.payload_json)
+            )
+            assert all(body not in payload for payload in payloads)
+            assert not connection.exec_driver_sql("PRAGMA foreign_key_check").all()
+        assert body.encode() not in app.paths.database.read_bytes()
+        assert not (restored / "backups").exists()
 
 
 @pytest.mark.parametrize("inject_failure", [False, True])
@@ -251,7 +304,7 @@ def test_creative_upgrade_preserves_populated_features_and_analysis_links(
                 assert not connection.exec_driver_sql("PRAGMA foreign_key_check").all()
         migrate(database)
         with database.transaction() as connection:
-            assert current_revision(connection) == "0007_creative"
+            assert current_revision(connection) == "0008_audience"
             assert (
                 connection.exec_driver_sql("SELECT * FROM evidence_revisions ORDER BY id").all()
                 == evidence_before
@@ -324,7 +377,7 @@ def test_downgrade_refuses_to_discard_registered_revisions(
                 config.attributes["connection"] = connection
                 command.downgrade(config, "0004_analytics")
         with application.database.transaction() as connection:
-            assert current_revision(connection) == "0007_creative"
+            assert current_revision(connection) == "0008_audience"
             assert (
                 connection.scalar(
                     select(func.count()).select_from(metadata.tables["entity_revisions"])
@@ -372,7 +425,7 @@ def test_restore_replays_later_withdrawals_and_keeps_absent_target_tombstones(
                 )
                 == "Also revoked"
             )
-    assert verify_backup(checkpoint)["database_revision"] == "0007_creative"
+    assert verify_backup(checkpoint)["database_revision"] == "0008_audience"
 
 
 def test_restore_without_latest_authority_is_restricted_and_never_overwrites(

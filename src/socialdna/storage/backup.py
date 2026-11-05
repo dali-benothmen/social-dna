@@ -73,9 +73,26 @@ def create_backup(paths: DataPaths, destination: Path) -> dict[str, Any]:
             row[0]
             for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")
         }
+        if (
+            "audience_redactions" in tables
+            and connection.execute(
+                "SELECT 1 FROM audience_redactions WHERE status='pending' LIMIT 1"
+            ).fetchone()
+        ):
+            raise ConfigurationError(
+                "Audience erasure cleanup is pending; reopen the library before making a backup"
+            )
         revision = connection.execute("SELECT version_num FROM alembic_version").fetchone()[0]
         lineage = _lineage(connection)
         artifacts = [dict(row) for row in connection.execute("SELECT * FROM artifact_objects")]
+        if "audience_tombstones" in tables:
+            redacted = {
+                row[0]
+                for row in connection.execute(
+                    "SELECT target_id FROM audience_tombstones WHERE target_kind='artifact'"
+                )
+            }
+            artifacts = [row for row in artifacts if row["id"] not in redacted]
         dependencies = []
         if "media_assets" in tables:
             dependencies = [
@@ -139,7 +156,17 @@ def verify_backup(destination: Path) -> dict[str, Any]:
             _integrity(connection)
             if _lineage(connection) != manifest["library_lineage"]:
                 raise ValueError("Backup lineage mismatch")
-            artifacts = connection.execute("SELECT relative_path,sha256 FROM artifact_objects")
+            tables = {
+                row[0]
+                for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")
+            }
+            query = "SELECT relative_path,sha256 FROM artifact_objects"
+            if "audience_tombstones" in tables:
+                query += (
+                    " WHERE id NOT IN (SELECT target_id FROM audience_tombstones "
+                    "WHERE target_kind='artifact')"
+                )
+            artifacts = connection.execute(query)
             if any(manifest["files"].get(row[0]) != row[1] for row in artifacts):
                 raise ValueError("Backup manifest omits canonical artifacts")
         return manifest
@@ -197,11 +224,22 @@ def restore_library(
                     "0005_evidence",
                     "0006_designs",
                     "0007_creative",
+                    "0008_audience",
                 ):
                     raise StorageIntegrityError("Withdrawal authority has an unsupported schema")
                 obligations = (
                     [dict(row) for row in connection.execute("SELECT * FROM evidence_withdrawals")]
                     if "evidence_withdrawals" in tables
+                    else []
+                )
+                audience_redactions = (
+                    [dict(row) for row in connection.execute("SELECT * FROM audience_redactions")]
+                    if "audience_redactions" in tables
+                    else []
+                )
+                audience_tombstones = (
+                    [dict(row) for row in connection.execute("SELECT * FROM audience_tombstones")]
+                    if "audience_tombstones" in tables
                     else []
                 )
     destination.mkdir(parents=True)
@@ -222,6 +260,8 @@ def restore_library(
         status="pending_reconciliation" if obligations is not None else "restricted",
         obligations=obligations,
         authority=str(withdrawals_from) if withdrawals_from else None,
+        audience_redactions=audience_redactions if withdrawals_from else [],
+        audience_tombstones=audience_tombstones if withdrawals_from else [],
     )
     marker_path.write_text(canonical_json(marker), encoding="utf-8")
     return {
@@ -273,6 +313,25 @@ def reconcile_restore(paths: DataPaths, database: Any) -> None:
                 .values(**row)
                 .on_conflict_do_nothing()
             )
+        for row in marker.get("audience_redactions", []):
+            request = {**row, "status": "pending", "completed_at": None}
+            table = metadata.tables["audience_redactions"]
+            connection.execute(
+                insert(table)
+                .values(**request)
+                .on_conflict_do_update(
+                    index_elements=[table.c.id], set_={"status": "pending", "completed_at": None}
+                )
+            )
+        for row in marker.get("audience_tombstones", []):
+            connection.execute(
+                insert(metadata.tables["audience_tombstones"])
+                .values(**row)
+                .on_conflict_do_nothing()
+            )
+    from socialdna.storage.audience_retention import resume
+
+    resume(database, paths)
     marker["status"] = "ready"
     marker_path.write_text(canonical_json(marker), encoding="utf-8")
 
@@ -292,5 +351,10 @@ def prepare_upgrade(paths: DataPaths, database: Any) -> None:
         validate_history(connection, scripts)
         revision = current_revision(connection)
     head = scripts.get_current_head()
+    marker = paths.root / RECOVERY_MARKER
+    if marker.exists() and json.loads(marker.read_text())["status"] == "pending_reconciliation":
+        # This is already a verified restored checkpoint. Do not clone forbidden
+        # old text into another backup before replaying newer erasure obligations.
+        return
     if revision and revision != head:
         create_backup(paths, paths.root / "backups" / (f"pre-{head}-" + new_id()))

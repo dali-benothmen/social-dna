@@ -1,0 +1,43 @@
+{
+  "schema_version": "1.0",
+  "key": "reviewed",
+  "collection": {"kind": "audience_collection", "id": "REPLACE_COLLECTION_ID", "revision_id": "REPLACE_COLLECTION_REVISION"},
+  "permission_basis": "REPLACE with actual annotation and quotation authority",
+  "protocol": {
+    "origin": "human",
+    "author": "REPLACE reviewer",
+    "procedure": "expressed-reactions-1; REPLACE with actual review procedure",
+    "outcome_access": "unknown"
+  },
+  "annotations": [{
+    "key": "intention",
+    "comment": {"kind": "comment", "id": "REPLACE_COMMENT_ID", "revision_id": "REPLACE_COMMENT_REVISION"},
+    "start_char": 0,
+    "end_char": 28,
+    "quote": "I need to make this tonight!",
+    "labels": ["expressed_intention"],
+    "language": "en",
+    "negated": false,
+    "ironic": null,
+    "ambiguous": null,
+    "complete_rubric_review": false,
+    "state": "proposed",
+    "rationale": "Example only; replace quote, span, labels and uncertainty after actual review"
+  }],
+  "clusters": [{
+    "key": "intention",
+    "title": "Proposed expressed intention",
+    "summary": "Supplied example membership, not demonstrated audience behavior",
+    "members": [{"reaction_key": "intention", "role": "representative"}],
+    "state": "proposed"
+  }],
+  "links": [{
+    "key": "possible-content-reference",
+    "reaction_key": "intention",
+    "target": {"kind": "post", "id": "REPLACE_POST_ID", "revision_id": "REPLACE_POST_REVISION"},
+    "origin": "human_interpretation",
+    "description": "Proposed post-level interpretation; not a measured playback response",
+    "uncertainty": "high",
+    "state": "proposed"
+  }]
+}

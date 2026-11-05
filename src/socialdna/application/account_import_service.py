@@ -251,6 +251,12 @@ def _upsert(connection: Connection, table_name: str, data: dict[str, Any], keys:
 def _persist(
     application: Application, connection: Connection, parsed: ParsedImport, path: Path
 ) -> dict[str, Any]:
+    from socialdna.storage.audience_retention import guard
+
+    for record in parsed.records:
+        if isinstance(record, Comment):
+            post_id = _identity("post", record.platform, record.post_external_id)
+            guard(connection, "comment", stable_id("comment", post_id, record.external_id))
     assert parsed.source is not None
     source = parsed.source
     checksum = hashlib.sha256(parsed.raw).hexdigest()
@@ -488,7 +494,10 @@ def _persist(
             )
     # Two passes support arbitrary ordering and existing parent references.
     for record in pending_comments:
+        from socialdna.storage.audience_retention import guard
+
         post_id = _identity("post", record.platform, record.post_external_id)
+        guard(connection, "comment", stable_id("comment", post_id, record.external_id))
         _upsert(
             connection,
             "comments",

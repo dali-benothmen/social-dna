@@ -1000,9 +1000,9 @@ def reproduce(
         configuration["engine_version"] == __version__
         or (
             method == "performance-1"
-            and configuration["engine_version"] in ("0.0.4", "0.0.5", "0.0.6")
+            and configuration["engine_version"] in ("0.0.4", "0.0.5", "0.0.6", "0.0.7")
         )
-        or (method == "performance-2" and configuration["engine_version"] == "0.0.6")
+        or (method == "performance-2" and configuration["engine_version"] in ("0.0.6", "0.0.7"))
     )
     if not compatible_engine or any(
         importlib.metadata.version(name) != version for name, version in versions.items()
@@ -1042,4 +1042,9 @@ def load_performance_report(
         raw = connection.scalar(query.order_by(runs.c.created_at.desc(), runs.c.id.desc()).limit(1))
         if raw is None:
             raise ConfigurationError("No saved performance analysis; run analyze account first")
-        return dict(json.loads(raw))
+        report = dict(json.loads(raw))
+        if report.get("redacted"):
+            raise ConfigurationError(
+                "Saved performance inputs were erased; reproduction is unavailable"
+            )
+        return report

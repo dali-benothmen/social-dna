@@ -1,6 +1,6 @@
 # Migration, compatibility and retention strategy
 
-Status: R1 backup/restricted-restore, R2 statistical/feature/ledger and R3 creative-event/recipe migrations are implemented in `0.0.7` / `0007_creative`; later migration work remains planned. Date: 2026-11-05. See [R1 operations](research-foundation.md), [versioned analytics](versioned-analytics.md), [creative analysis](creative-analysis.md), [architecture](../ARCHITECTURE.md), [roadmap](../PLAN.md) and [research contracts](research-contracts.md). Released migrations `0001`–`0006` remain unchanged. Extending evidence locator kinds or media-only feature subjects requires data-preserving SQLite table rebuilds; they are atomic, FK-checked and preceded by a verified backup, not edits to released migrations.
+Status: R1 backup/restricted-restore, R2 statistical/feature/ledger, R3 creative-event/recipe and R4 audience/retention migrations are implemented in `0.0.8` / `0008_audience`; later migration work remains planned. Date: 2026-11-05. See [R1 operations](research-foundation.md), [versioned analytics](versioned-analytics.md), [creative analysis](creative-analysis.md), [audience analysis](audience-analysis.md), [architecture](../ARCHITECTURE.md), [roadmap](../PLAN.md) and [research contracts](research-contracts.md). Released migrations `0001`–`0007` remain unchanged. Extending evidence locator kinds or media-only feature subjects requires data-preserving SQLite table rebuilds; they are atomic, FK-checked and preceded by a verified backup, not edits to released migrations.
 
 ## 1. Compatibility contract
 
@@ -139,6 +139,18 @@ Distinguish **withdrawal from new use** from **erasure of retained bytes**:
 Referential history may remain as a permitted tombstone rather than a dangling citation. Immutable decisions mean that the system does not secretly rewrite what it once concluded; they do **not** override lawful erasure. Historical sources/reports can become unverifiable or unavailable, and that degradation is explicit.
 
 R1 supports withdrawal metadata/current citation eligibility, not full byte erasure; R4 completes audience/raw-import/derived-report redaction workflows and R6 extends cleanup across future projections. Archived bytes may remain only where retention is permitted. An erasure request cannot be satisfied by calling R1 withdrawal. Do not claim one milestone already implements a future store's purge behavior.
+
+Implemented `0008_audience` extends the locator CHECK with `audience_record` using
+the existing atomic parent-rebuild procedure. New immutable projections have actual
+import/analysis/evidence readers. Erasure is an explicit exception to retained-byte
+immutability: preview + current confirmation + reason/actor append a deny-first
+journal/tombstones; an atomic scrub restores immutable triggers, unlinks registered
+managed blobs, checkpoints/vacuums the active SQLite files and completes the journal.
+Interrupted cleanup resumes before normal use. Terminal comment/artifact/source
+tombstones prevent reimport/backfill resurrection. Verified backups omit already
+erased blobs; restoring an older checkpoint replays the latest same-lineage journal
+before backfill and does not create another forbidden pre-upgrade backup. External
+backup/export bytes are not silently deleted or represented as globally erased.
 
 ## 8. Rollback and forward recovery
 

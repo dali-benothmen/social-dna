@@ -1,7 +1,8 @@
 # SocialDNA
 
 SocialDNA is a local-first social-media research engine. The implemented release is
-`0.0.7`: revisioned creative events, pinned multimodal recipes, versioned
+`0.0.8`: source-qualified audience collections, reaction review and content links,
+revisioned creative events, pinned multimodal recipes, versioned
 media/comment/metric/statistical citations, draft registration, withdrawal-aware
 reports, verified backup/restore and explicit time-aware analytics. The foundation and
 historical Milestones 1, 3, and 4 retain local-video analysis, optional enrichment,
@@ -57,6 +58,12 @@ Working capabilities:
   as-of annotation selection, explicit version-2 comparison joins and pinned video reports.
   Sparse sampling stays unknown; no automatic dish recognition or psychological mechanism
   validation is claimed. See [creative analysis](docs/creative-analysis.md).
+- Permitted audience collection manifests, exact Unicode reaction annotations,
+  versioned curated clusters with counterexamples, qualified post/event links,
+  frozen collected-comment reports and an opt-in timeline context lane.
+- Previewed, confirmed active-library audience erasure with terminal tombstones,
+  interrupted-cleanup recovery and backup-restore reconciliation. External copies
+  and backup bytes require separate cleanup. See [audience analysis](docs/audience-analysis.md).
 
 Embeddings, persistent graph queries, psychological pattern
 discovery, and the Agent Skill remain unavailable. Model interpretations are labeled

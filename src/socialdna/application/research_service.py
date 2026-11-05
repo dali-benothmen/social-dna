@@ -217,8 +217,21 @@ def _current_report(connection: Connection, payload: dict[str, Any]) -> dict[str
         for item in payload["citations"]
     ]
     missing = [item for item in citations if not item["eligible"]]
+    audience = []
+    for item in citations:
+        locator = item["locator"]
+        if item["eligible"] and locator and locator["kind"] == "audience_record":
+            ref = EntityRef.model_validate(locator["subject"])
+            audience.append(
+                {
+                    "ref": item["ref"],
+                    "subject": ref.model_dump(),
+                    "data": json.loads(EvidenceRepository(connection).entity(ref)["payload_json"]),
+                }
+            )
     return {
         **payload,
+        **({"audience_evidence": audience} if audience or "audience_evidence" in payload else {}),
         "citations": citations,
         "status": "partial" if missing else "success",
         "freshness": "stale" if missing else "current",

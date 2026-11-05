@@ -101,10 +101,15 @@ def database_checks(application: Application) -> list[CheckResult]:
 
 
 def artifact_checks(application: Application) -> list[CheckResult]:
+    from socialdna.storage.audience_retention import is_redacted
+
     with application.database.transaction() as connection:
         rows = list(connection.execute(select(metadata.tables["artifact_objects"])).mappings())
+        redacted = {row["id"] for row in rows if is_redacted(connection, "artifact", row["id"])}
     failures = []
     for row in rows:
+        if row["id"] in redacted:
+            continue
         try:
             valid = application.artifacts.verify(row)
         except (OSError, ValueError):
@@ -127,7 +132,7 @@ def artifact_checks(application: Application) -> list[CheckResult]:
             name="artifacts.integrity",
             status="error" if failures else "ok",
             message=f"Verified {len(rows)} registered artifacts.",
-            details={"failed_ids": failures},
+            details={"failed_ids": failures, "intentionally_redacted_ids": sorted(redacted)},
         ),
         CheckResult(
             name="artifacts.unregistered",
@@ -142,6 +147,7 @@ def artifact_checks(application: Application) -> list[CheckResult]:
 
 def evidence_checks(application: Application) -> list[CheckResult]:
     from socialdna.application.evidence_service import EvidenceResolver
+    from socialdna.storage.audience_retention import is_redacted
     from socialdna.storage.evidence_repository import EvidenceRepository
 
     failures = []
@@ -149,6 +155,8 @@ def evidence_checks(application: Application) -> list[CheckResult]:
     with application.database.transaction() as connection:
         repository = EvidenceRepository(connection)
         for row in connection.execute(select(metadata.tables["entity_revisions"])).mappings():
+            if is_redacted(connection, "entity_revision", row["id"]):
+                continue
             try:
                 repository.entity(repository.ref(dict(row)))
             except Exception as exc:
