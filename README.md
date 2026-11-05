@@ -1,9 +1,14 @@
 # SocialDNA
 
-SocialDNA is a local-first social-media research engine. Version `0.0.4` adds
-**Milestone 4: account imports and performance analytics** to the local-video slice.
-Milestone 2 (semantic/graph memory) was deliberately deferred at the user's request;
-it is not required to run enrichment and is not claimed to be implemented.
+SocialDNA is a local-first social-media research engine. The implemented release is
+`0.0.4`: the foundation and historical Milestones 1, 3, and 4 provide local-video
+analysis, optional enrichment, account imports, and bounded performance analytics.
+
+The revised [architecture](ARCHITECTURE.md) and [roadmap](PLAN.md) describe planned
+research capabilities, not additional released functionality. Research contracts and
+analytical repairs come first (R1–R2); persistent semantic/graph memory is planned in
+R6, replacing the deferred historical Milestone 2. No research schema, migration,
+model, or new CLI command is installed by this documentation revision.
 
 Working capabilities:
 
@@ -31,13 +36,25 @@ Working capabilities:
 - Text output for people and a versioned JSON envelope for agents.
 - Atomic, versioned CSV/JSON account/post exports, permitted comments/tags/media references,
   immutable metric definitions, append-only snapshots, availability and raw-source provenance.
-- Age/window-aligned account reports, strict engagement rates, robust creator baselines,
-  matched comparisons, cluster uncertainty, guarded regression/GLM/GEE/mixed models,
-  leakage-audited validation, FDR correction and frozen, reproducible cohorts.
+- Age/window-aligned account reports, strict engagement rates, retrospective
+  leave-one-post-out creator normalization, same-creator matched comparisons,
+  cluster uncertainty, guarded regression/GLM/GEE/mixed models, main-effect Ridge
+  holdout checks, per-run FDR correction, and frozen, reproducible cohorts.
 
 Embeddings, persistent graph queries, psychological pattern
 discovery, and the Agent Skill remain unavailable. Model interpretations are labeled
 uncertain hypotheses, not psychological/performance findings or verified facts.
+Cross-creator matching, publication-time historical baselines, validated creative
+interactions, and cross-niche discovery are not current capabilities. Existing
+rank/availability/validation limitations are documented in
+[performance analytics](docs/performance-analytics.md).
+
+The target product supports individual videos and photos, complete accounts,
+captions/hashtags, within- and cross-niche research, original experiments, and durable
+hypothesis revision. Photos/carousels (U1), portable Agent Skills-compatible
+instructions for Codex, Claude Code, and OpenCode (U2), and psychological research
+(R7–R10) remain planned. The shared Python CLI already works independently of an
+agent; compatibility with those three agent hosts has not been validated.
 
 ## Install from this checkout
 
@@ -218,9 +235,10 @@ data-directory/
 ```
 
 SQLite is canonical. Qdrant is a derived index; its initial collections remain empty
-until embedding spaces are implemented. Graph storage is reported as deferred until
-Milestone 2. `storage verify` checks only capabilities implemented at this milestone
-and does not claim semantic retrieval or graph persistence has been verified.
+until embedding spaces are implemented. Graph storage is reported as deferred;
+the revised roadmap assigns memory implementation to R6. `storage verify` checks only
+capabilities implemented in `0.0.4` and does not claim semantic retrieval or graph
+persistence has been verified.
 
 ## Machine output and exit codes
 
@@ -239,7 +257,7 @@ Human warnings use stderr only in text mode. The envelope has `schema_version`,
 | 4 | Storage permission denied |
 | 5 | Partial analysis or media processing failure |
 | 6 | Another process/client holds the storage lock |
-| 7 | Provider failure (reserved for later providers) |
+| 7 | Provider failure |
 | 8 | Storage integrity or schema validation failure |
 
 All Local Mode commands currently take one data-directory lock, including inspection
@@ -300,7 +318,10 @@ Generated owned fixtures cover scene changes, motion, tones, subtitles, VFR, shi
 timestamps, and audio offsets. Tests also exercise real SQLite/Alembic/Qdrant storage,
 failure recovery, interprocess locking, restart persistence, artifacts, and CLI contracts.
 
-See [PLAN.md](PLAN.md) for completed work and future milestones, and
-[ARCHITECTURE.md](ARCHITECTURE.md) for the approved design and implementation decisions.
+See [PLAN.md](PLAN.md) for implemented history and planned milestones,
+[ARCHITECTURE.md](ARCHITECTURE.md) for the revised design, and
+[the migration strategy](docs/migration-strategy.md) for preservation of existing data.
+The [architecture audit](docs/architecture-audit.md) is a historical assessment;
+the current design and roadmap supersede its proposed ordering.
 
 Licensed under [Apache-2.0](LICENSE).

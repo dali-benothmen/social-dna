@@ -1,856 +1,494 @@
-# SocialDNA Implementation Plan
+# SocialDNA implementation plan
 
-Status: approved; Milestones 0–1, 3 and 4 complete; Milestone 2 deferred
+Revised: 2026-11-05. Scope: approved architecture/documentation revision; no new implementation is claimed.
 
-Date: 2026-11-04
+Runtime remains package `0.0.4`, SQLite head `0004_analytics`. Released migrations `0001_foundation`–`0004_analytics` are immutable. Legacy Milestones 0, 1, 3 and 4 are completed deliveries; their limitations remain visible. Legacy Milestones 2, 5 and 6 are **superseded, not completed**. Every R/U milestone below is **planned and unimplemented**.
 
-Architecture source: `ARCHITECTURE.md`
+Authoritative design: [ARCHITECTURE.md](ARCHITECTURE.md), [research contracts](docs/research-contracts.md), [statistical design](docs/statistical-design.md), [migration strategy](docs/migration-strategy.md), and [reference use case](docs/research-use-case.md). The [audit](docs/architecture-audit.md) records the reasons for this revision; the [previous roadmap](docs/history/PLAN.pre-research-revision.md) is historical, not an alternative active plan.
 
-Repository state: account imports and performance analytics implemented as package version `0.0.4`.
+## 1. Outcome, limits and delivery rules
 
-## 1. Outcome and approval boundary
+SocialDNA is a local-first Python engine and portable Agent Skill that investigates why content may succeed. It preserves observable evidence, evaluates competing explanations with appropriately scoped data, compares creators without hiding confounding, and revises findings as evidence changes. It is not a psychological diagnosis system, a universal virality score, or a machine for proving mechanisms from observational correlations.
 
-The implementation will deliver a local-first, evidence-grounded social-media research engine and portable Agent Skill. The first usable vertical slice will analyze an authorized local video, persist a timestamped timeline, reopen that knowledge in another process, retrieve it semantically and through a graph traversal, and generate a cited report without any external database server or paid API key.
+The revised design preserves working media processing, synchronized timelines, provenance, artifacts, account exports, statistical tooling, reproducible reports and CLI execution. SQLite remains authoritative; persistent Qdrant Local retrieval and SQLite-backed NetworkX projections are introduced only when canonical producers and revision semantics exist. No database server, paid API, new distributed service, or automatic model download is required.
 
-The architecture and roadmap were approved on 2026-11-04. Implementation is limited to one milestone per change. Milestones 0–1, 3 and 4 are complete. The user explicitly requested Milestone 3 and then Milestone 4; both consume canonical SQLite/timeline interfaces without Milestone 2 indexing. Milestone 2 has not started; its release gates remain unmet.
+Delivery rules:
 
-The initial release is complete after Milestone 6. Milestones 7 and 8 are optional post-release expansion and must not delay the local-first release.
+- Implement one bounded milestone at a time; finish its working end-to-end behavior and tests before claiming completion. Separate optional provider work from the required offline path.
+- Add schema only alongside its first canonical writer, resolver and demonstrable reader. Designing later payloads does not require creating unused tables now.
+- Preserve old IDs, frozen analyses, raw artifacts and report bytes wherever retention is permitted. Required erasure preserves only allowed tombstones/audit metadata and explicitly degrades reproduction. Corrections produce explicit new revisions; they do not silently alter historical conclusions.
+- Keep basic media/account analysis fast: do not register a research question, load a graph, index embeddings or invoke a reasoner merely to describe a video.
+- Missing data is not zero; absent detection under sparse sampling is not demonstrated absence; expressed intention is not behavior; association is not causation.
+- Every research result declares its population, availability, estimand, evidence version, uncertainty, alternatives and limitations. `insufficient_data`, rejected and inconclusive results are successful research outcomes when honestly supported.
+- Implementation changes require unit/integration/contract/end-to-end verification, migration/compatibility checks, documentation updates and a scoped working commit when authorized. This document revision does not authorize implementation yet.
 
-## 2. Definition of done for the initial release
+## 2. Preserved implementation and historical deliveries
 
-A clean machine with Python 3.11+, `uv`, and FFmpeg can:
-
-1. install the package and run `socialdna doctor`;
-2. analyze a repository-owned or user-supplied local video with no API credentials;
-3. persist canonical metadata, scenes, selected frames, audio features, subtitles/transcript, observations, evidence, and task state in SQLite/artifacts;
-4. persist semantic entries in Qdrant Local and graph rows in SQLite;
-5. terminate, start a separate CLI process, retrieve the video by semantic query, traverse its graph neighborhood, and generate a grounded report;
-6. import account/post/metric history from validated CSV/JSON without converting missing values to zero;
-7. compare appropriately matched posts with transparent effect sizes, uncertainty, and limitations;
-8. record psychological mechanisms only as evidence-linked hypotheses unless statistical/experimental support justifies a higher claim level;
-9. expose stable JSON command output that the SocialDNA Agent Skill can orchestrate in Codex and Claude Code;
-10. pass unit, integration, cross-process end-to-end, packaging, migration, and documentation contract tests.
-
-## 3. Delivery strategy
-
-The roadmap deliberately orders a thin end-to-end system before advanced interpretation:
-
-| Milestone | Working result | Release gate |
+| Legacy delivery | Implemented and preserved | Recorded verification at delivery |
 |---|---|---|
-| 0. Repository and canonical storage | Installable CLI, auto-init, migrations, health checks, stable contracts | Complete (`0.0.1`) |
-| 1. Deterministic local video vertical slice | Local video to timestamped JSON/Markdown report | Complete (`0.0.2`); first user value |
-| 2. Persistent research memory | Cross-process Qdrant/graph/FTS retrieval and repair | Deferred at user request; v0.1 gate still unmet |
-| 3. Local model enrichment | Optional ASR, OCR, landmarks/classifiers, provider safety | Complete out of order (`0.0.3`); v0.2 release gate still awaits memory |
-| 4. Account imports and performance analytics | Multi-post baselines and defensible statistics | Complete out of order (`0.0.4`); roadmap v0.3 gate still awaits memory |
-| 5. Psychology and cross-content discovery | Evidence-backed hypotheses, associations, counterexamples, hybrid research | v0.4 |
-| 6. Media breadth, reports, skill, and release hardening | Photos/carousels, comparisons, HTML, portable skill, packaged v1 | v1.0 |
-| 7. Official platform adapters | Permission-aware YouTube/Instagram/TikTok ingestion | Post-v1 optional |
-| 8. Research Mode scale adapters | External Qdrant and optional distributed/storage backends | Post-v1 optional |
+| M0, `0.0.1`, 2026-11-04 | Installable CLI; settings/IDs/output contracts; SQLite/UoW/migrations; provenance and sources; artifacts; locking; Qdrant lifecycle and health checks | 45 tests; lint/type/build/isolated-install checks |
+| M1, `0.0.2`, 2026-11-04 | Local video registration/probing; deterministic scenes/frames/visual/audio measurements; supplied subtitles; shared timeline; durable task cache/resume; evidence-backed JSON/Markdown reports | 77 tests plus targeted recovery/cache regressions; installed cross-process video/report checks |
+| M3, `0.0.3`, 2026-11-04, deliberately before M2 | Optional prepared local ASR/OCR/pose/audio adapters; provider isolation; consent/budget/provenance gates; model/task/report integration | 116 tests including real CPU ASR/OCR and isolated MediaPipe; optional alignment/VLM quality not empirically established |
+| M4, `0.0.4`, 2026-11-05, deliberately before M2 | Strict CSV/JSON account/post/comment/tag/metric exports; immutable snapshots; local-media account batches; guarded descriptive/model paths; frozen analytics and JSON/Markdown reports | 164-test full run including local-model smoke; final targeted hardening raised collected tests to 166; lint/type/build/offline-install checks |
 
-Every milestone updates documentation to describe only behavior that exists at that point.
+These are historical test records, not tests rerun for this design-only revision. Only Linux/Python 3.11 was locally executed at those deliveries; configured CI platforms are not claimed as observed results.
 
-## 4. Planned repository map
+M4 delivered its scoped implementation, but its retrospective baseline, same-creator matcher, cross-niche design and model-validation mismatch need R2 remediation. Existing reports remain reproducible and are not retroactively relabeled as corrected. The old M2 memory design and broad M5/M6 delivery bundles are replaced below, rather than treated as satisfied by the completed work.
 
-Files are introduced incrementally; empty placeholder packages are not created solely to match this tree.
+## 3. Dependency-aware delivery sequence
 
-```text
-social-dna/
-├── src/socialdna/
-│   ├── cli/
-│   │   ├── app.py
-│   │   ├── output.py
-│   │   └── errors.py
-│   ├── application/
-│   │   ├── bootstrap.py
-│   │   ├── analysis_service.py
-│   │   ├── import_service.py
-│   │   ├── query_service.py
-│   │   └── report_service.py
-│   ├── core/
-│   │   ├── ids.py
-│   │   ├── hashing.py
-│   │   ├── time.py
-│   │   ├── enums.py
-│   │   └── exceptions.py
-│   ├── config/
-│   │   ├── paths.py
-│   │   └── settings.py
-│   ├── domain/
-│   │   ├── commands.py
-│   │   ├── results.py
-│   │   ├── media.py
-│   │   ├── evidence.py
-│   │   ├── research.py
-│   │   └── providers.py
-│   ├── storage/
-│   │   ├── database.py
-│   │   ├── unit_of_work.py
-│   │   ├── repositories.py
-│   │   ├── artifacts.py
-│   │   ├── locking.py
-│   │   ├── health.py
-│   │   └── migrations/
-│   ├── ingestion/
-│   │   ├── base.py
-│   │   ├── local.py
-│   │   ├── tabular.py
-│   │   └── platforms/             # added only in Milestone 7
-│   ├── media/
-│   │   ├── probe.py
-│   │   ├── ffmpeg.py
-│   │   ├── scenes.py
-│   │   ├── frames.py
-│   │   ├── audio.py
-│   │   ├── subtitles.py
-│   │   └── timeline.py
-│   ├── analyzers/
-│   │   ├── base.py
-│   │   ├── visual.py
-│   │   ├── audio.py
-│   │   ├── speech.py
-│   │   ├── ocr.py
-│   │   └── language.py
-│   ├── providers/
-│   │   ├── registry.py
-│   │   ├── transcription.py
-│   │   ├── embeddings.py
-│   │   ├── vision.py
-│   │   ├── audio.py
-│   │   └── reasoning.py
-│   ├── memory/
-│   │   ├── vectors.py
-│   │   ├── vector_sync.py
-│   │   ├── lexical.py
-│   │   ├── graph.py
-│   │   └── hybrid.py
-│   ├── analytics/
-│   │   ├── metrics.py
-│   │   ├── baselines.py
-│   │   ├── cohorts.py
-│   │   ├── statistics.py
-│   │   └── validation.py
-│   ├── psychology/
-│   │   ├── taxonomy.py
-│   │   ├── cues.py
-│   │   └── hypotheses.py
-│   ├── research/
-│   │   ├── questions.py
-│   │   ├── discovery.py
-│   │   ├── counterexamples.py
-│   │   └── findings.py
-│   └── reporting/
-│       ├── models.py
-│       ├── json.py
-│       ├── markdown.py
-│       ├── html.py
-│       └── templates/
-├── skills/socialdna/
-│   ├── SKILL.md
-│   └── references/
-│       ├── cli.md
-│       ├── workflows.md
-│       ├── psychology.md
-│       ├── research-methodology.md
-│       └── interpretation-rules.md
-├── tests/
-│   ├── fixtures/
-│   ├── unit/
-│   ├── integration/
-│   ├── contract/
-│   └── end_to_end/
-├── docs/
-├── examples/
-├── pyproject.toml
-├── uv.lock
-├── README.md
-├── ARCHITECTURE.md
-├── PLAN.md
-└── LICENSE
-```
+| ID | Working result | Hard dependencies | Status |
+|---|---|---|---|
+| R1 | Universal evidence with usable metric/comment citations and minimal research registration | Current `0.0.4` | Planned; first ready for implementation |
+| R2 | Correct historical baselines, comparison designs, feature timing and actual-pipeline validation | R1 | Planned |
+| R3 | Semantic creative events and reproducible multimodal feature recipes | R1; R2 for analytics joins | Planned |
+| R4 | Audience collection provenance, reaction annotations and qualified content links | R1, R3 | Planned |
+| R5 | Behavioral metric series, denominators, attribution and account outcomes | R1, R2; R3 for event overlays | Planned |
+| R6 | Persistent SQL/FTS/Qdrant/SQLite-backed NetworkX research memory | R1–R4; R5 for behavioral projections | Planned |
+| R7 | First complete, literature-backed psychological research vertical slice | R2–R6 | Planned |
+| R8 | Incremental hypothesis reevaluation and preserved contradiction history | R7 | Planned |
+| R9 | Bounded nonlinear, cross-creator and cross-niche discovery | R2, R3, R6–R8 | Planned |
+| R10 | Registered experiment outcomes and evidence-qualified recommendations | R7–R9 | Planned |
+| U1 | Individual photo/carousel analysis reusing existing media contracts | R1 | Planned, parallel usability track |
+| U2 | Portable Codex/Claude Code/OpenCode skill and usable reports | U1, R2; capability-gated integration with later R milestones | Planned, parallel usability track |
 
-## 5. Cross-cutting contracts fixed before implementation
+Audience comments and behavioral metrics are split into R4/R5 because sampling/semantic annotation and metric time-series validity are different testable products. Memory follows canonical producers and revision contracts, rather than freezing the current media-only evidence model. A small literature corpus, hypothesis registration and experiment proposal appear in R7; general discovery and experiment-outcome analysis wait for R9/R10. U1/U2 prevent research infrastructure from postponing ordinary creator workflows.
 
-These are expensive to change after data exists, so Milestone 0 treats them as public contracts:
+R6 must work without prepared embeddings through SQL/FTS/graph retrieval; semantic acceptance additionally requires a verified prepared local embedding model. R7 must work with authorized local media, imported human annotations and curated research when no VLM is installed. Creator-owned retention is an optional richer evidence branch, never an invented prerequisite substitute.
 
-- SQLite owns canonical data; Qdrant and NetworkX views are derived.
-- Opaque string IDs, deterministic external/vector IDs, RFC 3339 UTC datetimes, and integer millisecond half-open media intervals.
-- Claim levels: observation, hypothesis, association, causal finding.
-- Versioned JSON output envelope and stable exit-code families.
-- Versioned feature keys, metric definitions, analyzer/model identities, and analysis profiles.
-- Remote media/text transfer is opt-in and represented in configuration/provenance.
-- Qdrant collections are immutable embedding spaces; model/dimension changes create a new collection.
-- The Python application service layer, not Typer callbacks, owns business behavior.
+## 4. Cross-cutting interfaces and compatibility gates
 
-## 6. Milestone 0 — Repository, contracts, and canonical storage
+Preserve current commands and output/exit-code families: `init`, `doctor`, `storage status|verify`, `import local|csv|json`, `analyze video|account`, `timeline show`, `models status|prepare`, `compare posts|accounts|reproduce`, and `report generate --run|--account`. New behavior is additive or uses explicit versioned specification fields. Old comparison specifications retain legacy semantics for exact reproduction; corrected analyses use a new specification/method version. Old reports never acquire a new interpretation just because software was upgraded.
 
-Completed 2026-11-04. Implemented the package, CLI, platform paths/TOML/environment configuration, stable identifiers/time/output contracts, foundational schema, transactional migrations and checksum ledger, unit of work/repositories, artifact deduplication/reference/checksum handling, process locking, Qdrant lifecycle, and health checks. Graph/timeline/vector indexing remain explicitly deferred to their planned milestones.
+New command sketches in the milestone sections are proposed interfaces, not available commands. The exact argument surface is stabilized by contract tests at the implementing milestone. All agents call the same Python services/CLI; agent instructions contain no alternate statistics, hidden browser scraping or host-specific database logic.
 
-Verification: **45 automated tests passed** (unit/property/integration/CLI/subprocess); Ruff lint/format passed; strict mypy passed for 38 source files; wheel and source-distribution builds passed; fresh isolated installation and CLI initialization/verification passed for both distribution formats, including a fully offline repeat after priming the dependency cache. The GitHub Actions matrix is configured for Linux/macOS/Windows with Python 3.11/3.13; only Linux Python 3.11 was executed in this workspace.
+Each future migration must preserve released migration checksums and old evidence identities, upgrade a fixture from every released head, survive an interrupted upgrade, and pass `storage verify`. Back up and validate before upgrades; destructive retention/redaction is explicit and audited. See [migration strategy](docs/migration-strategy.md).
 
-Implementation decisions and justifications are recorded in `ARCHITECTURE.md` section 22. Runtime dependencies are locked in `uv.lock`. Build tooling and Python 3.11 were provisioned in `/tmp`; the system Python was not changed. No Milestone 1 media implementation or optional ML models were installed.
+Research materialization is lazy and budgeted. The canonical research layer must accept observed, inferred and human-adjudicated inputs with distinguishable provenance. Index jobs carry generation/revision and eligibility tokens. A deleted/withdrawn source cannot be resurrected by old work. Research-graph relationships carry a finding/assessment identity, scope, qualification and evidence; multiple input features form a pattern entity, not independent causal-looking edges.
 
-### What will be implemented
+## 5. R1 — Universal evidence and minimum research contracts
 
-- Initialize the Python package, Apache-2.0 license, `uv` project, lint/type/test tooling, and console entry point.
-- Implement platform-aware data directories with a `--data-dir` override and environment equivalents.
-- Define Pydantic command/result contracts, stable IDs, time/interval types, output envelope, domain exceptions, and exit-code mapping.
-- Implement the SQLite connection factory, SQLAlchemy Core metadata/repositories, Alembic migrations, transaction unit of work, WAL/foreign-key/busy-timeout settings, and same-host filesystem checks.
-- Implement only the first schema slice: migrations, execution/provenance, sources, accounts/posts/media, artifacts, and data-availability records. The full schema is designed in `ARCHITECTURE.md`, but timeline, vector/graph, analytics, and research tables are introduced in the milestone that first exercises them so empty speculative tables do not become compatibility baggage.
-- Implement content-addressed artifact paths and reference counting/checksums.
-- Implement a process/data-directory writer lock.
-- Implement idempotent automatic initialization and commands:
+Status: **planned, unimplemented; first implementation milestone**.
 
-  ```text
-  socialdna init
-  socialdna doctor
-  socialdna storage status
-  socialdna storage verify
-  ```
+### Objective
 
-- Initialize the Qdrant directory/client metadata safely, but create physical embedding collections only when an embedding space is registered.
-- Emit human-readable output by default and the versioned JSON envelope under `--format json`.
+Deliver one resolver and citation format that works for existing media evidence, a real imported comment span and a real metric snapshot without dummy media or fabricated timestamps. Register a research question and a versioned hypothesis specification without pretending evaluation is implemented.
 
-### Files involved
+### Existing components affected
 
-- `pyproject.toml`, `uv.lock`, `LICENSE`, `README.md`
-- `src/socialdna/cli/{app,output,errors}.py`
-- `src/socialdna/application/bootstrap.py`
-- `src/socialdna/core/{ids,hashing,time,enums,exceptions}.py`
-- `src/socialdna/config/{paths,settings}.py`
-- `src/socialdna/domain/{commands,results,evidence,research,providers}.py`
-- `src/socialdna/storage/{database,unit_of_work,repositories,artifacts,locking,health}.py`
-- `src/socialdna/storage/migrations/*` (foundation slice only)
-- `tests/unit/`, `tests/integration/test_initialization.py`, `tests/contract/test_cli_envelope.py`
+`domain/evidence.py`, `domain/research.py`, `storage/{schema,repositories,health}.py`, `application/{account_import_service,performance_service,report_service}.py`, reporting models/renderers and additive CLI adapters. Existing timeline producers and released migrations remain intact.
 
-### Dependencies
+### New components and schemas/interfaces
 
-Runtime: Python 3.11+, Typer, Pydantic v2, pydantic-settings, platformdirs, SQLAlchemy 2 Core, Alembic, qdrant-client, NetworkX.
-Development: pytest, pytest-cov, pytest-xdist where safe, Hypothesis for value objects/schema invariants, Ruff, mypy.
-System: none for initialization; FFmpeg is detected but not installed.
+Add `application/evidence_service.py`, a cohesive research registration service and canonical research repository. Introduce an evidence identity registry, typed subtype locators for existing media/comment/metric evidence, source availability/eligibility, evidence links and withdrawal metadata. Register legacy media IDs unchanged. Use stable entity references, explicit target revision and typed locator validation; no polymorphic target is accepted without resolver validation. Introduce minimal question, hypothesis identity and immutable specification revisions actually used by registration. Later study/statistical/experiment subtype writers are added in their own milestones against the same contract.
+
+Proposed interfaces: `evidence resolve <id>`, `research register --spec <file>`, and `research show <id>`. They return the normal JSON envelope with exact source/revision and current citation eligibility. See [research contracts](docs/research-contracts.md) for authoritative fields.
+
+### Dependencies and tasks
+
+Depends only on current storage/provenance/reporting contracts; use existing Pydantic/SQLAlchemy/SQLite, not new servers or models. Tasks: provide and verify a quiescent backup/restore procedure; add an additive migration; backfill registry identities idempotently; implement subtype resolution and validation; expose registration; integrate metric/comment citations into a persisted report; add withdrawal/stale hooks without implementing reevaluation.
 
 ### Acceptance criteria
 
-- `uv run socialdna doctor --format json` produces schema-valid JSON in an empty temporary home.
-- First use creates only the documented directories/files and applies every migration once.
-- Repeating initialization is a no-op and preserves inserted sentinel data.
-- A simulated migration failure rolls back or leaves a detectable/recoverable state.
-- Foreign keys are active on every connection; SQLite integrity and FTS5 checks are reported.
-- Qdrant Local is opened once, explicitly closed, and a second concurrent opener produces an actionable storage-conflict error rather than corruption.
-- Unknown fields/metrics are represented as unavailable/absent, never zero.
-- No command downloads a model, contacts a hosted provider, or installs FFmpeg.
+An old media citation resolves under the same ID after upgrade. A comment quote and metric snapshot resolve to their real imported sources and exact revisions. Wrong subjects/runs, invalid spans and nonexistent targets are rejected. Withdrawing evidence prevents its use in a new conclusion and degrades the current report view while preserving historical immutable artifacts where retention is permitted; required erasure leaves only allowed tombstones/audit metadata and an explicit reproduction limitation. Basic media analysis does not create research entities automatically.
 
-### Tests required
+### Automated tests
 
-- Unit: IDs, time intervals, hashes, settings precedence, JSON envelope, exit-code mapping, artifact paths.
-- Property: half-open interval validation and deterministic UUID generation.
-- Integration: empty/repeated initialization, all migrations up/down where supported, dirty migration detection, foreign keys, WAL settings, network-filesystem warning seam, writer lock, artifact deduplication.
-- Contract: `--help`, JSON schema snapshots, stdout/stderr separation, every documented Milestone 0 command.
-- Packaging: build wheel/sdist and install the wheel into an isolated environment.
+Verified backup restoration into a separate directory including later-withdrawal reconciliation/restricted recovery and external-input inventory; upgrade/rollback and checksum invariance; legacy ID/backfill idempotency; subtype constraints and entity existence; Unicode span bounds; snapshot/source agreement; unavailable/withdrawn evidence; report escaping; CLI envelopes; no-write dry runs; separate-process persistence. Run all existing media/account/report regressions.
 
-### Integration with previous work
+### Demonstrable end-to-end behavior
 
-This is the base milestone. All later work uses its application bootstrap, unit of work, task state, artifact store, IDs, and output contract; later milestones do not create alternate storage/configuration paths.
+Import the cooking fixture and real comment/metric records → register a research question → produce a report citing one opening frame, one quoted comment and one seven-day metric → restart and resolve all three citations → withdraw one source and observe an explicit evidence limitation, not an invented replacement.
 
-## 7. Milestone 1 — Deterministic local video vertical slice
+## 6. R2 — Statistical correctness and comparison repairs
 
-Completed 2026-11-04. Local file registration/managed copy, FFprobe metadata and source PTS, bounded FFmpeg execution, adaptive scenes/scores, scene-aware frames/contact sheets, visual/audio observations, supplied subtitle tracks, unified timeline queries, durable DAG caching/resume, and typed JSON/Markdown reports are functional. Reports include evidence, provenance, feature definitions/units and explicit unavailable-modality limitations. New revision `0002_timeline` upgrades the released foundation without modifying its checksum.
+Status: **planned, unimplemented**.
 
-Verification: **77 automated tests passed**, plus a final two-test regression of failure recovery/selective invalidation after simplifying the cached timeline descriptor. Coverage includes generated owned fixtures; VFR/nonzero starts; delayed/short/no audio; source deletion after managed copy; changed-source rejection; partial failure/resume; interruption after each major task; selective palette invalidation; no duplicate cached measurements/media blobs; malicious filenames; bounded subprocess logs/timeouts; escaping; CLI restart persistence; and released-foundation migration preservation. Ruff lint/format passed for 77 Python files; strict mypy passed for 59 source files. Wheel and source-distribution builds and fresh isolated installs passed, including installed video analysis and a separate-process report from each format; the verification was repeated fully offline after priming the dependency cache. Runtime tests downloaded no models and used no external services. Linux Python 3.11 / FFmpeg 4.4.2 were executed here; the configured macOS/Windows/Python 3.13 CI jobs were not run in this workspace.
+### Objective
 
-Architectural details and justified file-map simplifications are recorded in `ARCHITECTURE.md` section 23 and `docs/video-analysis.md`. Media import remains in `application/import_service.py`; durable task commits use Core directly, and JSON rendering uses the typed report model rather than adding placeholder ingestion/repository/renderer abstractions. No optional ML models, semantic indexing, graph construction, or Milestone 2 work is included.
+Make new historical, within-creator and cross-creator comparisons answer explicit, identifiable questions; ensure production feature timing and validation match the actual tested model. Preserve legacy results exactly.
 
-### What will be implemented
+### Existing components affected
 
-- Local media registration with checksum/deduplication and default source-file reference; `--copy-media` opts into managed storage.
-- FFprobe JSON parsing for containers, streams, duration, frame rate/timebase, dimensions, rotation, codecs, start offsets, and errors.
-- FFmpeg subprocess wrapper with argument arrays, timeouts, bounded logs, cancellation, and artifact registration.
-- PySceneDetect adaptive shot detection with stored configuration and scores.
-- Scene-aware frame selection plus regular samples and perceptual deduplication.
-- Audio extraction to a normalized analysis format.
-- Supplied SRT/VTT parsing as separate text tracks.
-- Deterministic visual observations: palette, brightness, saturation, contrast, entropy/edge density, blur proxy, aspect/framing geometry, shot durations, cut frequency, and optical-flow summary on selected intervals.
-- Deterministic audio observations: loudness, RMS/energy, spectral features, onset/tempo candidates, silence, and pitch where valid.
-- Unified timeline query over visual, text, and audio lanes.
-- Durable analysis task DAG, task fingerprints, cache reuse, partial failure, and resume.
-- Add the timeline/feature/evidence schema migration and repositories immediately before the pipeline first writes them.
-- Commands:
+`analytics/{metrics,baselines,cohorts,statistics,validation}.py`, `application/performance_service.py`, `domain/research.py`, account/comparison CLI adapters and performance reports. Existing snapshot import remains append-only.
 
-  ```text
-  socialdna import local <path>
-  socialdna analyze video <path-or-id> --depth quick|standard|deep
-  socialdna timeline show <media-id> --start 0s --end 5s
-  socialdna report generate --run <run-id> --format json|markdown
-  ```
+### New components and schemas/interfaces
 
-Deep mode at this milestone means denser deterministic analysis; unsupported model-assisted tasks are explicitly skipped.
+Add cohesive `analytics/designs.py` and `analytics/features.py` helpers, not a second analytics engine. Version comparison specifications with estimand, baseline policy, publication/knowledge cutoffs, population, outcome/denominator, feature availability, covariates, sampling frame, duplicate groups, split policy and model pipeline. Persist exact reference populations and as-of covariate versions with frozen statistical results. Add minimal declared test-family/attempt and holdout-use records for specified analyses, reused by R7/R8 before R9 extends adaptive discovery. A statistical evidence locator references the exact analysis/term or declared diagnostic.
 
-### Files involved
+Retain `analyze account`, `compare posts|accounts` and reproduction; add explicit design/specification selection instead of changing legacy meaning silently. [Statistical design](docs/statistical-design.md) defines the supported estimands and gates.
 
-- `src/socialdna/application/{analysis_service,import_service,report_service}.py`
-- `src/socialdna/domain/media.py`
-- `src/socialdna/ingestion/{base,local}.py`
-- `src/socialdna/media/{probe,ffmpeg,scenes,frames,audio,subtitles,timeline}.py`
-- `src/socialdna/analyzers/{base,visual,audio}.py`
-- `src/socialdna/reporting/{models,json,markdown}.py`
-- `src/socialdna/storage/repositories.py` and the timeline/feature/evidence migration
-- `tests/fixtures/media/`, corresponding unit/integration/end-to-end tests
+### Dependencies and tasks
 
-### Dependencies
-
-Python: NumPy, OpenCV headless, PySceneDetect headless, Pillow, SciPy, librosa, soundfile, a maintained SRT/VTT parser such as pysubs2, Jinja2 only if Markdown templating proves useful.
-System: FFmpeg and ffprobe.
-Milestone 0 storage/contracts.
+Depends on R1 evidence and existing pandas/NumPy/SciPy/scikit-learn/statsmodels. Tasks: distinguish retrospective from strictly historical baselines; as-of join metrics/account context; implement named within/cross-creator designs with overlap/balance diagnostics; construct identifiable within/between/niche models; materialize real feature availability; group duplicates; validate the chosen transformations/interactions/model; retain all exclusions and insufficient-data outcomes.
 
 ### Acceptance criteria
 
-- A small deterministic fixture video analyzes from an empty data directory without API credentials or downloaded ML models.
-- Scene, frame, text, audio, observation, provenance, evidence, artifact, run, and task rows are populated with valid millisecond intervals.
-- A query for the first five seconds returns synchronized lanes and evidence IDs.
-- Re-running the same configuration reuses completed tasks and does not duplicate observations/artifacts.
-- Changing a visual analyzer configuration invalidates only its dependent tasks.
-- Removing FFmpeg yields a precise `doctor` finding and nonzero dependency exit code; no false success report is created.
-- JSON and Markdown reports state which modalities ran and which were unavailable.
+Adding future posts cannot change a frozen historical baseline or a newly built historical baseline at the same cutoff. Distinct creators can enter a justified cross-creator design, but poor overlap or unknown confounders yield limitations/withheld inference rather than manufactured matches. Nested niche/creator fixtures either use an identifiable design or clearly withhold the estimand. No interaction is declared validated by a different main-effect model. Features lacking historical availability cannot support forecast claims. Semantic nearest neighbors never define the effect-estimation population.
 
-### Tests required
+### Automated tests
 
-- Unit: ffprobe parsing including variable-frame-rate/non-zero-start fixtures, subtitle parsing, frame selection/deduplication, feature math, timebase conversion, task fingerprints.
-- Golden numeric tests with tolerances for visual/audio features.
-- Integration: FFmpeg extraction, scene detection, artifact/checksum persistence, interruption after each major task and resume.
-- Security: malicious filenames, malformed media, oversized/timeout paths, HTML/Markdown escaping.
-- End-to-end: analyze generated/repository-owned video and assert timestamped report evidence.
+Future-baseline invariance; creator/niche collinearity; within/between-confounding and Simpson fixtures; matching balance and support; signed/unknown covariates; actual feature availability through production population construction; duplicate-media leakage across creator/time splits; pure-interaction validation; train-only preprocessing; declared-family/null-attempt persistence and consumed-holdout refusal; small/constant/missing data; exact legacy reproduction and report versioning.
 
-### Integration with previous work
+### Demonstrable end-to-end behavior
 
-Uses Milestone 0 initialization, repositories, task state, provenance, artifacts, and output envelope. It produces the canonical observations/vector documents/graph candidates that Milestone 2 indexes without reprocessing media.
+Import same-creator and multi-creator cooking histories → request a seven-day comparison using existing duration/caption-length predictors and declared covariates → show matched support and an effect or an explicit unsupported comparison → append later posts → reproduce the frozen old analysis unchanged and compute a distinct corrected-version analysis. Semantic result-first exposure joins this pipeline in R3, not through a premature R2 detector.
 
-## 8. Milestone 2 — Persistent semantic, lexical, and graph memory
+## 7. R3 — Semantic creative events and multimodal recipes
 
-### What will be implemented
+Status: **planned, unimplemented**.
 
-- FastEmbed adapter for a revision-pinned `intfloat/multilingual-e5-small` default, including required query/passage prefixes, 512-token chunking, and explicit model preparation/status workflow.
-- Immutable embedding-space registry and collection-family creation.
-- Qdrant Local collections for content text, transcript text, audience summaries, research text, and optional image embeddings as defined in `ARCHITECTURE.md`.
-- Canonical vector documents, deterministic point IDs, durable vector outbox, idempotent upsert/delete, retry leases, and reconciliation.
-- SQLite FTS5 indexing for posts, transcripts, and findings with trigger/rebuild verification.
-- Graph repositories and schema validation for permitted node/edge types.
-- Bounded SQLite neighborhood retrieval and NetworkX `MultiDiGraph` materialization.
-- Initial graph construction for account/post/media/scene/observation/evidence relationships.
-- Add vector registry/outbox, graph, and FTS5 migrations immediately before those components are enabled.
-- Hybrid candidate fusion across FTS, Qdrant, SQL filters, and graph expansion.
-- Commands:
+### Objective
 
-  ```text
-  socialdna models status|prepare
-  socialdna query <question> [structured filters]
-  socialdna graph neighbors <id>
-  socialdna graph path <from> <to>
-  socialdna storage reconcile
-  socialdna storage reindex
-  ```
+Represent observable techniques, their uncertain timing and cross-modal relationships; produce reusable analysis features without equating primitive brightness/loudness with semantic concepts or psychological states.
 
-- Point-count and local-mode warnings before Qdrant's practical ceiling; explicit external-Qdrant recommendation rather than silent slowdown.
+### Existing components affected
 
-### Files involved
+`media/timeline.py`, `analyzers/{base,visual,audio,language}.py`, `application/{analysis_service,enrichment_service,performance_service}.py`, provider evidence bundles and reporting. Existing measured observations, timebase and task fingerprints remain authoritative.
 
-- `src/socialdna/providers/{registry,embeddings}.py`
-- `src/socialdna/memory/{vectors,vector_sync,lexical,graph,hybrid}.py`
-- `src/socialdna/application/query_service.py`
-- `src/socialdna/storage/{health,repositories}.py`
-- `src/socialdna/storage/migrations/*` for vector/graph/FTS
-- `tests/integration/test_qdrant_persistence.py`
-- `tests/integration/test_graph_persistence.py`
-- `tests/integration/test_vector_reconciliation.py`
-- `tests/end_to_end/test_cross_process_memory.py`
+### New components and schemas/interfaces
 
-### Dependencies
+Add `domain/creative.py`, `application/creative_service.py`, a cohesive `analyzers/creative.py`, and versioned recipes in `analytics/features.py`. Schema includes technique definitions, creative-event identities/revisions, modality evidence links, uncertain boundary ranges, sampling coverage, event relations, feature recipe versions and feature values with availability/source lineage. Relationships include overlap/simultaneity, precedes/follows and uncertain ordering on declared time tolerances; they do not imply causation. Unknown/unclassified technique and unobserved interval are valid states.
 
-qdrant-client, FastEmbed/ONNX Runtime as the `local-models` extra, NetworkX, SQLite with FTS5.
-Milestones 0–1 canonical records and CLI contracts.
+Proposed interfaces: annotation import for human-reviewed events; `analyze video --creative-profile <profile>`; timeline/report event lanes; feature materialization by a pinned recipe. Current quick deterministic behavior remains unchanged unless requested.
+
+### Dependencies and tasks
+
+Depends on R1; R2 for evaluated feature/outcome joins. Reuse FFmpeg, existing analyzers and optional prepared providers; no mandatory VLM. Tasks: specify result-first versus ingredient-first evidence; annotate sample fixtures; implement versioned event inference/import; temporal joins and coverage tracking; targeted resampling under budgets; materialize a small set of event/sequence recipes from visual, narration, subtitle, caption, motion, color and sound evidence.
 
 ### Acceptance criteria
 
-- With a prepared model, a completed video run indexes the documented representations and graph relations.
-- A completely separate process retrieves the analyzed video semantically and traverses its graph relationships.
-- Killing the process between SQLite commit, Qdrant upsert, and outbox acknowledgement is repaired by `storage reconcile` without duplicate points.
-- Deleting/reindexing a target removes stale points and edges while preserving unrelated data/artifacts.
-- A missing/offline embedding model leaves deterministic analysis, FTS, graph, and reports operational and reports semantic search as unavailable.
-- Mixing a different model/dimension creates a new embedding space/collection and cannot corrupt the old one.
-- Local Qdrant access is single-client and resource closure is covered by tests.
+The opening can encode a finished dish, spoken promise, text overlay and synchronized sound as separate observations connected into an event. Every semantic feature cites its actual inputs/recipe. Sparse frames cannot prove technique absence. Boundary uncertainty survives reporting and downstream analysis. Caption/hashtag language and editing sequences can be analyzed without being mislabeled as hidden psychological mechanisms.
 
-### Tests required
+### Automated tests
 
-- Unit: collection names, embedding-space compatibility, deterministic point IDs, reciprocal-rank fusion, bounded graph filters.
-- Integration: real Qdrant Local persistence, FTS trigger/rebuild, NetworkX reload, graph evidence, outbox crash points, reindex/delete.
-- Contract: vector provider conformance and collection schema validation.
-- End-to-end essential test: empty directory → analyze fixture → index vector/graph → terminate → new process → semantic retrieve → graph traverse → grounded report.
-- Core CI uses an injected deterministic test embedder only to avoid network/model downloads; a scheduled/manual model test uses the real pinned local embedder and is clearly identified.
+Result-first/ingredient-first/ambiguous fixtures; simultaneous cut/SFX and ordered reveal; delayed narration/subtitles; coarse sampling; interval/uncertainty validity; recipe determinism and selective invalidation; human/model provenance and outcome-blinding distinctions; multimodal ablations; exact feature availability and cache reuse.
 
-### Integration with previous work
+### Demonstrable end-to-end behavior
 
-Indexes Milestone 1's canonical timeline and report representations. The vector/graph layer never bypasses Milestone 0's SQLite unit of work and can be rebuilt solely from canonical records.
+Analyze an authorized cooking video with supplied event annotations or a prepared provider → inspect synchronized opening evidence and temporal relationships → materialize the pinned result-first feature → include it in an R2 comparison without reprocessing unchanged primitive measurements.
 
-## 9. Milestone 3 — Optional local model enrichment and provider safety
+## 8. R4 — Audience-response integration
 
-Completed 2026-11-04 at the user's explicit request to work on this milestone before Milestone 2. Scope includes verified model preparation/import/status; capability-specific provider contracts; isolated CPU/native worker execution; faster-whisper ASR; RapidOCR boxes/persistence; optional WhisperX forced-alignment, MediaPipe pose and YAMNet adapters; evidence-bounded compatible-server text/vision reasoning; consent/revocation/budget/retry enforcement; transfer audits; model provenance/input-evidence gates; depth controls; cache/resume; report/timeline integration; and a manual native ASR/OCR CI workflow.
+Status: **planned, unimplemented**.
 
-The out-of-order dependency change is recorded in `ARCHITECTURE.md` section 24. Existing canonical task/artifact/evidence interfaces provide the integration boundary; vector/graph/FTS memory is not duplicated or claimed available. Milestone 3 was delivered as pre-release `0.0.3`; the original v0.1/v0.2 release gates still require memory/release validation.
+### Objective
 
-Verification: **116 tests passed in one full run with real local-model tests enabled**, including offline CPU ASR/OCR and isolated MediaPipe pose/audio using generated owned media and checksum-verified assets. SDK contracts, privacy/consent revocation, echoed-credential rejection, malformed output, budgets, atomic provenance/evidence gates, selective caching, interrupted model-task recovery and migration preservation passed. Ruff lint/format passed for 92 Python files and strict mypy passed for 69 source files. Wheel/source builds and isolated base installations passed initialization, media analysis and report-restart checks; runtime operation/model inference used no hosted APIs or downloaded assets on demand. Only Linux Python 3.11 was executed here. Real WhisperX checkpoint/GPU execution and real VLM/LLM quality evaluation were not run; their implemented adapters have offline/timing/HTTP schema contracts, not native-model evaluation claims. See `docs/local-enrichment.md` for supported usage and these limitations.
+Turn imported comments into qualified evidence of expressed reactions, questions, objections and intentions, while preserving collection bias and the distinction between explicit and inferred content links.
 
-Implemented modules are `providers/{models,registry,worker,reasoning}.py`, `application/enrichment_service.py`, and `analyzers/{speech,ocr,language}.py`, with additive changes to existing contracts, settings, DAG, timeline, reports and CLI. Capability-specific provider wrappers stay cohesive rather than creating empty transcription/vision/audio modules solely to match the target tree. `0003_enrichment` adds the exercised schema; `tests/unit/test_provider*.py`, `tests/integration/test_enrichment.py`, and `tests/integration/test_real_local_models.py` cover the new paths.
+### Existing components affected
 
-### What will be implemented
+`ingestion/tabular.py`, `application/account_import_service.py`, universal evidence, research reports and event timelines. Preserve original comment IDs/raw source versions.
 
-- Provider registry with capability discovery, local/remote classification, model revision, supported languages, structured output validation, retries, budgets, and caching.
-- `faster-whisper` optional local transcription with VAD, language detection, segment/word timing, and CPU/GPU/compute-type profiles.
-- Optional WhisperX precision alignment adapter behind a separate extra; diarization remains separately gated and never identifies real people.
-- RapidOCR/ONNX optional OCR with frame deduplication, box coordinates, language/model configuration, and persistence across adjacent frames.
-- Optional pose/face-landmark analyzer for observable geometry/movement only; no emotion or sensitive-attribute classifier.
-- Optional audio event/music classifier adapter, with uncertain interpretations kept separate from deterministic signal features.
-- Vision, audio, and text reasoning protocols plus one local in-process or explicitly configured compatible provider implementation. No hosted provider is required for milestone acceptance.
-- Evidence-bundle construction, contact sheets, frame/token budgets, structured Pydantic schemas, and invalid-response handling.
-- Explicit remote-data consent enforcement and provenance of exactly what left the machine.
-- Depth-profile resource estimates and `models prepare` downloads with checksums/offline errors.
+### New components and schemas/interfaces
 
-### Files involved
+Add `audience/{collections,annotations,clusters,linking}.py` and a thin application service. Canonical tables cover collection manifests (permissions, query/order, collection period, completeness/coverage, known limits), comment revisions, span-level reaction annotations, cluster versions/membership and qualified links to events/posts. Links declare explicit timestamp/quote, human adjudication or model inference, plus source evidence and uncertainty. Comment publication time remains wall-clock time, never playback time.
 
-- `src/socialdna/domain/providers.py`
-- `src/socialdna/providers/{registry,transcription,vision,audio,reasoning}.py`
-- `src/socialdna/analyzers/{speech,ocr,language}.py`
-- additions to `analyzers/visual.py` and `analyzers/audio.py`
-- `src/socialdna/media/timeline.py`
-- `src/socialdna/config/settings.py`
-- provider/evidence fixtures and contract tests
+Proposed interfaces: import manifests/annotations, `analyze audience --collection <id>`, and audience sections in research reports; ordinary import still works without running models.
 
-### Dependencies
+### Dependencies and tasks
 
-Optional extras rather than the base wheel:
-
-- `speech`: faster-whisper/CTranslate2.
-- `alignment`: WhisperX and its pinned compatible dependencies.
-- `ocr`: RapidOCR + ONNX Runtime.
-- `landmarks`: selected maintained landmark runtime/model.
-- `local-ai`: selected in-process vision/text/audio provider dependencies.
-
-Milestones 0–2 task fingerprints, artifacts, evidence, and vector memory.
+Depends on R1/R3. Use existing text processing, optional reasoners and later embeddings; deterministic/imported annotations provide the offline path. Tasks: version collection contracts; implement a small auditable annotation rubric; preserve exact quotes; cluster and review reactions; connect only eligible content evidence; report sampling denominators and uncertainties; minimize personal data and propagate withdrawal.
 
 ### Acceptance criteria
 
-- Supplied subtitles and ASR remain distinct tracks and can be compared.
-- Word timestamps are nullable and never fabricated when the provider supports only segment timing.
-- OCR evidence points to actual frame/time/box coordinates.
-- Every model-derived observation includes provider/model/revision/config provenance and a deterministic input evidence list.
-- Invalid model JSON is rejected; deterministic results remain available and the report is partial.
-- Local files cannot be sent to a remote provider without an enabled provider profile and consent policy.
-- Changing only the ASR model reuses scene/color/audio extraction and invalidates downstream transcript/language/psychology tasks.
-- `doctor` reports model availability, expected downloads, device support, and license/configuration limitations.
+“I need to make this tonight” can be annotated as expressed intention but never a verified recipe attempt/conversion. A semantic opening link remains visibly inferred. Top-ranked-only or incomplete collections cannot yield viewer-level prevalence. Positive, negative, ambiguous and creator-reply comments remain available; unsupported links are rejected rather than decorated with a timestamp.
 
-### Tests required
+### Automated tests
 
-- Provider protocol/structured-output contract suite shared by implementations.
-- Unit: VAD/timing normalization, OCR box normalization, evidence bundles, budget enforcement, consent decisions.
-- Integration: small local ASR/OCR fixtures in opt-in test jobs; provider failure and cache reuse.
-- Privacy/security: verify remote adapter receives only allowed derived data and logs no media/API secrets.
-- Regression: no model path can write an observation without provenance/evidence.
+Incomplete/top-ranked collections; selection/coverage denominators; Unicode quotes; negation/sarcasm/multilingual/ambiguous annotations; duplicates/creator replies; inferred-versus-explicit links; timestamp confusion; versioned cluster membership; redaction/withdrawal propagation; imported and model-derived provenance.
 
-### Integration with previous work
+### Demonstrable end-to-end behavior
 
-Adds optional tasks to the existing DAG and writes the same observation/evidence schema. It does not fork the timeline, report, graph, or retrieval model.
+Import a permitted comment collection with known sampling method → review expressed-intention and objection clusters → link a quoted reaction to the opening as an inference → report “of collected comments” statistics and counterexamples beside the actual creative event, without claiming viewers felt or did the same thing.
 
-## 10. Milestone 4 — Account imports and performance analytics
+## 9. R5 — Behavioral metrics and account outcomes
 
-Status: complete (`0.0.4`), 2026-11-05. Selected by the user while Milestone 2 remains deferred.
+Status: **planned, unimplemented**.
 
-Delivered:
+### Objective
 
-- [x] Strict versioned CSV/JSON account/post/media/tag/comment/metric contracts,
-  read-only dry runs, atomic row/reference validation and idempotent external keys.
-- [x] Raw-export artifacts, permission/source provenance, immutable metric definitions,
-  append-only corrections and explicit availability/window/exposure-age semantics.
-- [x] Bounded local-video account batches, durable media-cache reuse, partial failures,
-  missing/remote-reference reporting and primary-media evidence aggregation.
-- [x] Age-aligned outcomes/strict rates, cohorts, leave-one-out robust creator baselines,
-  descriptive effects, seeded cluster bootstrap, matching and FDR correction.
-- [x] Guarded OLS/Poisson/Gaussian GEE/random-intercept mixed-model paths, interactions,
-  rank/dispersion/convergence gates and labeled influence diagnostics.
-- [x] Separate chronological/creator validation, cutoff-purged outcomes and training-only
-  preprocessing, with deliberately bad leakage fixtures.
-- [x] Frozen cohort inputs, full specifications/versions/seeds/results, exact reproduction,
-  JSON/Markdown reports, metric/source/evidence citations and cross-process CLI commands.
-- [x] Frozen migration `0004_analytics`, package/lock version `0.0.4`, executable examples,
-  import/analytics documentation and installed-distribution account smoke coverage.
+Represent real creator-owned retention/completion/conversion/account measurements with appropriate coordinates, definitions, denominators and attribution; do not force them into scalar nonnegative post counts.
 
-Implementation details and tradeoffs are recorded in `ARCHITECTURE.md` section 25.
-CSV parsing deliberately uses the standard library to preserve identifiers; pandas
-handles analytics. Export ingestion lives in `application/account_import_service.py`
-beside the existing local-media importer; account orchestration lives in
-`application/performance_service.py`. The portable skill, live platform adapters,
-psychological discovery, carousel-wide aggregation and semantic/graph indexing are
-not included. Normalized exports are supported, not arbitrary vendor layouts.
+### Existing components affected
 
-Verification: the full regression run passed 164 tests including real offline CPU
-ASR/OCR and isolated MediaPipe smoke tests (88% aggregate coverage). Final targeted
-runs additionally cover the two new strict-JSON hardening tests and updated
-account/comparison reproduction and escaped-path cases: 166 tests are now collected.
-Ruff lint/format checks pass across 105 Python files and strict mypy across 83 source
-files. Both wheel and source distributions pass isolated install, initialization,
-integrity, account import/analytics/report restart and video-analysis/report checks
-with network disabled after priming the dependency cache. Workspace verification is
-Linux/Python 3.11/FFmpeg 4.4.2; other platforms remain covered by the CI definition,
-not claimed locally executed.
+Metric contracts/imports, `analytics/metrics.py`, cohort/outcome builders, performance reports and universal evidence. Existing immutable scalar snapshots remain usable and unchanged.
 
-### What will be implemented
+### New components and schemas/interfaces
 
-- Versioned CSV and JSON import schemas for accounts, posts, media references, hashtags, comments, metric definitions, metric snapshots, follower counts, and creator-owned analytics exports.
-- Dry-run validation, row-level errors, idempotent external-key deduplication, raw-import artifact retention, and permission/source provenance.
-- Append-only metric snapshots with collection time, observation window, post age, platform definition, and explicit availability states.
-- Batch media linking/analysis for imported account histories.
-- Creator-relative robust baselines and post-age-aligned outcomes.
-- Cohort construction by platform, creator, niche, content type, duration, topic, and observation window.
-- Add metric, derived-metric, cohort, and statistical-analysis migrations in the same milestone as their first working use cases.
-- Descriptive summaries, effect sizes, bootstrap intervals, correlation, simple regression/GLM, interactions, outlier/influence diagnostics, and matched comparison workflow.
-- Cluster-aware GEE/mixed-model path only when sample/cluster preconditions are met.
-- Chronological/grouped validation, leakage-safe preprocessing pipelines, and false-discovery-rate correction.
-- Commands:
+Add cohesive `analytics/{retention,attribution}.py` helpers and versioned series contracts in `ingestion/tabular.py`; keep account-outcome orchestration in `application/performance_service.py`. Canonical series/bins declare source/platform definition revision, media-relative coordinate system, bin bounds, audience cohort, observation/window/collection times, availability, numerator/denominator semantics and replay behavior. Add explicit attribution observations and account-level outcome specifications; metric definitions declare signed-value/range semantics. A series is not assumed to be a survival curve.
 
-  ```text
-  socialdna import csv|json <path> [--dry-run]
-  socialdna analyze account <account-id>
-  socialdna compare posts|accounts ...
-  socialdna report generate --account <id>
-  ```
+Proposed interfaces: versioned series export import, account-level outcome analysis and retention/event report overlays. Existing import formats remain valid; new formats are explicitly versioned.
 
-### Files involved
+### Dependencies and tasks
 
-- `src/socialdna/ingestion/tabular.py`
-- `src/socialdna/application/import_service.py`
-- `src/socialdna/analytics/{metrics,baselines,cohorts,statistics,validation}.py`
-- `src/socialdna/domain/research.py`
-- `src/socialdna/storage/migrations/*` for metrics/cohorts/statistical results
-- `src/socialdna/reporting/{models,json,markdown}.py`
-- `docs/import-formats.md`, `examples/imports/*`
-- analytics/import tests and fixtures
-
-### Dependencies
-
-pandas, NumPy, SciPy, scikit-learn, statsmodels.
-Milestones 0–1 and 3 canonical storage, media analysis, provenance and evidence.
-Milestone 2 retrieval/projections remain deferred and are not required for this slice.
+Depends on R1/R2; R3 supplies optional event overlays. Existing numeric/statistical stack suffices. Tasks: import permitted owned analytics; validate compatible denominators/cohorts; preserve coarse bins and values above one when definition permits repeat views; align only compatible series; as-of account-size/growth joins; define attribution windows; report unsupported/unavailable data separately.
 
 ### Acceptance criteria
 
-- Missing shares/saves/retention remain unavailable and never enter denominators as zero.
-- Importing the same external dataset twice is idempotent; changed snapshots append without mutating history.
-- A post with two years of exposure is not directly compared to a one-day post unless a declared model/window justifies it.
-- Account reports display available sample size, missingness, observation-age distribution, outcome definitions, effect sizes, intervals, adjusted p-values where relevant, and limitations.
-- Creator leakage and target leakage tests fail intentionally bad pipelines and pass the production one.
-- Insufficient samples return descriptive results plus an `insufficient_data` limitation, not an unstable regression.
-- Results and full analysis specifications are persisted and reproducible from stored inputs/configuration.
+Negative net account growth is representable under an appropriate definition. A delayed export does not masquerade as a real-time observation. Retention is not interpolated to false millisecond precision. Missing watch-time/conversion data produces a data-access limitation. An account change is not assigned to the nearest post, and supplied attribution is reported as the source's attribution—not established causal effect.
 
-### Tests required
+### Automated tests
 
-- Unit/property: schema validation, timezone parsing, metric formulas, missingness, baseline math, cohort membership, matching, bootstrap, FDR.
-- Golden comparisons against hand-calculated small datasets and selected statsmodels/SciPy results.
-- Integration: idempotent imports, snapshot history, raw provenance, batch analysis, report citations.
-- Leakage: chronological and grouped split fixtures with deliberately duplicated creators/future features.
-- Robustness: small n, constant values, perfect separation, collinearity, heavy outliers, missing denominators.
+Coarse/differently scaled bins; ratio above one; denominators/cohort mismatch; missing/zero-denominator cases; completion definition differences; publication versus observation versus retrieval times; delayed corrections; signed account changes; overlapping attribution windows; withdrawn source behavior; scalar-import compatibility.
 
-### Integration with previous work
+### Demonstrable end-to-end behavior
 
-Connects media observations from Milestones 1–3 to real performance snapshots, while reusing the same accounts/posts/evidence/vector/graph IDs. It creates the comparable populations required by Milestone 5.
+Import authorized cooking-channel retention bins and follower history → overlay a result-first event without inventing fine timing → compare a compatible retention outcome across posts → report account growth separately with its attribution limits. Repeat with public-only data and receive an honest unavailable-retention branch.
 
-Current implementation reuses canonical account/post/media/evidence IDs and leaves
-vector/graph projections for Milestone 2; it does not claim that retrieval exists.
+## 10. R6 — Persistent revision-aware research memory
 
-## 11. Milestone 5 — Psychology, cross-content discovery, and research findings
+Status: **planned, unimplemented; replaces legacy M2**.
 
-### What will be implemented
+### Objective
 
-- Versioned psychological taxonomy with definitions, observable cues, exclusions, confounders, and interpretation rules.
-- Deterministic cue rules for hooks, literal questions, delayed reveals, calls to action, transformations, social-proof language, utility framing, participation, and related mechanisms.
-- Evidence-constrained structured hypothesis generation using configured reasoners.
-- Adjudication that verifies evidence references, applies confidence rubric, generates alternatives, requests missing modalities, and enforces prohibited-inference rules.
-- Research question registration, candidate relationship generation, redundant-feature grouping, cohort/statistical evaluation, multiple-testing correction, sensitivity checks, counterexample retrieval, and persistent findings.
-- Add taxonomy, hypotheses, research questions/findings, evidence links, and experiment migrations with the first complete discovery workflow.
-- Hybrid natural-language query planning over SQL/FTS/vector/graph with explainable component results.
-- Recommendation generation only from scoped findings; each recommendation includes evidence, applicability, counterexamples, uncertainty, and a proposed experiment.
-- Experiment brief creation and later outcome ingestion.
-- Commands:
+Retrieve exact moments, audience evidence, metrics and research records across processes using SQL, FTS, optional persistent vectors and a qualified graph, while keeping SQLite rebuild authority and evidence eligibility.
 
-  ```text
-  socialdna research discover --question <text> [scope options]
-  socialdna research show <finding-id>
-  socialdna query <research question>
-  socialdna psychology show --post|--media <id>
-  socialdna recommend --topic <text> --scope <...>
-  ```
+### Existing components affected
 
-### Files involved
+`storage/vectors.py` lifecycle, bootstrap/locking/health, sources/artifacts/evidence and canonical producers from R1–R5. Do not duplicate old media processing or make indexing a prerequisite for analysis.
 
-- `src/socialdna/psychology/{taxonomy,cues,hypotheses}.py`
-- `src/socialdna/research/{questions,discovery,counterexamples,findings}.py`
-- `src/socialdna/memory/hybrid.py`
-- `src/socialdna/analytics/{statistics,validation}.py`
-- `src/socialdna/reporting/*`
-- `src/socialdna/storage/migrations/*` for psychology/research/experiments
-- `skills/socialdna/references/{psychology,research-methodology,interpretation-rules}.md` drafted here but not yet published as a finished skill
-- annotated psychology/research fixtures and evaluations
+### New components and schemas/interfaces
 
-### Dependencies
+Add `providers/embeddings.py`, `memory/{lexical,vector_sync,graph,hybrid}.py` and `application/query_service.py`. Schema includes embedding-space registry, versioned canonical documents/chunks with source evidence, vector outbox with generation/eligibility guards, FTS5 content and graph entity/relationship projections. SQLite graph rows back bounded NetworkX `MultiDiGraph` loads. Collection identity pins model/revision/dimension/pooling/normalization/prefix/chunking; changes create new immutable spaces. Index only canonical types whose writer exists; R7/R8 later register study/assessment document builders without changing this storage contract.
 
-No new mandatory base dependency. Uses the optional reasoning/vision/audio providers and analytics stack from prior milestones.
+Proposed interfaces: `query`, `graph neighbors|path`, `storage reconcile|reindex`, model status/preparation and revision-specific filters. Graph facts cite exact evidence or assessment; retired conclusions are not served as current.
+
+### Dependencies and tasks
+
+Depends on R1–R4 and R5 for behavioral projections. Use existing qdrant-client/NetworkX; optional prepared local embedding runtime and SQLite FTS5. Tasks: implement SQL/FTS first; index versioned chunks; bounded hybrid fusion; qualified graph projection; transactional outbox/idempotent sync; rebuild/reconcile; eligibility/deletion checks; separate-process retrieval. No pickle graph authority and no graph server.
 
 ### Acceptance criteria
 
-- Every mechanism hypothesis cites existing evidence and has alternatives/counterexamples or an explicit reason none were available.
-- No hypothesis is rendered as an association without a linked statistical analysis; no association is rendered as causal without a registered qualifying experiment/design.
-- Discovery stores all tested candidate relationships and adjusted values, not only positive results.
-- Queries can reproduce an example such as “short cooking videos with curiosity hooks, warm colors, and relatively strong engagement” using measured filters, semantic representations, and scoped comparisons.
-- Cross-platform/niche findings remain scoped and are not generalized automatically.
-- Prohibited sensitive/mental-state inference prompts are rejected or reframed to observable behavior.
-- Human-annotated evaluation reports mechanism precision/recall, evidence-span accuracy, inter-rater disagreement, and confidence calibration by taxonomy version.
+Separate processes retrieve a cooking-video opening and resolve every citation. SQL/FTS/graph remain available with no embedding model. Crashes between canonical commit, Qdrant upsert and acknowledgement recover without duplicates. Stale revisions/deleted sources cannot reappear from queued jobs. Graph queries expose conditional pattern entities and scope rather than flattened causal-looking technique→success edges. Top-K results are discovery candidates, not statistical sampling frames.
 
-### Tests required
+### Automated tests
 
-- Unit: taxonomy validation, cue rules, claim promotion guards, confidence rubric, query planner, finding versioning.
-- Contract/adversarial: hallucinated evidence IDs, unsupported causal language, sensitive trait inference, prompt injection in captions/comments.
-- Statistical integration: candidate family → FDR → counterexample/sensitivity → persisted finding.
-- Evaluation: frozen labeled mini-corpus with expected mechanism/evidence ranges; provider-specific jobs remain optional but structured validation is mandatory.
-- End-to-end: multi-account fixture research question produces scoped observations, association or insufficient-data result, counterexamples, and an experiment brief.
+Real Qdrant Local cross-process persistence; deterministic point IDs/space isolation; FTS rebuild; bounded graph reload; crash-point outbox tests; concurrent single-directory policy; withdrawal/redaction and stale-generation races; graph qualification; evidence resolution; offline missing model and explicit preparation. Deterministic test embeddings support core CI; a separate opt-in real prepared-model test validates adapter integration without claiming retrieval quality from fake vectors.
 
-### Integration with previous work
+### Demonstrable end-to-end behavior
 
-Consumes only canonical observations, evidence, metrics, cohorts, vectors, and graph relations created earlier. Findings feed back into SQLite, Qdrant research collections, and graph edges through the existing outbox/repository mechanisms.
+Analyze/import cooking media and audience data → index → terminate → query a result-first moment → traverse its content/reaction/metric provenance → retrieve an unsuccessful comparable example → withdraw a source → reconcile and verify it is excluded from current results while historical citation status remains inspectable.
 
-## 12. Milestone 6 — Photo/carousel breadth, reports, Agent Skill, and v1 hardening
+## 11. R7 — First complete psychological research vertical slice
 
-### What will be implemented
+Status: **planned, unimplemented**.
 
-- Photo ingestion/analysis using the existing visual, OCR, caption, evidence, and provider pipelines.
-- Ordered carousel analysis: opening-slide hook, inter-slide continuity, typography/readability, narrative progression, caption alignment, and closing call to action.
-- Complete single-media, timeline, account, multi-account, psychology, cross-niche, strategy, and experiment reports in JSON/Markdown/static HTML.
-- Sanitized static HTML templates with embedded local artifact copies/relative links, no remote JavaScript requirement, and accessibility basics.
-- Final portable `skills/socialdna/SKILL.md` under 500 lines with concise frontmatter and progressive-disclosure references.
-- CLI reference and representative schema-valid output examples generated/tested from real fixtures.
-- Installation tooling/documentation for project/user skill locations in Codex and Claude Code without maintaining divergent skill content.
-- Documentation completeness, packaging metadata, changelog/release process, model/license notices, contribution/security policies, and performance benchmark suite.
-- Validate `uv tool install` against a built/published candidate before documenting it as supported.
+### Objective
 
-### Files involved
+Answer the bounded question “Why might showing a finished meal in the first seconds be associated with better performance?” with competing, falsifiable explanations and real evidence—not persuasive trigger labels.
 
-- additions to `src/socialdna/ingestion/local.py`, `analyzers/visual.py`, `application/analysis_service.py`
-- `src/socialdna/reporting/{html,templates/*}` and all report renderers
-- `skills/socialdna/SKILL.md`
-- `skills/socialdna/references/{cli,workflows,psychology,research-methodology,interpretation-rules}.md`
-- `README.md`, `docs/*`, `examples/*`, package/release metadata
-- `tests/contract/test_documented_commands.py`, report snapshots, skill validation/evals, packaging tests
+### Existing components affected
 
-### Dependencies
+Universal evidence, semantic events/recipes, audience and behavioral records, comparison services, memory document builders and reports. Keep media reasoners' current no-psychology/performance boundary; add a separate evidence-constrained research service rather than silently broadening descriptive prompts.
 
-Jinja2 and a small HTML sanitizer/escaping strategy if not already introduced. Agent Skills reference validator used in development/CI. All prior milestones.
+### New components and schemas/interfaces
+
+Add reviewed literature import/curation, `psychology/{constructs,operationalizations,hypotheses}.py`, research evaluation/assessment services and a research report model. Canonical payloads and necessary query projections cover study/source findings with design/population/measurement/limitations, construct definitions, operationalized predictions, rival-hypothesis links, immutable assessments, scoped findings, support/contradiction links and proposed experiment specifications; low-volume definitions need not each have a dedicated table. Evidence for study excerpts/statistical terms uses the universal registry. Evaluation records test-family membership and holdout consumption through R2's minimal ledger.
+
+Proposed interfaces: `research register|evaluate|show`, curated-study import and grounded report generation. Extraction reliability, literature applicability, local association, generalization and causal identification remain distinct assessments, not one confidence score.
+
+### Dependencies and tasks
+
+Depends on R2–R6. Begin with a small human-reviewed corpus and limited anticipation/sensory appeal/curiosity/cognitive-fluency explanations; each is a candidate, not assumed present. Use optional configured reasoning, never mandatory hosted APIs. Tasks: encode real study evidence/limits; define competing predictions; assemble eligible evidence; compare representative populations and failures; evaluate or withhold associations; write immutable assessment and a discriminating experiment proposal. Human annotations/imports provide the no-VLM path.
 
 ### Acceptance criteria
 
-- Photos and carousels produce evidence-linked reports and enter the same retrieval/graph system as videos.
-- Every documented command executes; future commands are labeled future and excluded from examples implying availability.
-- HTML reports render offline, escape hostile imported/model text, retain evidence/timestamps, and remain useful with partial data.
-- `SKILL.md` validates against the Agent Skills specification, routes representative requests correctly, invokes JSON CLI commands, respects permission/remote-upload gates, and interprets claim levels accurately in both Codex and Claude Code evaluations.
-- Wheel/sdist installation, clean first run, all core end-to-end tests, migration from every supported prior schema, backup/restore, and documentation link checks pass.
-- Base install requires no paid key, external database server, Docker, or local AI model download.
-- The release notes clearly separate fully local, optional-model, hosted-provider, and future platform features.
+The full twelve-step cooking scenario in [research use case](docs/research-use-case.md) is represented; reevaluation is previewed here and executed in R8. A mechanism has a literature source, applicability judgment and falsifiable prediction, or remains explicitly unsupported. Public-only data yields a constrained question/result; unavailable retention is not guessed. The reference fixture produces at least one weakened, rejected or inconclusive explanation and preserves counterexamples. Causal language is blocked without eligible causal evidence, and a creative A/B effect does not by itself prove a mediator.
 
-### Tests required
+### Automated tests
 
-- Unit/integration: photo/carousel ordering, caption/image alignment, report model completeness, sanitizer, relative assets.
-- Contract: Agent Skill frontmatter/size/references, JSON schemas, command docs versus Typer command tree, examples versus actual output.
-- Agent evals: single-video analysis, first-five-seconds investigation, account comparison, missing-data case, unsupported trend request, remote-upload consent, and causal overclaim trap.
-- Packaging: clean Linux/macOS/Windows-compatible path tests where CI supports them; Python 3.11 through supported versions.
-- End-to-end release scenario from install through cross-process report, plus backup/restore and re-query.
+Fabricated/irrelevant/withdrawn study citations; locator validation; technique/construct/response/outcome distinctions; rival predictions; null/negative evidence; unavailable-owner metrics; no-provider offline execution; statistical result qualification; report claim-level gates; sampling-frame versus top-K separation; cross-process assessment/report reproduction.
 
-### Integration with previous work
+### Demonstrable end-to-end behavior
 
-Completes the initial product by reusing all established contracts. No alternate “photo database”, “carousel graph”, or agent-only engine path is introduced.
+Authorized video/event evidence → rival mechanism predictions and reviewed literature → sampled-comment reactions → age-aligned comparable outcomes → same/other-creator comparisons and unsuccessful examples → immutable scoped association or insufficient-data finding → proposed experiment distinguishing explanations. Every conclusion opens its exact evidence and states what would change the conclusion.
 
-## 13. Milestone 7 — Permission-aware official platform adapters (optional post-v1)
+## 12. R8 — Incremental hypothesis reevaluation
 
-### What will be implemented
+Status: **planned, unimplemented**.
 
-Implement adapters one at a time, each behind an extra and feature flag. An adapter is accepted only when its permitted use, authentication, pagination, quota, retention, raw provenance, deletion, and fixture strategy are complete.
+### Objective
 
-- **YouTube:** Data API metadata/public statistics and OAuth-authorized Analytics/Reporting for owned channels. Media analysis still requires a permitted local/owned media source.
-- **Instagram:** authorized professional-account media metadata, comments, and insights using the supported login/permissions/access level.
-- **TikTok:** approved API path appropriate to the user; Research API support is explicitly non-commercial/eligibility-gated. Creator exports/imports remain the general path.
-- Backoff, conditional requests where supported, incremental cursors, token refresh abstraction, quota accounting, API-version pinning, source terms, and data deletion propagation.
+Make persistent knowledge an explicit evaluation-and-revision process: new evidence can weaken or reject an old conclusion while historical assessments remain reproducible.
 
-### Files involved
+### Existing components affected
 
-- `src/socialdna/ingestion/platforms/{youtube,instagram,tiktok}/...`
-- provider/config credentials and permission policy modules
-- raw-response mappings, API schema fixtures, adapter contract tests
-- platform-specific docs and examples
+R1 registration, R7 assessment services, import/task completion hooks, evidence eligibility, memory synchronization and research reports.
 
-### Dependencies
+### New components and schemas/interfaces
 
-Official or minimal HTTP/OAuth clients selected per adapter, installed as extras. No platform SDK enters the base install merely for name recognition.
+Add `research/reevaluation.py`, dependency/invalidation service and comparison/history rendering. Extend canonical dependencies from hypothesis/specification/assessment to data versions, features, population, model, literature and source eligibility. Store reevaluation requests, immutable assessment inputs/results, new-versus-reused evidence membership, supersession/contradiction links, reasons and scoped status transitions. A stale marker is mutable operational state; published assessments are immutable records.
+
+Proposed interfaces: `research reevaluate <id>`, `research history <id>`, and revision-specific retrieval. New data can enqueue eligible work; costly reevaluation is explicit or subject to a user-set budget, never an unbounded background agent.
+
+### Dependencies and tasks
+
+Depends on R7. Reuse SQLite/outbox/task/cache machinery, without a workflow server. Tasks: identify affected hypotheses; record pending/stale reasons; create a new frozen population; distinguish cumulative reuse from independent confirmation; compare scope/support; retain contradictory evidence and null attempts; refresh current graph/vector projections without rewriting history; propagate withdrawal.
 
 ### Acceptance criteria
 
-- Adapter conformance suite proves idempotent incremental import, provenance, unknown/missing metric handling, pagination, rate-limit/backoff, token expiration, and deletion.
-- Tests use recorded/synthetic sanitized responses; live tests run only with explicit credentials in protected jobs.
-- No adapter downloads media, accesses consumer/private analytics, or exceeds its documented authorization.
-- An unsupported account/use case returns a permission/availability explanation and an import/export alternative.
+The initial 100-video result can weaken after additional representative evidence. History explains whether the change came from data, annotation, metric correction, model/specification or withdrawn sources. Unchanged inputs are idempotent; unaffected hypotheses are not reprocessed. Reused observations are not counted as an independent replication. Old report bytes and frozen statistical inputs remain reproducible, subject to explicit evidence-withdrawal/redaction constraints.
 
-### Tests required
+### Automated tests
 
-- Unit mapping tests for every supported API version/metric.
-- OAuth/token/quota simulations, pagination, 429/retry-after, stale/lagging metrics, partial permissions.
-- Live smoke per platform in a protected environment before release.
-- Terms/retention/deletion checklist reviewed for each adapter version.
+Positive→weakened/rejected and scope-narrowed fixtures; no-op reevaluation; incremental dependency selection; changed annotation/recipe/metric/literature; double-counting and overlapping populations; crash/restart; withdrawn support; stale index jobs; deterministic history links; immutable-assessment and archival compatibility.
 
-### Integration with previous work
+### Demonstrable end-to-end behavior
 
-Adapters emit the same `ImportBatch`/source/provenance records as CSV/JSON and then use the established media, analytics, memory, and reporting services.
+Evaluate the cooking hypothesis on the declared initial population → append ordinary and unsuccessful posts/comments → see a stale assessment → explicitly reevaluate → inspect a weaker/rejected revision and the exact new evidence responsible → reopen both historical reports in a separate process.
 
-## 14. Milestone 8 — Research Mode scale adapters (optional post-v1)
+## 13. R9 — Bounded nonlinear and cross-niche discovery
 
-### What will be implemented
+Status: **planned, unimplemented**.
 
-- Remote Qdrant implementation first, because Qdrant Local's exclusive lock and point ceiling are the earliest scaling constraint.
-- Storage capability/config interface hardened from real Local Mode behavior; migration/export/reindex tooling moves canonical vector documents into the remote index.
-- Background worker mode using the existing durable task/outbox model only after profiling proves the need.
-- Optional object storage for artifacts.
-- PostgreSQL and a graph backend only after concrete workloads exceed SQLite/bounded NetworkX and their semantics are specified. They are not blanket checkboxes.
-- Multi-user authentication, authorization, tenancy, encryption, backups, and operations are required before calling Research Mode production-ready.
+### Objective
 
-### Files involved
+Investigate combinations and nonlinear relationships without unbounded mining, validation leakage or recycling exploratory evidence as independent confirmation.
 
-- new implementations under `memory/`, `storage/`, and `application/worker.py`
-- deployment/configuration/operations docs
-- migration, parity, load, resilience, and security tests
+### Existing components affected
 
-### Dependencies
+Creative feature recipes, R2 model/validation pipelines, R7/R8 research specifications/assessments, memory/counterexample retrieval and statistical reporting.
 
-Selected external clients/services are optional extras/deployments. Local Mode remains supported and does not gain service requirements.
+### New components and schemas/interfaces
+
+Add `research/{discovery,candidates,counterexamples}.py` and bounded nonlinear transformations/model adapters. Persist search-family registrations, eligible features/outcomes/populations, candidate attempts including nulls, parent-search lineage, budgets, planned/actual partitions, stopping rules and confirmatory specifications. A multi-feature pattern has its own canonical identity and graph node with constituent roles, conditions and scope.
+
+Proposed interfaces: `research discover --spec <file>` and confirmation evaluation with a separately frozen population. Discovery reports are visibly exploratory.
+
+### Dependencies and tasks
+
+Depends on R2/R3/R6–R8; retain existing scikit-learn/statsmodels first. Tasks: bounded declared interactions and spline/regularized nonlinear terms; only later justified bounded trees/boosting; nested train-only selection; chronological/creator/content-duplicate splits and held-out niches where feasible; stability and counterexample analysis; planned test-family correction; session-spanning search ledger and repeat-look restrictions. No automatic causal interpretation of prediction/importance.
 
 ### Acceptance criteria
 
-- The same application/CLI contract passes backend conformance tests in Local and configured Research Mode.
-- A documented export/reindex path moves a local library without changing canonical IDs/evidence citations.
-- Load tests establish explicit operating envelopes, not vague “scalable” claims.
-- Failure/retry behavior cannot duplicate canonical analyses, points, or graph claims.
+Pure interactions and U-shaped effects can be investigated by the actual selected pipeline. A feature combination can succeed within one niche and fail in another without being promoted to universal truth. A depleted holdout is not reused silently. Too few independent creators/niches yields descriptive scope/insufficiency. All attempted candidates, not just successful ones, remain auditable.
 
-### Tests required
+### Automated tests
 
-- Backend contract parity, migration/reindex, load/soak, concurrent workers, network partition/retry, backup/restore, tenant isolation, and disaster recovery.
+Null searches and false-discovery behavior; pure interaction/U-shape; correlated/redundant features; nesting/selection leakage; duplicate media; creator and held-out-niche transfer; contradictory examples; fixed search budget; repeated attempts/holdout reuse; scope-qualified graph patterns; seeded reproducibility and small-cluster refusal.
 
-### Integration with previous work
+### Demonstrable end-to-end behavior
 
-Reuses canonical IDs, task fingerprints, vector documents, outbox, graph/evidence contracts, and CLI envelope. It replaces infrastructure implementations, not the scientific/domain model.
+Register a bounded cooking-pattern search over opening technique × narration × sound timing → discover an exploratory combination → evaluate on untouched creators/time block → test another niche → preserve success, failure or narrower scope with all tested specifications and a qualified assessment history.
 
-## 15. Test strategy across milestones
+## 14. R10 — Experiment outcomes and qualified recommendations
 
-### Test pyramid
+Status: **planned, unimplemented**.
 
-- **Unit:** pure transformations, schemas, feature math, statistics, query planning, claim guards.
-- **Property:** IDs, time intervals, import/missingness invariants, idempotency, deduplication.
-- **Contract:** CLI JSON, providers, vector backends, graph repositories, platform adapters, reports, skill format.
-- **Integration:** SQLite migrations/transactions, FFmpeg, Qdrant Local, FTS5, NetworkX persistence, artifact store.
-- **End-to-end:** isolated subprocess workflows from empty data directory, including process restart.
-- **Evaluation:** annotated multimodal/psychology fixtures and agent-skill scenarios.
-- **Performance:** representative short/long videos, account sizes, vector point counts, graph neighborhood sizes.
+### Objective
 
-### Fixture policy
+Turn scoped findings into original, testable creator experiments and ingest their outcomes without automatically promoting observational or poorly controlled comparisons to causal findings.
 
-- Generate simple audiovisual fixtures deterministically with FFmpeg where possible.
-- Keep one tiny, Apache-compatible repository-owned video/photo/carousel fixture for realistic decode tests.
-- Store expected feature ranges rather than codec-fragile exact floats.
-- Never require external APIs or model downloads in the core CI suite.
-- Optional model/live-platform jobs are clearly separated and cannot make the base test suite nondeterministic.
+### Existing components affected
 
-### Essential end-to-end scenario
+R7 experiment proposals/claim gates, R8 reevaluation, R9 search lineage, metric/outcome imports, universal evidence and reports/portable skill.
 
-The release-blocking test uses subprocesses:
+### New components and schemas/interfaces
 
-1. Create an empty temporary data directory.
-2. Initialize automatically through `analyze video` rather than requiring `init`.
-3. Analyze the authorized fixture with supplied subtitles and deterministic analyzers.
-4. Assert SQLite metadata/timeline/evidence, artifacts, Qdrant points, and graph edges.
-5. End the process and verify all handles are closed.
-6. Start a second process.
-7. Retrieve the media through semantic search and FTS.
-8. Traverse its evidence-bearing graph neighborhood.
-9. Generate JSON and Markdown reports.
-10. Verify every substantial claim resolves to stored evidence and no unavailable task is represented as complete.
+Add `research/{experiments,recommendations}.py`. Store registered experiment versions, assignment unit/method, treatment variants, randomization/exposure information, primary outcomes, mechanism measurements, analysis/stopping plans, deviations, outcomes, analysis and adjudication. Recommendation records declare objective, applicability, expected uncertainty, supporting/contradicting assessment versions and the proposed discriminating test.
 
-## 16. Performance and computational envelope
+Proposed interfaces: `experiment register|import-results|analyze|show`, with recommendations rendered from eligible findings rather than generated without provenance.
 
-Benchmarks are captured per depth profile, media minute, resolution, device, analyzer/model, and cache state. Before optimizing, instrument:
+### Dependencies and tasks
 
-- decode time and bytes read;
-- number of decoded/selected/deduplicated frames;
-- optical-flow/OCR/ASR/VLM time and peak memory;
-- artifact bytes per media minute;
-- SQLite transaction/lock time;
-- vector documents/collection and search latency;
-- graph neighborhood rows/nodes/edges;
-- provider tokens/cost when configured.
+Depends on R7–R9; no publishing API or autonomous external action. Tasks: register bounded design; import creator-authorized results; validate assignment/measurement/attrition; analyze planned estimands; record deviations and threats; feed results into a new hypothesis assessment; generate original technique alternatives while preserving creative versus psychological uncertainty.
 
-Initial safety defaults:
+### Acceptance criteria
 
-- one mutating run per data directory;
-- bounded video duration/resolution unless explicitly overridden;
-- bounded keyframes and VLM contact-sheet size;
-- bounded transcript chunk length/overlap;
-- comment clusters instead of per-comment vectors;
-- bounded graph depth/node count;
-- local collection warnings before 20,000 points;
-- inference concurrency based on device/RAM rather than CPU-count blindly.
+A sound randomized design may support a scoped creative effect; a curiosity/anticipation mechanism requires additional discriminating measurement/identification. Posting two variants sequentially is not mislabeled randomization. Recommendations cite applicable findings and failures and can state “test first.” Publishing, recruiting, spending or contacting viewers remains outside analysis authorization.
 
-## 17. Risks and mitigations
+### Automated tests
 
-| Risk | Impact | Mitigation / release gate |
-|---|---|---|
-| Qdrant Local exceeds practical scale | slow/locked semantic search | warnings, coarse documents, one client, remote-Qdrant path, never claim unlimited scale |
-| Cross-store partial failure | stale/orphaned vectors | canonical vector docs + outbox + deterministic IDs + reconcile/reindex |
-| Model outputs fabricate evidence | false research claims | schema validation, evidence-ID existence checks, claim ladder, partial failure |
-| Observational confounding/leakage | misleading “success formula” | post-age cohorts, clustered models, chronological/group splits, FDR, counterexamples |
-| Platform access changes | broken/unauthorized imports | local/import core, adapter versioning, official APIs only, permission provenance |
-| Heavy optional ML install | poor first-run experience | extras, deterministic base, explicit model preparation, doctor/resource estimates |
-| FFmpeg/untrusted media | crashes/security exposure | argument arrays, timeouts, limits, temp isolation, patched supported versions |
-| Storage on network filesystem | WAL/locking hazards | doctor detection/warning; supported local filesystem contract |
-| PII/comment retention | privacy/compliance harm | minimization, pseudonymization, source terms, scoped delete/export |
-| Taxonomy cultural/language bias | invalid psychological labels | versioned definitions, multilingual evaluation, human annotation, scope/uncertainty |
-| Skill drift from CLI | agent failures | generated/contract-tested command reference and output schemas |
+Assignment-unit leakage; nonrandomized/pre-post refusal; imbalance/attrition/missing outcome cases; multiple planned outcomes/stopping deviations; mediator versus treatment-effect distinctions; result import idempotency; causal-evidence gates; recommendation provenance/originality constraints; reevaluation and withdrawn experiment evidence.
 
-## 18. Documentation delivered incrementally
+### Demonstrable end-to-end behavior
 
-Each milestone updates only implemented behavior:
+From the cooking result, register an experiment contrasting explanations → import authorized outcomes and any actual construct measurements → estimate only eligible effects → reject unsupported mechanism language → revise the hypothesis/recommendation and preserve the original proposal, deviations and outcome evidence.
 
-- `README.md`: installation, current capabilities, first run, exact limitations.
-- `docs/storage.md`: layout, initialization, consistency, backup, deletion, concurrency.
-- `docs/data-model.md`: IDs, timeline, claim/evidence model, migrations.
-- `docs/local-analysis.md`: depth profiles, FFmpeg, optional models, resource use.
-- `docs/import-formats.md`: versioned CSV/JSON schemas and examples.
-- `docs/statistics.md`: outcome windows, cohorts, models, validation, causal limitations.
-- `docs/providers.md`: local/remote providers, downloads, privacy, budgets.
-- `docs/platforms.md`: permission/access limitations only after each adapter exists.
-- `docs/agent-skill.md`: installation and JSON orchestration after validation.
+## 15. U1 — Photo and carousel usability track
 
-Representative output examples are generated from fixtures or validated against the JSON schemas in CI; hand-written examples cannot silently drift.
+Status: **planned, unimplemented; may run after R1 independently of R3–R10**.
 
-## 19. Approved implementation defaults
+### Objective
 
-The following defaults were approved on 2026-11-04:
+Support individual photos and ordered carousels without forcing them onto fake video timelines or making their analysis require research registration.
 
-1. SQLite is canonical; Qdrant and NetworkX are derived/rebuildable.
-2. SQLAlchemy Core + Alembic provide transactions and migrations without adopting an ORM domain model.
-3. Qdrant Local is a single-process small-data backend with an external-Qdrant escape hatch.
-4. `faster-whisper` is the standard transcription extra; WhisperX is an optional alignment/diarization extra.
-5. RapidOCR/ONNX is the initial OCR extra.
-6. FastEmbed with revision-pinned `intfloat/multilingual-e5-small` (MIT, 384 dimensions) is the proposed local text-embedding default.
-7. The base install performs deterministic analysis without downloading ML models; model downloads are explicit.
-8. The initial agent integration is the portable Skill plus CLI JSON; a custom MCP server is deferred.
-9. Local/user-owned files and exports are the only guaranteed ingestion path; official platform adapters are post-v1 and permission-aware.
-10. The initial release is Milestones 0–6; scale/platform breadth does not block it.
+### Existing components affected
 
-Approval authorizes only the milestones selected for implementation. It does not authorize remote provider uploads, platform credentials, dependency installation outside the project, or post-v1 infrastructure by implication.
+Media import/artifacts/provenance, image-capable deterministic/OCR providers, post-media ordering and reports. Preserve existing video commands/timebase and primary-media behavior.
+
+### New components and schemas/interfaces
+
+Add cohesive image/carousel application adapters and image evidence locators (asset/frame/region rather than fabricated intervals). Version carousel feature aggregation by item/position/order; distinguish alternative text, caption, hashtags and OCR. Proposed commands: `analyze image <path-or-id>` and `analyze carousel <post-id>`, plus account batch support under explicit budgets.
+
+### Dependencies and tasks
+
+Depends on R1 and existing Pillow/OpenCV/optional OCR; no new model requirement. Tasks: orientation/dimensions/regions; duplicate items; order-preserving analysis; per-item and declared whole-post summaries; escaped JSON/Markdown output and cache reuse.
+
+### Acceptance criteria
+
+An individual photo yields evidence-backed observations offline. A carousel cites the correct ordered item/region; no unsupported “first seconds” timestamp is invented. Partial item failures are explicit and do not lose successful evidence. Basic caption/hashtag analysis stays available.
+
+### Automated tests
+
+Orientation/EXIF/privacy; malformed/oversized images; region bounds; duplicate/reordered carousel items; mixed assets; partial failure; existing video compatibility; cache invalidation; separate-process report/citation resolution.
+
+### Demonstrable end-to-end behavior
+
+Import a permitted cooking photo/carousel → analyze deterministic appearance and supplied text → inspect ordered evidence and an actionable descriptive report → reopen in another process with no research or vector work triggered.
+
+## 16. U2 — Portable skill, reporting and product hardening
+
+Status: **planned, unimplemented; core package after U1/R2, with later capability-gated updates**.
+
+### Objective
+
+Make implemented capabilities usable in Codex, Claude Code and OpenCode through one portable Agent Skills-compatible wrapper and shared Python engine, without pretending planned research commands exist.
+
+### Existing components affected
+
+CLI/result envelopes, configuration/doctor, reports and packaging/CI. Follow current command/permission/remote-consent boundaries and retain low-cost basic workflows.
+
+### New components and schemas/interfaces
+
+Add `skills/socialdna/SKILL.md` with narrowly scoped references, command/JSON schemas, host-neutral workflow guidance and capability checks; add accessible HTML reporting only if it has a real tested consumer. A capability manifest distinguishes available, unavailable, planned and optional-prepared features. Host adapters are thin invocation guidance, not duplicated services.
+
+### Dependencies and tasks
+
+Depends on U1/R2 for the first core usability delivery; later R3–R10 only enable corresponding workflows after their tests pass. At implementation time use the skill-creator guidance and verify the then-current host compatibility rules. Tasks: installation/doctor guides; local video/photo/account comparisons; caption/hashtag evidence; permission/data-access questions; cited reports; safe experiment proposals; JSON errors and resource estimates; packaging/migration/restart hardening. No mandatory hosted service.
+
+### Acceptance criteria
+
+All three hosts can call the same engine and interpret stable results using documented invocation patterns. A core-only install analyzes video/photo/account exports and reports limits without attempting absent research or semantic commands. Later research workflows check capabilities and exact evidence rather than inventing support. Expensive/remote/publishing actions require appropriate explicit scope/consent.
+
+### Automated tests
+
+Skill link/reference/command contract validation; capability-gated workflow fixtures; installed wheel/sdist offline smoke; Linux/macOS/Windows CI and supported Python versions; JSON parsing and exit codes; HTML/Markdown escaping/accessibility; permission/remote-consent regression; cross-process persistence. Live host smoke checks are separately recorded and never inferred from static validation.
+
+### Demonstrable end-to-end behavior
+
+Follow a host-neutral skill workflow to analyze a local video/photo/account export, compare creators under R2 rules and produce a cited report. In a research-ready installation, invoke the cooking workflow and show hypothesis history; in a core-only installation, explain the unavailable capability precisely and stop that branch.
+
+## 17. Release and verification gates
+
+The old `v0.1`–`v0.4` milestone labels are withdrawn planning gates, not promised releases. Package `0.0.4` and existing data stay unchanged by this revision. Each implementation sets its package/specification/migration versions deliberately; an R ID is not a schema revision number.
+
+A research-preview release requires R1–R8 plus the corresponding U2 workflow: one complete cooking use case, eligible universal citations, representative comparisons, persistent retrieval, a falsifiable literature-backed explanation and a demonstrable weakened/rejected revision. Broader-discovery/experiment-ready status requires R9/R10; public `1.0` additionally requires U1/U2 hardening and documented platform/data-access limitations. No milestone is considered complete solely because a model produced plausible prose.
+
+Common implementation verification:
+
+- Unit/property tests for contracts, time/availability semantics, numeric methods and invalid states.
+- Integration tests for canonical writes, artifact/provenance, immutable inputs, migrations, indexing/crash recovery and source withdrawal.
+- Synthetic statistical fixtures with known effects, no effects, confounding, leakage, inadequate support and contradictory evidence. These test behavior, not real-world psychological validity.
+- Cross-process end-to-end fixtures through installed CLI distributions, including no-model/offline operation and explicit partial/unavailable outcomes.
+- Optional real-model tests on owned/authorized fixtures and a separately reviewed annotation/retrieval quality benchmark. Provider integration, annotation agreement, statistical correctness and construct validity are different measurements.
+- Lint/type/build checks; no silent runtime downloads; versioned JSON/report compatibility; old-data upgrades and exact frozen-analysis reproduction.
+
+## 18. Optional post-release expansion and unresolved limits
+
+Official platform adapters are optional, permission-aware additions after export-first workflows. They require current API/terms verification, honest coverage/freshness manifests and normalized canonical imports; do not promise public competitor retention, conversions or private insights. A remote Qdrant adapter or worker/storage scaling is considered only after measured local bottlenecks; SQLite/Qdrant Local/NetworkX require no external services for the planned product.
+
+Data-access, self-selected comments, small creator/niche counts, paid distribution, unavailable historical covariates, measurement error and hidden confounding can make a question unanswerable. More embeddings, larger reasoners or more posts from the same few creators do not remove these limits. A psychological mechanism remains a hypothesis unless a justified measurement/experimental identification supports it; randomized creative effects alone do not establish mediation.
+
+The first implementation-ready milestone is **R1**. All architecture revisions above are documentation only until implementation is explicitly requested.

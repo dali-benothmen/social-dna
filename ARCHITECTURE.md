@@ -1,775 +1,392 @@
-# SocialDNA Architecture
+# SocialDNA architecture
 
-Status: approved; Milestones 0–1, 3 and 4 implemented; Milestone 2 deferred
+Revised: 2026-11-05. Status: architecture revision incorporating the approved [intelligence audit](docs/architecture-audit.md); implementation remains **0.0.4**, database head **0004_analytics**. All R/U capabilities below are **planned and unimplemented**, unless explicitly identified as existing. This revision does not authorize application implementation.
 
-Date: 2026-11-04
+The [implementation plan](PLAN.md) defines delivery and acceptance gates. Detailed contracts live in [research contracts](docs/research-contracts.md), [statistical design](docs/statistical-design.md), [migration strategy](docs/migration-strategy.md), and the [twelve-step cooking use case](docs/research-use-case.md). The [previous architecture](docs/history/ARCHITECTURE.pre-research-revision.md) is a historical record, not a competing specification. Architecture/plan line references inside the unchanged audit refer to those pre-revision documents.
 
-Implementation status: version `0.0.4` adds canonical account imports and performance analytics. The user selected Milestones 3 and 4 before Milestone 2; semantic/graph memory remains unimplemented. Psychological discovery, media breadth, and the Agent Skill remain planned. The designs below include future components; sections 22–25 record implemented slices and deviations.
+## 1. Product and non-negotiable boundaries
 
-## 1. Executive decision
+SocialDNA is a local-first, agent-independent Python engine, exposed through a CLI and eventually a portable Agent Skill. It investigates why content may succeed by preserving observations, operationalizing competing explanations, connecting them to appropriate audience/outcome evidence, testing qualified associations, and revising findings.
 
-SocialDNA will be a local-first Python 3.11+ application with a CLI-first public interface and a portable Agent Skills bundle. The first release will prove one end-to-end path: ingest an authorized local video, build a synchronized evidence timeline, persist deterministic observations, index semantic representations, construct durable graph relationships, and retrieve a grounded report in a later process.
+The product must remain useful for a single video, photograph, carousel, caption, hashtag set, or account even when there is insufficient data for research. Ordinary analysis does not require registering a hypothesis, downloading research, fitting models, opening a graph, or embedding documents. Whole-account analysis is a resumable collection of bounded post/media tasks, not one giant model prompt.
 
-The storage components have deliberately unequal roles:
+Preserve:
 
-- **SQLite is the canonical system of record.** It owns domain records, analysis state, provenance, graph rows, canonical vector documents, index outbox entries, and report metadata.
-- **Qdrant Local is a rebuildable semantic index.** A missing or stale vector entry reduces search quality but never makes canonical research data disappear.
-- **NetworkX is a bounded in-process computation view.** Graph nodes and edges are durable SQLite rows. NetworkX materializes only the relevant subgraph for traversal or algorithms; it is never serialized as the source of truth.
-- **The artifact directory is a content-addressed blob store.** Frames, audio, contact sheets, model outputs, and reports are files referenced from SQLite by checksum.
+- SQLite as canonical structured storage, Alembic migrations, provenance, content-addressed artifacts, synchronized media timelines, reproducible reports and analyses.
+- Qdrant **Local Mode** as a derived persistent semantic index; NetworkX views backed by canonical SQLite relationships. Neither becomes a second source of truth.
+- One shared engine for Codex, Claude Code and OpenCode; host instructions orchestrate the engine rather than implement separate research logic.
+- Offline import and human-reviewed annotation paths. Optional local/remote models require explicit preparation, authority and budgets; no automatic downloads.
+- Existing identifiers, commands, artifacts, frozen reports and migration history. Corrections produce explicitly versioned new analyses.
 
-This hierarchy is the main safeguard against cross-store corruption. SQLite transactions atomically commit canonical records plus an outbox operation. Qdrant is updated after commit and can be reconciled or rebuilt. Graph persistence does not require distributed coordination because graph rows live in the same SQLite database.
+Do not introduce required database servers, Neo4j, PostgreSQL, a workflow cluster, an autonomous literature crawler, an unrestricted scraper, or a comprehensive psychology ontology.
 
-## 2. Product boundaries
+Scientific boundaries are architectural invariants: missing data is not zero; extraction confidence is not scientific support; intention is not behavior; observational association is not a psychological causal explanation. Infer no individual viewer's hidden mental state or sensitive traits. Literature plausibility, annotation agreement and randomized creative effects each answer different questions.
 
-### Guaranteed local capabilities
+## 2. Current foundation versus revised target
 
-- Local video, photo, carousel, CSV, JSON, subtitle, and creator-owned export ingestion.
-- Deterministic media probing and feature extraction without a paid API key.
-- Partial analysis when optional models are absent.
-- Persistent SQLite, Qdrant Local, and SQLite-backed graph memory.
-- JSON output suitable for agents, plus Markdown and HTML reports.
-- Traceable claims with source IDs, timestamps, analyzer/model versions, limitations, and uncertainty.
+### 2.1 Implemented foundation
 
-### Optional capabilities
+The current repository delivers deterministic local video processing, supplied subtitles, optional prepared local-model enrichment, strict account/post/comment/tag/metric imports, account media batches, descriptive/model-based comparisons and immutable analysis/report artifacts. Existing media evidence is interval-bound; imported metrics are scalar snapshots. Current vector support initializes/checks Qdrant, but semantic retrieval and graph research memory are not implemented.
 
-- Downloaded local transcription, OCR, embedding, gesture/landmark, audio-classification, and vision-language models.
-- Explicitly configured hosted model providers.
-- Official YouTube, Instagram, and TikTok adapters when the user and use case are eligible.
-- External Qdrant and, later, alternative relational or graph stores for larger deployments.
+Important current limitations remain until R milestones land: retrospective rather than historically prior baselines; same-creator matching only; niche/creator design aliasing; missing production availability lineage; auxiliary Ridge validation rather than validation of the requested interaction/model; comments not integrated into reaction analysis; no retention-series contracts or hypothesis revision engine. Existing optional reasoners cannot already make the future mechanism/performance claims.
 
-### Non-goals for the first release
+### 2.2 Components to preserve, adapt and add
 
-- Scraping private content, bypassing authentication, or downloading platform media without a permitted source.
-- Claiming causal effects from ordinary observational account data.
-- Inferring sensitive traits, diagnoses, or hidden mental states from faces, voices, comments, or content.
-- A web application, distributed task queue, always-running daemon, custom MCP server, Neo4j, or PostgreSQL.
-- Real-time trend claims unless a dated, permitted trend source was actually queried.
+All paths below are relative to `src/socialdna/`. A proposed filename is a responsibility boundary, not permission to scaffold unused modules.
 
-## 3. Corrections to the proposed architecture
+| Treatment | Components | Revision |
+|---|---|---|
+| Preserve algorithms/contracts | `core/{ids,hashing,time}.py`; `media/{probe,ffmpeg,scenes,frames,audio,subtitles,timeline}.py`; existing artifact/filesystem, writer-lock, UoW and provenance primitives | Keep original-presentation timestamps, hash-addressed inputs, millisecond intervals, deterministic transforms and durable task cache/resume. Add new producers without replacing the working timeline. |
+| Preserve provider isolation | `analyzers/`, `providers/`, `application/{task_runner,enrichment_service}.py` | Keep prepared manifests, declared resources, subprocess isolation, explicit consent and budgets. Extend validated input/output contracts only when needed. Existing `TaskContext` gets a backward-compatible evidence adapter, not an immediate rewrite. |
+| Extend canonical storage | `storage/{schema,repositories,health}.py`, migrations; `domain/{evidence,research}.py` | Add revision-aware universal evidence, registration and first-use query projections. Never edit migrations 0001–0004. |
+| Adapt imports and reporting | `ingestion/tabular.py`; `application/{account_import_service,performance_service,report_service}.py`; `reporting/` | Preserve v1 formats/readers; add immutable source snapshots, versioned metric semantics and citations, eligibility-aware current reports and explicit new research formats. |
+| Repair rather than replace analytics | `analytics/{metrics,baselines,cohorts,statistics,validation}.py` | Explicit designs, as-of history, actual feature lineage, identifiable models, duplicate-safe splits and validation of the actual selected pipeline. |
+| Adapt resource bootstrap | `application/bootstrap.py`, `storage/vectors.py` | Current bootstrap opens Qdrant eagerly. R6 moves derived resources behind lazy acquisition; existing locking remains. |
+| Add cohesive evidence/research services | Proposed `application/evidence_service.py`, `application/research_service.py`, corresponding domain contracts/repositories | R1 registration/resolution first; R7 evaluation and R8 reevaluation later. No generic agent framework. |
+| Add canonical producers | Proposed creative-event, audience and behavioral service/domain modules; `analytics/{designs,features}.py`, `research/discovery.py` | Introduce in R2–R5/R9 with real imports, writers, readers and tests. Reuse existing media/analytics services. |
+| Add derived memory | Proposed `memory/{lexical,vector_sync,graph,hybrid}.py`, `providers/embeddings.py`, `application/query_service.py` | R6 SQL/FTS + Qdrant outbox + bounded NetworkX projection, never application-owned hidden facts. |
 
-The specification has a strong product direction, but several parts need firmer boundaries.
+The planned portable skill and photo/carousel support are U2/U1; neither is claimed as fully delivered today.
 
-1. **Three stores cannot be updated as one transaction.** Treating SQLite, Qdrant, and NetworkX as equal databases would produce orphaned vectors and graph edges after failures. The canonical-record-plus-outbox design makes vector indexing explicitly eventual and repairable.
-2. **Qdrant Local is not a thousand-video production backend.** The current local client holds an exclusive lock on its directory, recommends server mode for concurrent access, and warns when a collection exceeds 20,000 points. A thousand videos can cross that limit quickly if every scene, transcript sentence, and comment is embedded. Local mode therefore has one process-wide client, one mutating CLI process at a time, bounded representations, collection-size warnings, and a documented external-Qdrant migration path.
-3. **NetworkX should not load the whole research graph by default.** A SQL neighborhood query first bounds nodes, edge types, depth, and maximum result size; only that induced `MultiDiGraph` is materialized.
-4. **Platform ingestion cannot promise arbitrary account research.** Official access varies sharply by platform and ownership. The dependable core is local files and user-provided exports. Platform adapters import only fields the caller is permitted to access and never substitute scraping.
-5. **A generic `features` JSON blob would sabotage analytics.** Structural media records and frequently queried numeric observations need normalized columns and indexes. Extensibility belongs in a feature-definition registry plus a typed observation table, not in opaque unindexed JSON alone.
-6. **Model-provider independence needs capability contracts, not one universal `generate()` method.** Transcription, embeddings, OCR, vision interpretation, audio interpretation, and text reasoning have different inputs, outputs, timestamps, and privacy risks.
-7. **Psychological analysis needs a claim lifecycle.** A taxonomy label from an LLM is a hypothesis, not a measured fact. Observations, hypotheses, associations, and causal findings remain distinct records and report sections.
-8. **Incremental execution needs durable work state.** Analysis depth, task fingerprints, leases, retries, partial failure, model versions, and cache reuse must be first-class records.
-9. **Semantic search is not enough.** SQLite FTS5 provides local lexical retrieval and remains available when embeddings are missing. Hybrid queries fuse FTS, dense vectors, structured SQL filters, and bounded graph expansion.
-10. **The suggested directory tree is too deeply split for an empty project.** Start with cohesive modules and add provider/platform subpackages only when a second implementation exists.
-
-## 4. System context
-
-```mermaid
-flowchart TB
-    Agent[Codex / Claude Code / other agent] -->|shell + JSON| CLI[Typer CLI]
-    Human[Human user] --> CLI
-    Python[Python library caller] --> App[Application services]
-    CLI --> App
-
-    App --> Ingest[Ingestion adapters]
-    App --> Pipeline[Analysis orchestrator]
-    App --> Research[Research/query service]
-    Pipeline --> Deterministic[Deterministic analyzers]
-    Pipeline --> Providers[Optional AI providers]
-
-    Ingest --> SQLite[(SQLite canonical store)]
-    Deterministic --> Artifacts[(Content-addressed artifacts)]
-    Deterministic --> SQLite
-    Providers --> SQLite
-    SQLite --> Outbox[Index outbox]
-    Outbox --> Qdrant[(Qdrant Local / remote)]
-    Research --> Qdrant
-    Research --> SQLite
-    SQLite --> GraphView[Bounded NetworkX MultiDiGraph]
-    Research --> GraphView
-    Research --> Reports[JSON / Markdown / HTML]
-```
-
-There is no internal network service in Local Mode. CLI commands construct an application container, open the database and the one Qdrant client, perform or resume work, close resources explicitly, and exit.
-
-## 5. Architectural layers and modules
-
-The initial package should use this shape:
+## 3. Execution architecture and communication
 
 ```text
-src/socialdna/
-├── cli/                 # Typer commands, output envelopes, exit-code mapping
-├── application/         # analyze/import/query/report use cases and orchestration
-├── core/                # IDs, clocks, errors, hashing, enums, logging
-├── config/              # platform paths, settings, provider profiles, consent policy
-├── domain/              # Pydantic command/result contracts and domain value objects
-├── storage/             # SQLite unit of work, migrations, artifacts, locks, health
-├── ingestion/           # local media and tabular imports; platform adapters later
-├── media/               # ffprobe/FFmpeg/OpenCV extraction and unified timebase
-├── analyzers/           # deterministic and model-assisted analyzers
-├── providers/           # capability protocols and optional provider implementations
-├── memory/              # Qdrant, FTS, graph projection, outbox reconciliation
-├── analytics/           # metrics, baselines, cohorts, statistics, validation
-├── psychology/          # taxonomy and evidence-constrained hypothesis generation
-├── research/            # hybrid retrieval, candidate discovery, findings, experiments
-└── reporting/           # renderers and evidence citation formatting
+Agent host / human
+        │ versioned CLI JSON + explicit files/specifications
+        ▼
+Python CLI → application services → validated domain contracts
+                   │                          │
+                   ├─ existing task runner → media/analyzers/providers
+                   ├─ feature materializer → comparison/validation engine
+                   └─ research service → claim validation → immutable assessment
+                                              │
+                                      SQLite transaction
+                              canonical rows + provenance + outbox
+                                              │
+                           artifacts        derived index worker
+                                                 ├─ SQLite FTS
+                                                 ├─ Qdrant Local
+                                                 └─ SQLite graph projection
+                                                         ↓
+                                                bounded NetworkX view
 ```
 
-The repository-level `skills/socialdna/` directory packages instructions and references. It invokes the installed CLI; it does not duplicate engine logic.
+Communication is in-process typed Python calls. The CLI serializes typed results through the existing success/partial/error envelope and exit-code families. Durable task/run records and SQLite outbox rows provide recovery; no message broker or resident daemon is needed. Index draining can run synchronously after a command, or via an explicit bounded maintenance command. The CLI reports index lag separately from canonical write success.
 
-### Core interfaces
+Three paths share contracts:
 
-Protocols should be narrow and capability-specific:
+1. **Basic description:** import media → existing deterministic tasks → optional prepared analyzers → source-backed report. Research and indexing are optional side effects, not prerequisites.
+2. **Specified research:** import authorized data → select/freeze population → materialize versioned features → evaluate registered predictions/rivals → validate claims → freeze assessment/report → project to memory.
+3. **Discovery:** explicit search budget and family registration → eligible population → bounded candidate generation → training-only selection → independent validation → qualified findings. Retrieval proposes candidates; it never silently defines the statistical sample.
 
-```python
-class Transcriber(Protocol):
-    def transcribe(self, audio: AudioInput, options: TranscriptionOptions) -> TranscriptTrack: ...
+Each task declares input revisions, algorithm/model/config versions, dependency hashes, language, sampling coverage, resource estimate and consent class. Identical completed inputs reuse cache. A model/recipe/data change invalidates only dependent work. Imported and human-reviewed annotations are legitimate reproducible inputs, not fake outputs standing in for an absent model.
 
+Retain one mutating process per data directory and bounded subprocess workers. Do not hold SQL write transactions during model inference or FFmpeg. Release/suspend expensive resources between stages; use explicit frame/context/token/time/memory budgets. Resume at committed task boundaries. Read-only SQL reports should not need a Qdrant handle; commands opening Local Qdrant must honor its process locking.
 
-class OcrEngine(Protocol):
-    def recognize(self, frames: Sequence[FrameInput], options: OcrOptions) -> list[TextSpan]: ...
+## 4. Canonical identity, revisions and universal evidence
 
+### 4.1 Identity and version semantics
 
-class Embedder(Protocol):
-    @property
-    def space(self) -> EmbeddingSpace: ...
-    def embed(self, documents: Sequence[EmbeddingDocument]) -> Sequence[Vector]: ...
+Use `EntityRef(kind, id, revision_id)` and `EvidenceRef(id, revision_id)` for new research. IDs are opaque stable identities, not generated from mutable prose or row positions. Revision IDs identify immutable content/interpretation. Existing UUIDs are preserved; namespace non-UUID legacy keys by entity kind.
 
+A revision records schema version, content hash, author/analyzer/configuration, `recorded_at` and provenance. Subject/world validity time and earliest known availability are separate fields. Publication time, collection time, outcome window, media offset and software computation time cannot substitute for each other.
 
-class VisionInterpreter(Protocol):
-    def interpret(self, evidence: VisionEvidenceBundle, schema: type[T]) -> T: ...
+| Root/projection | Key and required invariants |
+|---|---|
+| `entity_identities` | Composite PK `(kind, entity_id)`; lifecycle metadata; registered kinds only. |
+| `entity_revisions` | PK `id`; composite identity FK; unique identity/revision number; schema/hash/provenance/recorded time; validated payload or typed immutable binding. A reference must verify that its revision belongs to the stated identity and kind. |
+| Typed legacy bindings | Actual FKs to immutable existing rows, with stored hashes; mutable legacy account/post/comment metadata instead needs an immutable captured payload/revision. An old row pointer alone is not a frozen revision. |
+| `evidence_records` | PK `id`; source/lifecycle identity. Register each old media evidence UUID unchanged. |
+| `evidence_revisions` | PK `id`; evidence identity FK; subject revision FK; locator kind/schema/hash; provenance/capture/availability; nullable producer run/task. Exactly one valid typed locator binding matching the declared kind, not an empty generic JSON citation. |
+| `legacy_media_evidence_bindings` | Evidence revision FK and unique original `evidence_items.id` FK; original media/task/interval checks preserved. |
+| Typed evidence bindings | Real FKs to comment/source snapshots, metric observations/series, study findings, analysis terms or experiment outcomes as their writers land. No interpolated SQL table-name lookup. |
+| `evidence_links` | Owner revision FK + evidence revision FK + role + scope revision FK. Roles include observed, supporting, contradicting, alternative, context, excluded and non-discriminating. Research links require a registered scope. |
 
+The entity registry is a small common revision substrate, not a universal unindexed EAV/JSON database. Low-volume definitions/specifications may be validated versioned documents. Frequently queried features, memberships, intervals, metric bins and dependencies receive typed normalized projections with constraints and indexes. [Research contracts](docs/research-contracts.md) supplies first-use projection keys and payload schemas.
 
-class AudioInterpreter(Protocol):
-    def interpret(self, evidence: AudioEvidenceBundle, schema: type[T]) -> T: ...
+R1 adds real media/post/comment/metric bindings and minimal question/hypothesis registration. R2 adds existing statistical-result/term bindings alongside corrected comparisons and primitive feature lineage; R3 supplies semantic recipe producers. Future kinds are introduced with their working writers. No migration must populate fictitious study, experiment, or model records.
 
+### 4.2 Typed locators
 
-class TextReasoner(Protocol):
-    def reason(self, evidence: ResearchEvidenceBundle, schema: type[T]) -> T: ...
+| Evidence type | Locator and validation |
+|---|---|
+| Media interval | Exact media revision, half-open `[start_ms,end_ms)`, valid original timeline bounds and producing observation/task where present. |
+| Frame / image region | Exact frame/photo revision; frame media offset if real; optional normalized spatial region. A photo has no fabricated duration. |
+| Speech / subtitle / OCR / caption span | Exact track/text revision and segment/word/character range; declared Unicode convention and normalization map. Media location only where actually aligned. |
+| Comment / audience reaction | Exact comment revision and span, or versioned reaction/cluster with resolvable member evidence and collection frame. |
+| Scalar metric / series bin | Exact subject/definition/cohort/window revision, observation or bin, source provenance and capture/availability. No mandatory media/task. |
+| Research source / study finding | Verified source revision, page/section/table or permitted excerpt; publication design and applicability remain separate from citation existence. |
+| Statistical result | Exact immutable analysis revision plus term/contrast/diagnostic ID and model/specification version. |
+| Experiment outcome | Exact design/assignment/outcome revisions and registered scope; linkage does not itself establish causal validity. |
 
+`EvidenceResolver.resolve(ref, purpose, as_of)` returns typed source/locator, revision, provenance, availability, eligibility and withdrawal state. It rejects dangling, wrong-kind, out-of-bounds, wrong-subject and impermissible references. SQL FKs enforce registry existence; typed binding constraints and service validation enforce semantic target integrity.
 
-class VectorIndex(Protocol):
-    def upsert(self, entries: Sequence[VectorEntry]) -> None: ...
-    def search(self, query: VectorQuery) -> list[VectorHit]: ...
-    def delete(self, entry_ids: Sequence[str]) -> None: ...
-```
+A v1 media evidence ID resolves through its immutable legacy binding. New research uses explicit revisions. Existing metric citation URIs retain a compatibility resolver; they are aliases, not excuses to fabricate media evidence or rewrite stored report bytes. A valid citation proves traceability, **not** that a claim follows from its source.
 
-Every provider advertises capabilities, model identity, revision, dimensionality where relevant, local/remote execution, supported languages/modalities, and resource estimates. A provider response is accepted only after Pydantic validation. Invalid structured output is retried within a configured budget and otherwise recorded as an unavailable analysis component.
+### 4.3 Claim validation
 
-## 6. Analysis orchestration and incremental execution
+Preserve the existing ladder: observation → hypothesis → association → causal finding. Do not automatically promote between levels.
 
-### Task DAG
+- An **observation** requires eligible direct evidence, method and coverage. Annotation may be proposed/reviewed/disputed; sparse failure to detect is not absence.
+- A **hypothesis** registered in R1 may remain a draft with statement, scope and data needs, ineligible for research evaluation. An evaluation-ready R7 specification adds operationalized predictions, alternatives and falsification conditions. Literature is reviewed when available; an unreviewed proposal remains explicitly so.
+- An **association** references a frozen eligible statistical design, population, effect/uncertainty, comparison method, diagnostics and missingness. Save null, contrary and insufficient results too.
+- A **causal finding** requires a registered design, actual assignment/identification and outcomes, assumption/deviation checks and review. A registered experiment record alone is insufficient.
 
-An `AnalysisPlan` expands a target and depth profile into a dependency graph. A standard video plan is:
+Randomizing an opening may identify an effect of that creative manipulation in the tested population. It does not identify anticipation or curiosity as the mediator without additional discriminating measurement/manipulation and identification assumptions. Inter-rater agreement validates labeling consistency, not construct validity.
 
-1. Probe media and hash the source.
-2. Register streams and establish the original presentation timebase.
-3. Detect shots/scenes.
-4. Select frames using scene boundaries, regular samples, motion peaks, and perceptual deduplication.
-5. Extract audio and supplied subtitle tracks.
-6. Run deterministic visual and audio analyzers.
-7. Run optional transcription and OCR.
-8. Assemble the unified timeline.
-9. Run optional visual/audio/language interpretation over evidence bundles.
-10. Derive post-level features and candidate psychological hypotheses.
-11. Persist graph relationships and vector documents.
-12. Reconcile the vector outbox.
-13. Render a partial or complete report.
+Keep extraction reliability, literature applicability, local empirical support, generalization and causal identification as distinct assessed dimensions. Never conflate a model score, similarity, p-value and evidence grade into a free-form “confidence: 95%”.
 
-### Cache and invalidation
+## 5. Multimodal creative events and analytical features
 
-Each task has a stable fingerprint:
+Keep current observations/timeline as source lanes. R3 adds:
 
-```text
-SHA256(
-  analyzer_name + analyzer_version +
-  canonical_config_json +
-  ordered_input_artifact_hashes +
-  provider_name + model_revision + prompt_schema_version
-)
-```
+- `CreativeTechnique`: observable definition, inclusion/exclusion, content/modality eligibility, coverage requirement and annotated examples/counterexamples.
+- `CreativeEvent`: technique revision, content revision, typed anchors, evidence bundle, modalities, extraction/review state and coverage.
+- `CueBundle`: ordered evidence membership across visual, audio, speech, subtitles, OCR, caption and editing observations; retain discontinuities.
+- `EventRelation`: before/overlap/simultaneous-with-tolerance or separately annotated semantic relation, evidence, method and qualification.
+- `FeatureRecipe` and `FeatureValue`: versioned operation, inputs, aggregation/transform, typed value/unit or missing reason, subject version, full evidence lineage and availability.
 
-Completed tasks with the same fingerprint may be reused. A new transcription model invalidates transcript-dependent language and psychology tasks but not scene detection or color extraction. A new performance snapshot invalidates account baselines and associations but not media extraction. Failed or interrupted runs resume at unfinished/stale tasks.
+Events may have point, interval, spatial or multiple discontinuous anchors. Store nominal bounds and bounded uncertainty where justified. Temporal relation “verified” means it holds across all feasible bounds; otherwise use possible/proposed. Co-occurring sound and visual events do not automatically mean the sound reinforces the reveal. Record annotation protocols and outcome-access/blinding history; outcome-aware exploratory labels cannot masquerade as outcome-blind independent confirmation.
 
-Task states are `pending`, `running`, `succeeded`, `failed`, `skipped`, `stale`, and `cancelled`. Mutating runs acquire a data-directory writer lock. Task leases make abandoned `running` tasks recoverable after a process crash.
+For cooking, “prepared final dish appears in the opening window before substantive preparation instruction” is an observable technique, not a psychological conclusion. Freeze the opening window and visibility/coverage rubric. A boundary-crossing ambiguous shot stays unknown/reviewable. Request bounded denser frames if needed. Retain absence/unknown distinctions and missing modalities.
 
-### Depth profiles
+A versioned recipe can encode “result-first + spoken utility promise + overlapping SFX” with explicit time rules. It cannot replace warm color with brightness or sensory appeal with loudness. Publishing context, captions, hashtags and post-level niche labels are versioned inputs; hashtags are not ground-truth niche membership.
 
-Profiles are versioned configuration, not separate pipelines:
+All analytics joins are on exact subject/definition revisions, source scope and declared observation windows, not ad hoc text similarity. Later annotations of immutable content can support disclosed retrospective analysis. They are not automatically historically available forecasting inputs.
 
-- **quick:** ffprobe, sparse scene-aware frames, supplied subtitles, basic color/brightness/contrast, shot lengths, loudness envelope, and a compact report.
-- **standard:** adaptive scene sampling, optical flow summaries, transcription when configured, OCR on deduplicated candidates, core audio features, embeddings, and memory updates.
-- **deep:** denser samples around cuts/motion/speech hooks, word alignment, optional landmarks/audio classifier/VLM reasoning, interaction features, counterexample retrieval, and strict inference budgets.
+## 6. Audience response and behavioral outcomes
 
-The report always lists which planned tasks ran, were cached, were skipped, or failed.
+### 6.1 Audience response: R4
 
-## 7. Unified multimodal timeline
+Retain current minimized comments. Add collection manifests before inferring prevalence:
 
-All temporal records use integer milliseconds in half-open intervals `[start_ms, end_ms)` relative to the original media timeline. Container and stream timestamps from `ffprobe` are retained in provenance so variable frame rate and non-zero stream offsets are not lost. Frame ordinals are metadata, not the primary clock.
+- Source/permission, requested dates, collection time, ordering/filter/pagination/limit, supplied/eligible/known-total counts, sampling/completeness, lag and deleted/moderated coverage.
+- Span-backed reaction annotations for expressed intention, question, objection and other reviewed labels; language, negation/irony/ambiguity, rubric and annotation provenance.
+- Versioned clusters with explicit comment/annotation membership, representative **and contradictory** evidence, duplicate policy and summary lineage.
+- Qualified reaction→content links distinguishing quoted/timestamp-explicit reference from inferred semantic link, with candidate targets, method, review and uncertainty.
 
-The timeline does not store a giant merged JSON document. It is a query facade over scenes, frames, text segments/words, audio segments, observations, and evidence items. A request for `0–5000 ms` performs indexed interval queries and returns ordered lanes:
+Comment publication time is never playback time. A textual “0:02” reference is explicit but can still be inaccurate; preserve that qualification. “I will cook this” is an expressed intention, not cooking, purchase or verified conversion. A top-ranked sample cannot estimate all viewers' reaction prevalence. Multiple cluster memberships are not additional independent viewers.
 
-- visual structure and selected frames;
-- deterministic visual observations;
-- speech, supplied subtitles, and OCR as separate tracks;
-- audio observations;
-- model interpretations;
-- psychological hypotheses;
-- evidence-linked performance context.
+Audience sources and quoted text are untrusted data, never instructions to the host. Avoid retaining author identities unnecessarily. R4 includes authorized retention/redaction across annotations/summaries/artifacts; R6 extends it to all derived stores.
 
-This preserves original sources and allows a user to compare speech with supplied subtitles or embedded text instead of silently merging them.
+### 6.2 Behavioral metrics: R5
 
-### Visual pipeline
+Keep scalar v1 definitions/snapshots immutable. Add revisioned semantic metadata, specialized series and account outcomes rather than forcing every outcome through a generic nonnegative number.
 
-- Probe and decode with FFmpeg/ffprobe; use OpenCV arrays for analysis.
-- Detect shots using PySceneDetect `AdaptiveDetector` by default, with configurable fallback/content thresholds and recorded version/configuration.
-- Select the first/last/middle scene frames, regular samples, and motion peaks; remove near-duplicates using perceptual hashes and histogram distance.
-- Compute deterministic HSV/LAB histograms, dominant palette, luminance, saturation, contrast, entropy/edge density, blur proxy, subject/face/landmark geometry when an optional model is installed, and optical-flow summaries.
-- Treat face/pose landmarks and visible movements as observations. Labels such as “excited” or “trustworthy” are never deterministic outputs and, if a model suggests them, remain uncertain interpretations.
-- Send only evidence bundles (keyframes/contact sheets plus measurements and timestamps) to a vision model. Never send every frame.
+| Contract | Essential semantics |
+|---|---|
+| `BehavioralMetricDefinition` | Platform/source version, subject level, unit/domain, numerator/denominator definition, aggregation, eligible cohort, exposure maturity and attribution meaning. Similar names across platforms are not automatically equivalent. |
+| `MetricMeasurement` | World/reporting window, collection time, earliest known availability, source freshness/lag, snapshot semantics, population/cohort and missingness. Collection time alone does not establish precise post age. |
+| `MetricSeries` / `MetricBin` | Series/subject/definition/cohort revision; coordinate kind and granularity; bin boundaries; value/count/denominator availability; source and exact bin evidence. Relative playback coordinates remain relative until an explicit mapping is justified. |
+| Completion / watch / retention | Define started-view denominator, completion threshold, eligible plays/viewers, looping/replay behavior and aggregation. Watch ratios may exceed one where the source definition allows; not all curves are survival distributions. |
+| Conversion attribution | Outcome definition, attribution type/window/model, source authority and unit; distinguish platform-reported attribution, observational association and experimentally identified effect. Unknown attribution is valid. |
+| Account outcomes | Signed changes use a new typed projection such as `signed_metric_changes`, with exact source snapshots and intervals. Preserve old nonnegative CHECK constraints. No nearest-post assignment of account growth. |
 
-### Speech, text, and OCR pipeline
+Never use 100 aggregate retention bins as 100 independent viewers. Unknown denominators permit source-qualified descriptive curves, not fabricated binomial precision. Retention dips can be temporally near an event without proving it caused exits; sparse bins do not support frame-level claims. Overlapping observation windows and repeated snapshots are dependent, not independent posts.
 
-- Prefer supplied SRT/VTT as a distinct authoritative track when present.
-- Use `faster-whisper` as the default optional local ASR because it supports CPU/GPU execution, VAD, batching, and word timestamps with a lighter deployment than a full PyTorch alignment stack.
-- Offer WhisperX as an optional precision-alignment/diarization adapter, not the default. It adds forced alignment models, larger dependencies, language/model availability constraints, and token/license requirements for some diarization models.
-- Use RapidOCR plus ONNX Runtime as the initial optional OCR adapter. Run it on deduplicated frames and track text boxes, confidence, frame time, and temporal persistence.
-- Derive speaking rate from timed words, pause statistics from speech gaps/VAD, questions and calls to action from text rules plus optional language reasoning, and hook candidates from the opening interval.
+R5 leaves unavailable private analytics unavailable. A dataset with only public scalar metadata still supports constrained descriptive work and hypotheses. Creator-owned retention, completion and conversions enrich the same contracts when authorized.
 
-### Audio pipeline
+## 7. Comparison design and bounded discovery
 
-- Use FFmpeg EBU R128 analysis for integrated/short-term loudness when available, rather than equating raw amplitude with loudness.
-- Use librosa/SciPy for RMS/energy envelope, spectral centroid/bandwidth/rolloff, zero-crossing rate, onset strength, tempo candidates, silence, and pitch estimates where signal quality permits.
-- Separate direct measurements from uncertain classes such as music, sound effect, or delivery style. Music/SFX classification is an optional model capability; “calm”, “dramatic”, or similar labels are interpretations.
-- Align every derived window to the same millisecond timebase and record sample rate, window, hop, and algorithm configuration.
+[Statistical design](docs/statistical-design.md) is normative for new analysis-specification versions. Core requirements:
 
-## 8. Evidence and claim model
+1. Define the estimand, unit, population, outcome/exposure window, comparison design, covariates and permissible claims **before** fitting.
+2. Separate retrospective cohort normalization from historically prior, knowledge-cutoff baselines. Persist the full reference manifest; adding future posts cannot change a frozen historical baseline.
+3. Separate within-creator matching from cross-creator context matching. Cross-creator matching needs overlap, balanced observed context, maturity/cohort comparability and confounding disclosures—not merely removal of the equality constraint.
+4. Audit creator/niche design rank. Creator fixed effects absorb creator-constant niche effects. Fit only identifiable within effects/interactions; use explicitly justified between/hierarchical designs for different questions.
+5. Produce feature availability and source lineage in the real materializer. Optional audit fields that production never writes cannot prevent leakage.
+6. Validate the actual transformations, interactions, estimator/link and prediction target. A main-effect Ridge surrogate cannot validate an interaction discovered by another model.
+7. Split by relevant time, creator and duplicate-content groups; test niche transfer when claimed. Preprocessing, feature selection and tuning stay inside training folds.
+8. Count independent creator/content units, dependence and uncertainty honestly. Minimum-sample thresholds are engineering gates, not evidence of power or external validity.
 
-An `EvidenceItem` is the smallest citable unit. It may identify a media interval, frame, transcript span, OCR box, artifact, metric observation, deterministic observation, or source record. Reports cite stable evidence IDs and optionally human-readable locators such as `00:00.840–00:02.300`.
+R2 introduces the minimal specified-analysis family/attempt and holdout-use records needed for honest confirmation. R7/R8 preserve that history during evaluation and reevaluation; R9 extends it to broader adaptive candidate searches. Error accounting cannot wait until discovery is automated.
 
-Claims use an explicit ladder:
+R2 repairs specified comparisons using existing primitives. R9 introduces bounded discovery over semantic features: a small registered candidate grammar, maximum interaction order, a bounded spline/nonlinear basis and niche moderation where identifiable. Initially prefer interpretable main effects/prespecified pairwise interactions and limited spline terms over large neural causal models or unrestricted combinatorial mining.
 
-1. **Observation:** direct/imported or deterministically measured data.
-2. **Hypothesis:** an evidence-constrained proposed mechanism or explanation.
-3. **Association:** a saved statistical relationship with a population, analysis specification, effect estimate, interval, diagnostics, and counterexamples.
-4. **Causal finding:** allowed only when an experiment or defensible causal identification strategy is registered and its assumptions are recorded. Ordinary regression never promotes a claim to this level.
+A search manifest freezes candidates, outcomes/windows, all attempts including failures/nulls, data partition IDs, tuning budget, test family and stopping policy. Family-level FDR correction does not cover unlimited reruns. Freeze a discovery round; confirmation uses independent reserved/new data with a holdout-consumption ledger. No optional-stopping guarantee is claimed without an explicitly justified sequential design.
 
-Every hypothesis and finding has supporting evidence, contradictory evidence/counterexamples, alternative explanations, context scope, confidence method, and provenance. Confidence is not a free-form LLM percentage: it is either a calibrated model score with documented calibration or an ordinal rubric derived from evidence completeness, agreement, and statistical precision.
+Retrieve failed examples from the eligible canonical population using frozen exposure/outcome definitions. Semantic top-k retrieval assists inspection but cannot select only successful cases for estimation. Report contradictory examples, selection bias, missing confounders, overlap failure and failed niche transfer rather than hiding them behind an aggregate score.
 
-## 9. SQLite design
+## 8. Persistent research lifecycle
 
-### Conventions
+### 8.1 Canonical research objects
 
-- SQLAlchemy Core manages connections and transactions; Alembic applies numbered migrations. SQLite-specific FTS and pragmas remain explicit migration SQL.
-- Enable `PRAGMA foreign_keys=ON`, `journal_mode=WAL`, a bounded `busy_timeout`, and an application-controlled checkpoint policy. WAL is for same-host filesystems only; `doctor` rejects/warns on unsafe network filesystems.
-- IDs are opaque lowercase UUID strings. Deterministic UUIDv5 IDs are used for externally keyed entities and vector points; UUIDv4 IDs are used for generated records.
-- Datetimes are RFC 3339 UTC text (`...Z`). Source timezone and original text are preserved separately when relevant.
-- Temporal media offsets are integer milliseconds. Content hashes are lowercase SHA-256.
-- JSON columns hold variable metadata only and use `CHECK(json_valid(...))`. Frequently filtered or analyzed values have typed columns.
-- Unknown values are absent or have an explicit availability state; they are never stored as zero.
+R1 introduces `ResearchQuestion` and a minimal versioned `HypothesisSpec`: statement, population, intended claim level and data needs. R7 adds:
 
-### System, execution, and provenance
+- Small curated `ResearchSource`/`StudyFinding` corpus with bibliographic identity, study design, population, manipulation/measure, outcome/effect, limitations, permissible excerpts and applicability review.
+- `PsychologicalConstruct` and `Operationalization` definitions separating construct, measurement and creative manipulation.
+- Rival `Prediction` records with discriminating contrasts, confounders and falsification/scope conditions.
+- Immutable `ResearchAssessment`, `Finding`, manifests, evidence roles and dependency links.
 
-| Table | Key columns | Purpose and constraints |
+Store a literature source once by verified bibliographic identity; multiple excerpts or citations are not independent studies. No embedding similarity or generated citation makes a paper applicable. Unreviewed literature may seed a draft, not support a claimed established mechanism. Begin with a few reviewed mechanisms, not a taxonomy covering all psychology.
+
+### 8.2 Register → evaluate → revise
+
+`ResearchService.register` freezes specifications. `evaluate` resolves eligible evidence, materializes a frozen population, runs the declared analysis, preserves every result, checks claim rules and commits an immutable assessment with index work. Support dispositions are `insufficient_data`, `inconclusive`, `supported_in_scope`, `weakened`, `contradicted_in_scope`, and `rejected_in_scope`, as defined in the research contracts. Mixed evidence is recorded in the rubric, not a claim of universal confirmation.
+
+Each assessment has hypothesis/spec revision, prior-assessment reference when relevant, scope/population-selection manifest, reused/new evidence units, analysis/model versions, supporting/contradicting/non-discriminating links, alternatives, uncertainty/limitations and reasoned disposition.
+
+R8 detects changed dependencies **and newly eligible population rows** using saved selection manifests. Corrections, new outcomes, new failed examples, annotation changes, retractions or source withdrawal mark affected current projections stale. Imports do not silently rerun expensive research or manufacture independent confirmation.
+
+Explicit reevaluation freezes a new manifest, accounts for reused versus new units and family/holdout history, and writes a new assessment. Historical assessments never mutate. A machine-readable delta states strengthened/weakened/unchanged support, changed scope/effect/uncertainty, reasons and remaining rivals. A changed hypothesis specification is a new specification, not a covert revision to the old prediction.
+
+R7 can recommend an experiment brief. R10 adds registered design/assignment/outcome and deviation records, ethically authorized execution data, analysis and updated assessments. It does not automatically control creator accounts or post content. Experiment analysis distinguishes intent-to-treat creative effects, compliance/exposure issues and separately justified mechanism mediation.
+
+## 9. Storage architecture and cross-store consistency
+
+### 9.1 SQLite authority and artifacts
+
+Keep existing tables, WAL configuration, FK enforcement, UoW transactions, schema-version checks and data-directory locking. No graph pickle or Qdrant payload is canonical. Store large media/raw permitted imports/model outputs as hash-addressed artifacts; rows own manifests, relationships and versions.
+
+Add normalized projections only at first use: R2 feature values, analysis/family manifests and holdout use; R3 events/anchors/relations; R4 collection memberships/reactions/links; R5 metric series/bins; R6 document/index/outbox/graph projections; R7/R8 assessment dependencies. Index subject/revision, source/availability, media/time/technique, cohort/window, hypothesis and reverse-dependency keys according to actual queries.
+
+### 9.2 Semantic documents and Qdrant collections: R6
+
+The original five logical document families remain useful, but are versioned, permission-aware representations:
+
+| Logical collection family | Indexed document | Canonical links |
 |---|---|---|
-| `alembic_version` | Alembic revision key | Records the applied migration head. Startup verifies that the installed revision graph is complete and the database is at a supported head. |
-| `analysis_runs` | `id PK`, `target_type`, `target_id`, `depth`, `profile_version`, `config_json`, `config_hash`, `status`, timestamps | One requested analysis. Indexed by target and creation time. |
-| `analysis_tasks` | `id PK`, `run_id FK`, `task_key`, `fingerprint`, `analyzer`, `analyzer_version`, `status`, `attempt_count`, lease fields, `reused_from_task_id`, `error_json` | Durable DAG state. Unique `(run_id, task_key)` and indexed fingerprint/status. |
-| `artifact_objects` | `id PK`, `sha256 UNIQUE`, `kind`, `mime_type`, `relative_path`, `byte_size`, `created_at` | Content-addressed files under the data directory. |
-| `source_records` | `id PK`, `source_kind`, `source_uri`, `permission_basis`, `terms_json`, `retrieved_at`, `raw_artifact_id FK`, `content_hash` | What was imported and under which authority. |
-| `provenance_records` | `id PK`, `source_record_id FK`, `method`, tool/model identity, `prompt_hash`, `config_json`, `created_at` | Reproducibility for imports, analyzers, and model calls. |
-| `provenance_links` | `entity_type`, `entity_id`, `provenance_id FK`, `role` | Many-to-many provenance without putting provider columns on every table. |
-| `data_availability` | `subject_type`, `subject_id`, `field_key`, `status`, `reason`, `observed_at`, `provenance_id FK` | Distinguishes not supplied, not permitted, not applicable, failed, and known unavailable. |
+| `content_segments` | Bounded transcript/OCR/caption/event-bundle descriptions with modality/coverage | Media/post/event/track revisions and exact locators |
+| `psychological_patterns` | Reviewed pattern/construct/hypothesis specifications and qualified descriptions | Pattern/hypothesis/assessment revisions; no unsupported generic trigger labels |
+| `statistical_findings` | Scoped effects, uncertainty, diagnostics, null/contrary results | Analysis/finding/assessment revisions and population/spec |
+| `audience_reactions` | Permitted reaction excerpts and versioned cluster summaries | Collection/comment/annotation/cluster revisions |
+| `research_knowledge` | Reviewed study findings, limitations and permissible excerpts | Source/study/construct/operationalization revisions |
 
-### Creators, accounts, posts, media, and audience data
+Physical names include an immutable embedding-space identifier, e.g. family plus space hash. No incompatible embeddings are mixed. Collections are created only when a real producer needs them; capability status distinguishes absent, empty, stale and ready. Similarity scores are retrieval scores, not truth/confidence.
 
-| Table | Key columns | Purpose and constraints |
+An `EmbeddingSpace` freezes model/revision/license, dimensions, distance, normalization, query/document prefixes, tokenization/chunk policy and language scope. Start with one verified prepared multilingual text model; evaluate the actual corpus before choosing dimensions and quality targets. Multilingual E5 is a candidate, not an installed dependency or validated winner. Text descriptions cannot substitute for unobserved image content; optional image embeddings use a separate space and evaluation.
+
+| SQLite index contract | Keys/state |
+|---|---|
+| `embedding_spaces` | Immutable space ID and complete embedding/representation specification. |
+| `vector_documents` | Stable logical document ID, owner identity, representation kind/chunk key, desired revision/generation and lifecycle. |
+| `vector_document_revisions` | Immutable owner entity revision, content hash, representation schema/chunk policy, bounded text/artifact locator, producer/provenance and permission state. |
+| `vector_document_evidence` | Document revision ↔ exact evidence revisions with role. |
+| `vector_index_entries` | PK document/space; deterministic point UUID from document+space; desired/indexed revision, generation/hash, state. |
+| `vector_outbox` | Document/space/operation/generation, expected revision/hash, attempt/lease/status; unique document/space/generation. |
+
+Qdrant payloads carry document/revision/space IDs, generation/hash, entity refs, evidence refs, modality/language, claim level, scope, eligibility and filterable subject/niche/time metadata. Large source text remains canonical in SQLite/artifacts. Each point has the space's fixed dense-vector size/distance; payload indexes are added for measured filters, not every field.
+
+Write protocol:
+
+1. Commit canonical revisions, desired document/index state and outbox job in one SQLite transaction.
+2. Outside the transaction, a lock-owning worker verifies source eligibility/current generation, loads the prepared model, embeds and upserts/deletes the deterministic point.
+3. Acknowledge with compare-and-swap on expected revision/generation. Old work cannot acknowledge or overwrite a newer desired state; process jobs serially per document/space and skip superseded work.
+4. On crash, replay idempotently. Query results hydrate through SQLite and reject stale/withdrawn/wrong-revision points even before repair.
+5. Tombstones/deletion generations dominate pending work. A full rebuild starts only from eligible canonical document revisions.
+
+There is no distributed transaction claim. An index may lag; the API reports index revision and partial coverage. SQL/FTS and graph retrieval remain available without a model; learned semantic search is unavailable rather than supplied with hash/fake vectors.
+
+### 9.3 SQLite-backed NetworkX projection: R6
+
+Use `graph_nodes` keyed by canonical entity revision, and `graph_edges` keyed by stable canonical relation/finding revision plus projection version. Edges store source/target revision FKs, registered relation type, scope, evidence/assessment link, qualification, claim level, temporal validity and generation. Registry rules constrain endpoint kinds and require eligible supporting lineage; graph storage does not duplicate an independent truth system.
+
+Project account/post/media/technique/event, reaction/cluster, metric/outcome, study/construct, pattern/hypothesis/assessment/finding and experiment entities when useful. Fine-grained frame/span nodes can be SQL-hydrated rather than materializing millions of nodes by default.
+
+Reify multivariable `Pattern` and qualified `Finding` nodes: connect their component recipes, temporal rules, tested scope, outcome, analysis and assessment. Do not reduce an interaction to several independent “technique causes performance” edges. Observed-with, hypothesized-mechanism, associated-with and experimentally-supported-effect are distinct relationships.
+
+NetworkX is a bounded in-memory `MultiDiGraph` view, not the persistence layer. Default traversal is a small declared neighborhood, e.g. depth two / 2,000 nodes with explicit truncation; bulk graph materialization is opt-in and budgeted. Current/as-of views select eligible revisions without deleting historical qualifications. Unsupported graph queries return missing/partial, not invented transitive causal chains.
+
+### 9.4 Retrieval, privacy and repair
+
+Hybrid retrieval combines SQL scope/eligibility filters, FTS and optional semantic similarity; bounded graph expansion supplies relations and explicit counterevidence. Deduplicate chunks/member evidence before counting independent units. Comparison populations come from SQL manifests, never from a top-k nearest-neighbor set.
+
+Permission withdrawal first makes canonical sources and dependents ineligible for new claims, then purges/redacts required excerpts, artifacts, summaries, FTS, vectors and graph projections. Reports have current eligibility views; frozen bytes remain historical only where retention is permitted. If lawful erasure requires deleting report/source bytes, retain only allowed tombstone/audit metadata and state that exact reproduction is no longer possible. Backups follow a declared retention policy.
+
+Storage verification checks dangling refs, hashes, projection generations, missing artifacts and permission eligibility. Rebuildable indices cannot restore erased source content or bypass withdrawal. Backup restoration must reconcile later withdrawal/erasure obligations before normal use; unknown obligations require restricted recovery. See [migration strategy](docs/migration-strategy.md) for backup, interruption and compatibility tests.
+
+## 10. Agent skill, commands and reports
+
+Keep current CLI commands and result envelopes. All new names below are **proposed**, not installed commands.
+
+| Workflow | Engine surface / milestone |
+|---|---|
+| Current basic media/account workflow | Existing `import local\|csv\|json`, `analyze video\|account`, `timeline show`, `models status\|prepare`, `compare posts\|accounts\|reproduce`, `report generate`, `doctor`, `storage status\|verify` |
+| Resolve/register | `evidence resolve`, `research register\|show` — R1 |
+| Corrected comparisons | Existing compare commands with explicit versioned design/specification — R2 |
+| Events / audience / behavior | Validated imported or reviewed annotation/series specifications and focused CLI adapters — R3–R5 |
+| Retrieve / maintain memory | `query`, `graph neighbors\|path`, bounded `storage reconcile\|reindex` adapters — R6 |
+| Evaluate / revise | `research evaluate\|reevaluate\|history` — R7/R8 |
+| Discover / experiment | Explicit bounded discovery and experiment register/outcome adapters — R9/R10 |
+| Photos / skill | Photo/carousel import-analysis adapters — U1; portable skill instructions and host smoke tests — U2 |
+
+A future portable `SKILL.md` describes capability discovery, consent, budgets, choosing analysis mode, calling the CLI, resolving evidence, reporting limitations, and when to request better data. Keep host-specific wrappers minimal. Use the [Agent Skills format](https://agentskills.io/specification); validate actual invocation behavior separately on Codex, Claude Code and OpenCode. Format compatibility is not proof of identical host behavior.
+
+Reports distinguish source-backed observations, mechanism hypotheses/rivals, scoped associations and permitted causal findings. Show missing modalities/data, collection coverage, comparison population, definitions/windows, effect uncertainty, counterexamples and claim limitations. A single-video report remains short and useful; research detail is linked/expandable rather than mandatory in every report.
+
+Future recommendations are original experiment briefs tied to uncertainty, not promises of increased reach or copied creator scripts. Any posting, external messaging, account mutation, remote upload or experiment execution needs separately scoped authority.
+
+## 11. Reference research flow
+
+The full [cooking use case](docs/research-use-case.md) maps all twelve requested steps to schemas, services, statistical methods and permissions. In brief:
+
+Authorized media → multimodal observations → reviewed result-first event → rival operationalizations + reviewed literature → sampled audience reactions → semantically valid metrics → within/cross-creator comparisons including failures → frozen qualified assessment → discriminating experiment brief → new outcomes and explicit reassessment.
+
+Public metadata can identify permitted captions/tags/basic counts and candidate posts, subject to source access. It cannot substitute for authorized media, complete comments, retention, conversion attribution or viewer-level measures. Owned behavioral analytics are an optional evidence tier; the result with public-only data may appropriately remain inconclusive.
+
+## 12. Limits, resource costs and optional scale
+
+| Constraint | Design response / unresolved limit |
+|---|---|
+| Public URLs do not grant usable media or private analytics | Prefer authorized local media and exports; source adapters record permission, quota, freshness, coverage and denied fields. No credential bypass or scraping entitlement. |
+| Platform definitions, authorization and quotas change | Version adapter capability/metric catalogs and validate current official documentation at implementation; no universal connector guarantee. |
+| API counts/comments may be delayed or selectively returned | Preserve collection frames and source lag; do not assign false precise post-age or representative coverage. |
+| Expensive video/model work | Hash caching, deterministic first pass, bounded adaptive sampling, batch worker reuse, optional prepared CPU/GPU models; no full-video VLM context by default. |
+| ASR/OCR/VLM error and language/domain transfer | Keep source lanes, coverage and review state; curated gold fixtures and held-out annotation evaluations; empirical quality remains unestablished. |
+| Low independent creator/sample counts | Descriptive/case-study mode, insufficient-power outcomes, explicit uncertainty; no universal minimum that makes confounding disappear. |
+| Combinatorial patterns and repeated tests | Frozen bounded family, all-attempt ledger, independent confirmation, no unlimited adaptive significance mining. |
+| Local vector/graph memory and single writer | Measure point count/dimension, embedding/graph RSS, lock wait and query/index latency. Bound documents/chunks and subgraphs; batch index work. |
+| Storage and deletion/reproducibility conflict | Explicit retention policy and withdrawal propagation; reproducibility claims degrade honestly after erasure. |
+
+API specifics must be confirmed per adapter. YouTube Analytics is owner-authorized; its normalized audience-retention positions and replay-aware metrics need source semantics. See the official [channel reports](https://developers.google.com/youtube/analytics/channel_reports), [dimensions](https://developers.google.com/youtube/analytics/dimensions#Audience_Retention) and [metrics](https://developers.google.com/youtube/analytics/metrics#Audience_retention_metrics). Instagram access depends on supported account/authentication/permissions; do not promise private insights for arbitrary public accounts. See [Meta's API documentation collection](https://www.postman.com/meta/instagram/documentation/6yqw8pt/instagram-api). TikTok's Research API eligibility is restricted and archive freshness can differ from live counts; it is not a default commercial connector. See the [official FAQ](https://developers.tiktok.com/docs/en/research-api-faq).
+
+Do not declare a universal local capacity ceiling from a library warning. Benchmark representative workloads first. Only demonstrated needs justify optional server-mode Qdrant, process/service APIs or a different database in a separately approved design. A future accelerator must preserve canonical contracts and exportability; no such infrastructure is required by R1–R10/U1–U2.
+
+## 13. Migration and delivery strategy
+
+The [migration strategy](docs/migration-strategy.md) preserves existing tables/IDs, frozen migration scripts and report semantics. Add a revision registry alongside legacy evidence, backfill deterministically and verify it before enabling new research. Do not reinterpret an old comparison as an as-of analysis; corrected designs use a new spec/method version and new result identity.
+
+Delivery follows [PLAN.md](PLAN.md): R1 universal evidence/minimal registration; R2 correctness; R3 events; R4 reactions; R5 behavioral metrics; R6 memory; R7 first full mechanism investigation; R8 reevaluation; R9 bounded broader discovery; R10 experiments. U1/U2 preserve image and portable-skill usability. R4/R5 are deliberately separated; memory follows working canonical producers rather than encoding an inadequate evidence model.
+
+The first implementation-ready scope is R1 only. It needs no model selection, platform connector or finalized psychology corpus. Its proof is an upgraded old media citation plus real imported comment and metric citations, minimal question/spec registration, restart resolution and withdrawal-aware reporting.
+
+## 14. Architectural support for the six audited capabilities
+
+“Supported” means a coherent contract, flow, delivery owner and acceptance gate now exist. It does **not** mean working software or empirical validity.
+
+| Audited capability | Revised architectural support | Delivery / required evidence of success |
 |---|---|---|
-| `creators` | `id PK`, optional display fields | A person/organization identity only when the data supports linking accounts. No inferred sensitive attributes. |
-| `accounts` | `id PK`, `creator_id FK NULL`, `platform`, `external_id`, `handle`, `niche`, `profile_json` | Unique `(platform, external_id)`; handle is not assumed stable. |
-| `posts` | `id PK`, `account_id FK`, `platform`, `external_id`, `content_type`, `published_at`, `source_timezone`, `title`, `caption`, `url`, `status` | Unique platform/external ID when available; indexed by account/time/type. |
-| `media_assets` | `id PK`, `sha256`, `media_type`, original/managed URI, `duration_ms`, dimensions, streams JSON, `artifact_id FK NULL` | Deduplicated physical/logical media. Source files are referenced by default and may be copied into managed storage explicitly. |
-| `post_media` | `post_id FK`, `media_asset_id FK`, `position`, `role` | Ordered carousel/media membership. Unique `(post_id, position)`. |
-| `tags` | `id PK`, `kind`, `normalized_value`, `display_value` | Hashtags, topics, and imported categorical tags. |
-| `post_tags` | `post_id FK`, `tag_id FK`, `source`, `confidence` | Separates supplied tags from inferred topics. |
-| `comments` | `id PK`, `post_id FK`, `parent_comment_id FK NULL`, external ID, pseudonymized author ID, `body`, `published_at`, public metrics | Raw comments only when permitted; supports deletion and minimization. |
-| `comment_clusters` | `id PK`, `post_id FK NULL`, `label`, `summary`, `method`, `run_id FK` | Topic/reaction clusters; these, not every comment, are embedded by default. |
-| `comment_cluster_members` | `cluster_id FK`, `comment_id FK`, `score` | Auditable cluster membership. |
-
-### Timeline, text, features, and evidence
-
-| Table | Key columns | Purpose and constraints |
-|---|---|---|
-| `scenes` | `id PK`, `media_asset_id FK`, `ordinal`, `start_ms`, `end_ms`, `detector`, `score` | Non-overlapping detected shots/scenes per detector run. |
-| `frames` | `id PK`, `media_asset_id FK`, `timestamp_ms`, `ordinal NULL`, `selection_reason`, `perceptual_hash`, `artifact_id FK` | Selected evidence frames, not every decoded frame. |
-| `text_tracks` | `id PK`, `media_asset_id FK`, `track_type`, `language`, `source`, `is_primary`, `run_id FK` | Keeps speech, supplied subtitle, platform subtitle, and OCR tracks separate. |
-| `text_segments` | `id PK`, `track_id FK`, `start_ms`, `end_ms`, `text`, `confidence`, `speaker_label NULL` | Sentence/cue/OCR persistence segments. Indexed by track and interval. |
-| `text_words` | `id PK`, `segment_id FK`, `ordinal`, `start_ms NULL`, `end_ms NULL`, `text`, `confidence NULL` | Word timing only when actually supported. |
-| `ocr_boxes` | `id PK`, `text_segment_id FK`, `frame_id FK`, normalized box coordinates, `rotation` | Spatial evidence for embedded text. |
-| `audio_segments` | `id PK`, `media_asset_id FK`, `start_ms`, `end_ms`, `segment_type`, `confidence`, `run_id FK` | Speech, silence, music/SFX candidates, and transitions. |
-| `feature_definitions` | `key PK`, `modality`, `value_kind`, `unit`, `description`, `aggregation`, `schema_version` | Registry for extensible, comparable observations. |
-| `observations` | `id PK`, `subject_type`, `subject_id`, `feature_key FK`, typed value columns, `start_ms NULL`, `end_ms NULL`, `confidence NULL`, `run_id FK`, `provenance_id FK` | Measured/inferred features. A check enforces exactly one value representation. Indexed by feature, subject, interval, and numeric value. |
-| `evidence_items` | `id PK`, subject locator, interval/frame/text/artifact/observation/metric references, `excerpt`, `provenance_id FK` | Stable citation target with checks preventing an empty locator. |
-
-### Metrics and statistics
-
-| Table | Key columns | Purpose and constraints |
-|---|---|---|
-| `metric_definitions` | `key PK`, `subject_type`, `value_kind`, `unit`, `numerator_key`, `denominator_key`, `definition`, `platform_scope` | Prevents treating similarly named platform metrics as identical. |
-| `metric_observations` | `id PK`, `subject_type`, `subject_id`, `metric_key FK`, integer/real value, `observed_at`, `window_start`, `window_end`, `post_age_seconds`, `provenance_id FK` | Append-only snapshots; unique on subject/metric/observation/source identity. |
-| `derived_metrics` | `id PK`, subject, `metric_key`, value, formula/version, input snapshot IDs JSON, `run_id FK` | Reproducible rates, normalized outcomes, and account baselines. |
-| `cohorts` | `id PK`, `name`, `population_spec_json`, `created_by_run_id FK` | Immutable analysis population definition. |
-| `cohort_members` | `cohort_id FK`, `subject_type`, `subject_id`, `role`, `match_set_id NULL`, `weight NULL` | Comparison and matched-set membership. |
-| `statistical_analyses` | `id PK`, `question_id FK NULL`, `method`, `spec_json`, `outcome_key`, `status`, `run_id FK` | Pre/post specification, covariates, split strategy, missing-data policy, seed. |
-| `statistical_results` | `id PK`, `analysis_id FK`, `term`, estimate, standard error, interval, raw/adjusted p-values, sample/cluster counts, diagnostics JSON | Machine-readable effects and uncertainty; not just prose. |
-
-### Psychology, research, experiments, and reports
-
-| Table | Key columns | Purpose and constraints |
-|---|---|---|
-| `psychological_mechanisms` | `id PK`, `slug UNIQUE`, `version`, `name`, `definition`, observable cues JSON, exclusions JSON | Versioned taxonomy maintained as data/reference content. |
-| `hypotheses` | `id PK`, `subject_type`, `subject_id`, `mechanism_id FK`, `statement`, `context`, `confidence_level`, alternatives JSON, `status`, `run_id FK` | Proposed explanation; cannot use causal status. |
-| `hypothesis_evidence` | `hypothesis_id FK`, `evidence_id FK`, `role`, `weight NULL` | Roles include supporting, contradictory, counterexample, and alternative. |
-| `research_questions` | `id PK`, `question`, `scope_json`, `registered_at`, `status` | Defines the intended population and accessible data before discovery. |
-| `findings` | `id PK`, `question_id FK NULL`, `claim_level`, `statement`, `scope_json`, `confidence_level`, `analysis_id FK NULL`, `status`, `supersedes_id FK NULL` | Versioned research memory. Causal level requires a linked qualifying experiment/analysis. |
-| `finding_evidence` | `finding_id FK`, `evidence_id FK`, `role` | Supporting examples, counterexamples, limitations, and performance evidence. |
-| `experiments` | `id PK`, `finding_id FK NULL`, `name`, `design_json`, hypotheses/outcomes, status, timestamps | A/B or creator test briefs and eventual outcomes. |
-| `reports` | `id PK`, `report_type`, target, `run_id FK`, `format`, `artifact_id FK`, `schema_version`, `created_at` | Generated artifacts tied to the exact analysis state. |
-
-### Vector index registry and outbox
-
-| Table | Key columns | Purpose and constraints |
-|---|---|---|
-| `embedding_spaces` | `id PK`, provider/model/revision, `modality`, `dimension`, `distance`, normalization, prefixes, `collection_family`, `active` | Immutable compatibility boundary. A dimension/model change creates a new space. |
-| `vector_documents` | `id PK`, `entity_type`, `entity_id`, `representation_kind`, `content`, `content_hash`, metadata JSON, `active`, `created_by_run_id FK` | Canonical representation that can regenerate vectors. |
-| `vector_index_entries` | `document_id FK`, `space_id FK`, `point_id UNIQUE`, `collection_name`, `indexed_hash`, `status`, timestamps, `error` | Cross-store reconciliation state. Unique `(document_id, space_id)`. |
-| `vector_outbox` | `id PK`, operation, `document_id FK`, `space_id FK`, `expected_hash`, `status`, lease/attempt fields | Durable upsert/delete work committed with canonical changes. |
-
-### Persistent graph
-
-| Table | Key columns | Purpose and constraints |
-|---|---|---|
-| `graph_nodes` | `id PK`, `node_type`, `entity_type`, `entity_id`, `label`, attributes JSON, `version`, timestamps | Usually one node per canonical entity; unique `(node_type, entity_type, entity_id)`. |
-| `graph_edges` | `id PK`, `source_node_id FK`, `target_node_id FK`, `edge_type`, `directed`, `claim_level`, `confidence_level`, attributes JSON, `valid_from`, `valid_to`, `run_id FK` | Multiple typed edges between a pair require `MultiDiGraph`; causal edge types are guarded. |
-| `graph_edge_evidence` | `edge_id FK`, `evidence_id FK`, `role` | Makes every inferred association traversable back to evidence or contradiction. |
-
-### Critical indexes and deletion behavior
-
-- Interval indexes: `(media_asset_id, start_ms, end_ms)` on scenes, frames, text segments, audio segments, and temporal observations.
-- Account history: `(account_id, published_at)` on posts.
-- Metric history: `(subject_type, subject_id, metric_key, observed_at)`.
-- Feature analytics: `(feature_key, numeric_value)` and `(subject_type, subject_id, feature_key)`.
-- Graph adjacency: `(source_node_id, edge_type)` and `(target_node_id, edge_type)`.
-- Outbox leasing: `(status, lease_expires_at)`.
-- FTS5 external-content indexes cover post title/caption, text segments, comment-cluster summaries, hypotheses, and findings. Rebuild/verify commands check triggers and row counts.
-
-Deleting an account/post/media target is an explicit service operation. It creates vector deletion outbox entries, deletes or tombstones dependent canonical rows according to retention policy, removes managed artifacts only when unreferenced, and verifies graph/vector references. Direct ad hoc deletion is unsupported.
-
-## 10. Qdrant collection design
-
-Physical collection names are derived from a logical family and immutable embedding-space hash:
-
-```text
-sdna_content_text__<space8>
-sdna_transcript_text__<space8>
-sdna_audience_text__<space8>
-sdna_research_text__<space8>
-sdna_visual_image__<space8>   # optional image embedding space
-```
-
-Logical contents:
-
-- `content_text`: whole-post descriptions, titles/captions, hook representations, scene descriptions, and carousel narrative summaries.
-- `transcript_text`: bounded transcript chunks with overlap and precise time ranges.
-- `audience_text`: comment-cluster/topic summaries, not individual comments by default.
-- `research_text`: hypotheses, findings, counterexamples, and experiment briefs.
-- `visual_image`: selected frames/thumbnails only when an image embedder is installed.
-
-Every point ID is deterministic UUIDv5 of `(space_id, vector_document_id)`. Common payload fields are `document_id`, `entity_type`, `entity_id`, `account_id`, `post_id`, `media_asset_id`, `platform`, `niche`, `representation_kind`, `language`, `start_ms`, `end_ms`, `content_hash`, and `created_at`. Large text and source evidence remain in SQLite; Qdrant payloads stay compact.
-
-One collection never mixes incompatible dimensions, distance metrics, normalization, or embedding semantics. Model upgrades create a new embedding space and physical collection, populate it incrementally, switch the active registry entry, and retain/delete the old collection by explicit policy.
-
-### Local embedding default
-
-FastEmbed/ONNX is the recommended local text implementation. The proposed default is `intfloat/multilingual-e5-small`, pinned to an exact reviewed model revision: it is MIT-licensed, produces 384-dimensional vectors, supports multilingual retrieval, and is small enough for CPU-first local use. The adapter must apply the model's required `query:` and `passage:` prefixes and explicitly chunk inputs beyond its 512-token limit. Model downloads are explicit (`models prepare` or `--allow-download`), checksum-verified, cached in the SocialDNA model directory, and never silently replaced.
-
-When embeddings are unavailable, vector outbox entries remain pending/blocked with a clear reason. SQLite, FTS, graph, deterministic analysis, and reporting continue. Tests may inject a deterministic test embedder, but the production runtime never labels a hash/test vector as a semantic embedding.
-
-### Query plan
-
-Hybrid retrieval is planned, not a single Qdrant call:
-
-1. Parse the question into structured filters, semantic intents, requested claim level, and comparison outcome.
-2. Use SQL for highly selective platform/account/date/duration/metric/feature constraints.
-3. Use FTS5 for exact phrases, hashtags, and lexical candidates.
-4. Fan out dense searches to the relevant logical Qdrant families, with payload filters where practical.
-5. Fuse ranked candidates using reciprocal-rank fusion; keep component scores visible.
-6. Hydrate canonical records from SQLite and discard stale/tombstoned hits.
-7. Expand a bounded evidence-bearing graph neighborhood.
-8. Run statistical comparison only after defining the eligible population and outcome window.
-9. Render observations, hypotheses, associations, counterexamples, and limitations separately.
-
-## 11. Persistent NetworkX graph design
-
-`graph_nodes` and `graph_edges` are the persistence API. NetworkX receives a `MultiDiGraph` because the same pair can have several relationships with different evidence, analysis versions, and claim levels.
-
-Graph node types are kept coarse: `Creator`, `Account`, `Post`, `Media`, `Scene`, `Hook`, `Technique`, `PsychologicalMechanism`, `Pattern`, `AudienceReaction`, `PerformanceOutcome`, `Finding`, and `Experiment`. Fine-grained measurements stay observations rather than becoming millions of nodes.
-
-Initial edge types include `OWNS`, `PUBLISHED`, `CONTAINS`, `HAS_HOOK`, `USES_TECHNIQUE`, `OBSERVED_IN`, `APPEARS_WITH`, `PROPOSED_MECHANISM`, `ASSOCIATED_WITH`, `SUPPORTED_BY`, `CONTRADICTED_BY`, and `TESTED_IN`. Edge definitions specify permitted source/target types and maximum claim level. `ASSOCIATED_WITH` can never be rewritten as causal merely because confidence is high.
-
-Graph queries first issue recursive CTE/adjacency SQL with `start_ids`, permitted node/edge types, `max_depth` (default 2), `as_of`, and `max_nodes` (default 2,000). The returned rows are materialized into NetworkX for neighborhood statistics, paths, component analysis, or centrality. Expensive all-graph algorithms require an explicit command and safety limit.
-
-## 12. Statistical discovery and scientific discipline
-
-### Unit of analysis
-
-The default unit for performance discovery is a post, not a frame, scene, or second. Timeline features aggregate into declared post-level variables (for example, opening-3-second motion median or first-hook word rate). Treating every frame as independent would create severe pseudo-replication.
-
-### Comparable outcomes
-
-- Compare metric snapshots at common post ages or within declared observation windows.
-- Store denominators and platform-specific definitions for all rates.
-- Use creator-relative robust baselines (median/MAD or quantile) and comparable content cohorts before cross-creator claims.
-- Preserve missingness; never impute unknown engagement as zero.
-- Use log transforms or count/rate models appropriate to distributions and report raw-scale summaries too.
-
-### Discovery workflow
-
-1. Register the research question, population, outcome window, candidate features, and known confounders.
-2. Generate candidate relationships from domain rules, graph co-occurrence, and optional LLM reasoning.
-3. Deduplicate correlated/redundant feature families before testing.
-4. Produce descriptive effect sizes and cluster-aware uncertainty first.
-5. Use simple adjusted models: creator/platform fixed effects, GEE or mixed models where justified, robust/clustered standard errors, and explicit interaction terms.
-6. Apply false-discovery-rate correction to exploratory families and retain all tested hypotheses, not just positive ones.
-7. Validate predictive claims using chronological splits and creator/group separation; preprocessing is fit on training data only.
-8. Retrieve nearest comparable successes and failures, plus high-leverage outliers.
-9. Run sensitivity checks for cohort definition, influential points, missingness, and feature collinearity.
-10. Save the full analysis specification, result table, diagnostics, counterexamples, and limitations.
-
-Small samples remain descriptive. The engine uses method-specific preconditions and emits `insufficient_data` instead of fitting unstable high-dimensional models. Matched comparisons remain associations unless treatment assignment and causal assumptions justify more.
-
-## 13. Psychological pattern engine
-
-The taxonomy is versioned reference data with mechanism definitions, observable cues, exclusion rules, confounders, and examples. The engine operates in three passes:
-
-1. **Cue extraction:** deterministic and model-assisted observations identify literal questions, information gaps, delayed reveals, transformations, social-proof phrases, utility promises, participation prompts, and related evidence.
-2. **Hypothesis generation:** a text/vision reasoner receives only bounded evidence and taxonomy definitions and returns structured candidate mechanisms, alternative explanations, applicability, and counterevidence requests.
-3. **Adjudication:** rules verify referenced evidence exists, prohibit sensitive/mental-state inference, lower confidence for missing modalities or conflicts, retrieve counterexamples, and require performance analysis before any association claim.
-
-Evaluation uses a small human-annotated gold set with inter-rater labels, precision/recall by mechanism, evidence-span accuracy, and calibration of the confidence rubric. Prompt/model changes version the analyzer and re-run only dependent tasks.
-
-## 14. CLI and agent-skill contract
-
-### CLI shape
-
-Use command groups rather than many hyphenated top-level commands:
-
-```text
-socialdna init
-socialdna doctor [--format json]
-socialdna storage status|verify|reconcile|reindex
-socialdna models status|prepare
-socialdna import local|csv|json|youtube|instagram|tiktok
-socialdna analyze video|photo|carousel|account
-socialdna compare posts|accounts
-socialdna timeline show
-socialdna query
-socialdna research discover|show|save
-socialdna graph neighbors|path
-socialdna report generate
-```
-
-Platform commands appear in help only when implemented or are clearly marked unavailable with the enabling extra/configuration. No stub returns invented content.
-
-Global options include `--data-dir`, `--format text|json`, `--offline`, `--no-ai`, `--allow-download`, `--remote-media-consent`, `--log-level`, and resource budgets. Commands accept stable IDs and return them for follow-up operations.
-
-Machine output uses one versioned envelope:
-
-```json
-{
-  "schema_version": "1.0",
-  "command": "analyze.video",
-  "status": "partial",
-  "run_id": "...",
-  "data": {},
-  "evidence": [],
-  "warnings": [],
-  "limitations": [],
-  "errors": [],
-  "next_actions": []
-}
-```
-
-Human progress goes to stderr so stdout remains valid JSON. Exit codes distinguish invalid input, unavailable dependency/model, permission denial, partial analysis, storage conflict, provider failure, and internal error.
-
-### Agent Skill
-
-The portable `skills/socialdna/SKILL.md` follows the Agent Skills standard: a concise routing description, a short workflow, and one-level references. Detailed taxonomy, research methodology, CLI schemas, and interpretation rules live under `references/`.
-
-The first release uses the shell CLI as its tool boundary because both Codex and Claude Code can execute it and consume JSON. A custom MCP server is deferred until stable commands and schemas exist; exposing both immediately would double the public API surface.
-
-The skill instructs agents to:
-
-- confirm accessible data and permission before import;
-- run `doctor --format json` when environment capability is unknown;
-- request JSON output and retain `run_id`/evidence IDs;
-- choose quick/standard/deep according to the question and budget;
-- never enable model downloads or remote media uploads implicitly;
-- separate engine observations, hypotheses, associations, and experiments in the answer;
-- disclose partial analysis and missing metrics;
-- invoke `research discover` only after enough comparable posts exist;
-- cite SocialDNA evidence IDs/timestamps rather than paraphrasing unsupported claims.
-
-Project installation targets `.agents/skills/socialdna/` for Codex-compatible Agent Skills and `.claude/skills/socialdna/` for Claude Code. The repository keeps one canonical skill bundle and packaging/install scripts copy it; divergent agent-specific instruction forks are avoided.
-
-## 15. Consistency, concurrency, recovery, and deletion
-
-### Local concurrency model
-
-- One mutating SocialDNA process per data directory, enforced by a top-level file lock with owner/PID metadata and a timeout.
-- SQLite WAL allows same-host readers while the writer is active, but SQLite still has one writer and WAL is not used over a network filesystem.
-- One Qdrant Local client instance per process/data directory, opened lazily and explicitly closed. Because local Qdrant locks the directory exclusively, concurrent commands that need it fail fast with an actionable message.
-- Read-only commands that require Qdrant share the same application-level lock in Local Mode. External Qdrant removes this restriction.
-
-### Cross-store state machine
-
-1. Commit canonical entity/vector document and pending outbox row in SQLite.
-2. Generate/load the embedding outside the SQLite write transaction.
-3. Upsert the deterministic point ID to Qdrant.
-4. In a new SQLite transaction, mark the index entry current and outbox row complete.
-5. If the process dies at any point, retry is idempotent. `storage reconcile` compares document hashes, index registry state, point existence, and tombstones.
-
-Graph node/edge writes are part of the same SQLite unit of work as their claims/evidence. NetworkX has no write-back persistence API; graph mutations always go through graph repositories.
-
-### Backup and integrity
-
-`storage verify` runs SQLite integrity/foreign-key checks, artifact checksum sampling, FTS consistency, graph orphan checks, vector registry reconciliation, and collection schema checks. Backups use SQLite's online backup API after quiescing mutations, copy Qdrant/artifact/model manifests consistently, and include a format/version manifest. Restore validates before becoming active.
-
-## 16. Security, privacy, and permissions
-
-- Treat media, subtitles, comments, CSV, JSON, and model responses as untrusted input. Bound file sizes/durations, use subprocess argument arrays, impose timeouts, and never interpolate paths into shell strings.
-- Keep API tokens in environment variables or OS keyring/provider configuration, never SQLite or reports.
-- Remote provider profiles declare what leaves the machine. Uploading local media, frames, audio, transcript, or comments requires explicit configuration and per-run consent policy.
-- Minimize stored audience identifiers, support pseudonymization, and provide scoped deletion/export.
-- Preserve platform/source permission basis and retention constraints with each import.
-- Sanitize HTML reports and escape all imported/model text.
-- The skill is privileged instructions plus executable access; installation documentation tells users to review it before enabling.
-
-## 17. Scaling and resource limits
-
-### Expected bottlenecks
-
-| Area | Bottleneck | Local mitigation | Scale-out path |
-|---|---|---|---|
-| Video decode | CPU, disk, long/high-resolution media | One decode plan, downscaled analysis frames, cache artifacts | Worker pool/object storage |
-| Optical flow/OCR | Per-frame CPU/GPU | Scene-aware sampling and deduplication | Batched GPU workers |
-| ASR/alignment | RAM/VRAM and model download | Model-size/device profiles, VAD, reuse audio | Dedicated inference workers |
-| VLM reasoning | token/cost/privacy | Contact sheets, evidence bundles, budgets, opt-in | Batch hosted/local inference service |
-| SQLite | single writer | short transactions, one mutating process, WAL | PostgreSQL implementation |
-| Qdrant Local | exclusive lock, brute-force search, 20k-point warning | bounded documents, cluster comments, warn near threshold | External Qdrant |
-| NetworkX | Python memory and algorithmic cost | bounded SQL subgraphs, graph limits | Neo4j/other graph backend if justified |
-| Platform APIs | eligibility, OAuth, quotas, stale/limited metrics | imports, caching, provenance, backoff | approved bulk/reporting APIs |
-
-`doctor` reports CPU features, RAM, optional GPU, free disk, FFmpeg/ffprobe versions, model cache sizes, Qdrant point counts, and recommended depth limits. Resource estimates are displayed before deep runs.
-
-## 18. Major technical decisions and tradeoffs
-
-| Decision | Chosen approach | Tradeoff |
-|---|---|---|
-| Relational access | SQLAlchemy Core + Alembic, no ORM domain model | Two dependencies, but robust migrations/transactions and a future relational backend seam. |
-| Media tools | FFmpeg/ffprobe subprocesses + OpenCV arrays | Requires system FFmpeg; avoids weak Python-only codec coverage. |
-| Scene detection | PySceneDetect adaptive detector with versioned config | Thresholds vary by genre; store scores/config and allow overrides. |
-| ASR | faster-whisper default optional adapter; WhisperX precision extra | Default word times may be less accurate; much simpler CPU/local install. |
-| OCR | RapidOCR/ONNX optional adapter | Model/language packages add size; avoids a separate Tesseract system install. |
-| Local embeddings | FastEmbed/ONNX, pinned multilingual model | One-time model download and license/model governance required. |
-| Lexical search | SQLite FTS5 | SQLite build must include FTS5; `doctor` verifies it. |
-| Vectors | Qdrant Local as derived index | Single-process/small-data ceiling; clean remote-Qdrant seam. |
-| Graph | SQLite rows + bounded NetworkX `MultiDiGraph` | Some queries require SQL+Python; avoids a mandatory graph server. |
-| Work execution | In-process durable DAG, no Celery | One machine initially; easier installation, testing, and recovery. |
-| Agent integration | CLI JSON + portable skill | Less discoverable than MCP tools; one stable public contract instead of two. |
-| Reports | Jinja-based static HTML, Markdown, JSON | No interactive dashboard initially; portable and auditable artifacts. |
-
-## 19. External data-access constraints
-
-- **YouTube:** public metadata is available through the Data API subject to quotas; owner analytics requires OAuth authorization for the channel/content owner. The APIs do not make unauthorized media downloading a general ingestion capability. SocialDNA therefore accepts local/owned media or separately permitted media references.
-- **Instagram:** official API access targets professional accounts and requires the relevant login, permissions, access level, and account authorization. Consumer-account or arbitrary-account analytics cannot be promised.
-- **TikTok:** the Research API is limited to approved, eligible non-commercial/public-interest researchers in supported regions; its archived counts can lag. Commercial creators need other approved products or their own exports.
-- Metrics change definitions and availability over time. Every adapter pins API version, stores raw responses when terms allow, maps source metric definitions explicitly, and records retrieval time.
-
-## 20. Approved implementation defaults
-
-The user approved these defaults on 2026-11-04:
-
-1. Accept SQLAlchemy Core + Alembic as the migration/data-access foundation instead of standard-library `sqlite3` plus custom migrations.
-2. Accept faster-whisper as the standard local transcription extra and WhisperX as an optional precision extra.
-3. Accept CLI JSON as the initial agent tool boundary, deferring MCP until after the CLI schema stabilizes.
-
-Implementation follows `PLAN.md`. Any change to stable IDs, timeline units, claim levels, canonical-store ownership, or CLI output envelope requires an explicit architecture update because persisted data and agent callers depend on those contracts.
-
-## 21. Research basis
-
-Primary sources used for these decisions:
-
-- [Qdrant Python client local mode](https://github.com/qdrant/qdrant-client/blob/master/README.md) and its [local implementation limits/locking](https://github.com/qdrant/qdrant-client/blob/master/qdrant_client/local/qdrant_local.py)
-- [SQLite write-ahead logging and concurrency](https://www.sqlite.org/wal.html)
-- [NetworkX documentation](https://networkx.org/documentation/stable/) and [induced subgraph behavior](https://networkx.org/documentation/stable/reference/generated/networkx.classes.function.induced_subgraph.html)
-- [FFprobe documentation](https://www.ffmpeg.org/ffprobe.html)
-- [PySceneDetect documentation](https://www.scenedetect.com/docs/latest/)
-- [faster-whisper documentation](https://github.com/SYSTRAN/faster-whisper/blob/master/README.md)
-- [WhisperX paper](https://arxiv.org/abs/2303.00747) and [implementation documentation](https://github.com/m-bain/whisperX)
-- [FastEmbed documentation](https://github.com/qdrant/fastembed/blob/main/README.md)
-- [`intfloat/multilingual-e5-small` model card](https://huggingface.co/intfloat/multilingual-e5-small)
-- [RapidOCR documentation](https://github.com/RapidAI/RapidOCR/blob/main/README.md)
-- [scikit-learn data-leakage guidance](https://scikit-learn.org/stable/common_pitfalls), [time-aware validation](https://scikit-learn.org/stable/modules/cross_validation.html), and [correlated-feature caveats](https://scikit-learn.org/stable/auto_examples/inspection/plot_permutation_importance_multicollinear.html)
-- [statsmodels mixed models](https://www.statsmodels.org/stable/mixed_linear.html), [GEE](https://www.statsmodels.org/stable/gee.html), and [multiple-testing correction](https://www.statsmodels.org/stable/generated/statsmodels.stats.multitest.multipletests.html)
-- [SciPy bootstrap confidence intervals](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.bootstrap.html)
-- [YouTube Data API quotas](https://developers.google.com/youtube/data/getting-started), [video resources](https://developers.google.com/youtube/data/reference/rest/v3/videos/list), and [YouTube Analytics authorization](https://developers.google.com/youtube/analytics/reference)
-- [Meta's official Instagram API collection](https://www.postman.com/meta/instagram/documentation/6yqw8pt/instagram-api)
-- [TikTok Research API eligibility](https://developers.tiktok.com/products/research-api/) and [Research API limits/data lag](https://developers.tiktok.com/docs/en/research-api-faq)
-- [Agent Skills specification](https://agentskills.io/specification), [OpenAI Skills documentation](https://developers.openai.com/api/docs/guides/tools-skills), and [Claude Code Skills documentation](https://code.claude.com/docs/en/skills)
-
-## 22. Milestone 0 implementation decisions (2026-11-04)
-
-The approved store ownership and CLI boundaries are unchanged. The implementation makes the following details explicit:
-
-- **Transactional SQLite DDL:** the SQLAlchemy connection hook disables sqlite3 legacy implicit transactions and an engine begin hook issues `BEGIN`. Alembic receives the existing connection and uses transactional DDL. An injected failure after `CREATE TABLE` is tested to roll back both schema and revision state. This is necessary on Python 3.11, where legacy driver behavior otherwise leaves DDL outside the intended transaction. See [SQLAlchemy's SQLite transaction guidance](https://docs.sqlalchemy.org/en/20/dialects/sqlite.html).
-- **Migration checksum ledger:** `migration_checksums(revision, sha256, applied_at)` supplements `alembic_version`. It is committed in the same transaction and detects edits to already-applied migration files. Unknown revision heads and unversioned non-empty databases are rejected without deleting their contents.
-- **Frozen schema slice:** the baseline revision owns a frozen `foundation_metadata()` definition. Current Core tables are composed from that slice in `storage/schema.py`. This avoids a historical migration importing mutable future metadata. Subsequent revisions must preserve released revision files and evolve the current schema separately.
-- **Explicit artifact references:** `artifact_references(artifact_id, owner_type, owner_id, role)` supports deduplicated owner links. Reference counts also include direct `source_records.raw_artifact_id` and `media_assets.artifact_id` foreign keys. File creation precedes canonical commit, so a rolled-back commit can leave an orphan object; verification reports it and retains it for inspection.
-- **Direct lock dependency:** `portalocker` is declared directly instead of relying on Qdrant's transitive dependency. All current CLI operations acquire this lock because they perform first-use initialization and open embedded Qdrant. Lock metadata is modified only after acquisition; crash recovery relies on OS lock release.
-- **Typer compatibility:** the implementation requires Typer `>=0.27.2,<0.28` and uses its public `TyperException` interface. Current Typer vendors Click and no longer depends on the standalone Click package, so importing Click for parser error handling is incompatible. See [Typer's vendored-Click guidance](https://typer.tiangolo.com/tutorial/click/) and [release notes](https://typer.tiangolo.com/release-notes/).
-- **Schema rollout remains incremental:** only foundation tables are created in Milestone 0. FTS5 is checked with a temporary virtual table; semantic collections and persistent graph rows are not created early. Status/verification output marks these capabilities deferred and does not claim retrieval or graph persistence works yet.
-- **Health versus unavailable features:** missing FFmpeg/ffprobe produces warnings and exit 0 for foundation-only commands; future media commands will use the reserved dependency-unavailable exit code 3. Integrity errors return 8, conflicting processes return 6, and malformed inputs/configuration return 2, all through the versioned JSON envelope.
-- **Distribution verification:** both the wheel and source archive are installed into fresh temporary environments and invoked from outside the checkout. The verifier can use registry access for dependency resolution or `--offline` with a complete resolver cache. Application runtime checks never download models or contact hosted providers.
-
-No public command was added for media analysis, semantic search, graph traversal, or research. Those implementations remain in Milestones 1–6.
-
-## 23. Milestone 1 implementation decisions (2026-11-04)
-
-Canonical-store ownership, CLI envelopes, IDs and half-open millisecond intervals are unchanged. The implementation makes these choices explicit:
-
-- **Source timing is authoritative:** FFprobe reads per-frame presentation timestamps. A lossless, downscaled FFV1 proxy retains frame order; OpenCV processes arrays while source timestamps align results. Missing/non-monotonic timestamps or proxy frame-count mismatches fail rather than fabricate alignment. Video end comes from the final frame's packet duration with a nominal-rate fallback, while unmodified container/stream metadata remains in `media_probes`. Audio uses its stream offset and actual decoded sample length. This avoids deriving VFR timing from nominal FPS.
-- **Bounded reusable visual decoding:** the proxy's longest side is 320 pixels. Scene, motion and evidence selection share it through separate inexpensive proxy passes. FFprobe timestamp discovery, proxy creation, audio extraction and integrated-loudness measurement are separate source passes; a single-pass native decoder was not introduced. This trades temporary disk and FFV1 storage for predictable memory and simpler timestamp correctness. FFmpeg 4.4 compatibility uses `-vsync 0`; no shell interpolation is used. POSIX cancellation terminates the process group; Windows terminates the direct media process.
-- **Minimal schema evolution:** revision `0002_timeline` adds media locations/probes, task results/dependencies, scenes, frames, text/audio tracks/segments, feature definitions, observations, evidence and reports. The released baseline revision/checksum remains unchanged. Feature keys/definitions are canonical, observation values are typed numeric/JSON, and task/provenance/evidence rows use foreign keys. Vector documents/outbox and graph rows remain Milestone 2 work.
-- **Atomic durable tasks, immutable producers:** each task commits provenance, canonical rows, artifacts/references and a compact result together. Fingerprints include media identity, analyzer version, relevant options/tool/library versions and dependencies. New-run cache hits reference `reused_from_task_id` rather than duplicating canonical outputs. Directly owned artifact checksums are validated before reuse; failed dependencies block consumers. Successful producer rows are immutable. Resume checks the original run configuration/environment before updating its state; changed options/tools require a new run. A data-directory lock, not a distributed lease-reaper, authorizes crash recovery.
-- **Partial reports versus execution state:** the existing run/task status constraint is retained. Any failed task makes execution `failed`; the analysis/report contract says `partial` and returns exit 5 while preserving independent successful modalities. An interrupted/running run also generates a partial report, never a success claim. Missing audio/subtitles and future transcription/OCR/multimodal tasks are explicit skips, not invented observations. FFmpeg absence fails before run creation with exit 3; health/storage commands still warn without requiring media tools.
-- **Honest feature semantics:** analysis audio is converted to mono 16 kHz PCM without gain normalization. Original-mix integrated input LUFS uses FFmpeg's EBU R128 loudness filter; undefined values remain absent. pYIN pitch, short-window tempo candidates, low-energy windows and optical flow are signal estimates with explicit limitations, not speech/emotion/camera-intent classifications. Framing is aspect geometry only; subject/composition models are deferred. All deterministic measurements carry timestamped evidence and configuration provenance.
-- **Reports are managed artifacts:** typed JSON and escaped Markdown snapshots are stored in the existing content-addressed store and indexed by `(run_id, format)`. JSON includes canonical lanes/evidence, feature units/definitions, configuration, provenance and artifact locations. Markdown cites frames, subtitles and measurements and links the contact sheet. No Jinja dependency is added for these simple formats; templated HTML remains Milestone 6. Distinct runs legitimately create distinct report artifacts even when extraction is fully cached; superseded snapshots are retained, not destructively cleaned up.
-- **Lean module boundaries:** local import lives in `application/import_service.py`, task orchestration in `application/task_runner.py`, with concrete analyzers/media modules below them. SQLAlchemy Core operations remain in these services instead of adding an empty ingestion protocol, a repository per table, or a separate JSON renderer solely to match the target file map. Adapter abstractions will be introduced when the next working use case needs them.
-- **Explicit operating limits:** default input bounds are 2 GB, 600 seconds and 36,000 decoded frames; evidence selection defaults to 120 frames, subtitles to 5 MB, and subprocesses to 300 seconds. These are configurable safeguards, not a codec sandbox. Limits on stdout/stderr prevent unbounded pipe buffering; protocols are restricted to local files/pipes. Python feature computation can still be CPU-heavy, particularly first-time librosa/Numba compilation. Corrupt artifacts are reported rather than overwritten; SIGKILL can leave temporary cache files and orphan objects for inspection.
-- **Verification scope:** generated owned fixtures cover cuts, motion, tones, subtitles, VFR, shifted timestamps, short/delayed audio, malformed/oversized inputs, shell-metacharacter names, partial failure, cache invalidation, recovery after each major task and cross-process CLI reports. Distribution smoke tests now exercise installed media analysis and report reopening, not only initialization. CI installs FFmpeg for Linux/macOS/Windows; this workspace directly verifies Linux Python 3.11 with FFmpeg 4.4.2 only.
-
-See `docs/video-analysis.md` for current commands, recovery behavior and interpretation limits. No Milestone 2 indexing or graph implementation is included.
-
-## 24. Milestone 3 implementation decisions (2026-11-04)
-
-The user explicitly requested local model enrichment before persistent research memory. Milestone 3 therefore consumes Milestone 1's canonical timeline/task/evidence interfaces directly. This is an execution-order change, not a new storage architecture: no alternate graph, vector memory, retrieval API, or Milestone 2 placeholder is introduced. Milestone 2 can later index ASR/OCR/model outputs already persisted in SQLite without rerunning inference.
-
-- **Optional, pinned model installation:** `models status|prepare` works in the base install; speech, OCR, alignment, landmarks and audio-classifier runtimes are extras. The initial catalog supplies revision/SHA-256-pinned tiny multilingual faster-whisper, English PP-OCRv4 ONNX, MediaPipe pose-lite and YAMNet bundles. Installation manifests include language, license notes, size bounds and approximate RAM needs; imported custom bundles require reviewed file hashes. Model-weight rights are not inferred from runtime licenses (pose-weight terms are explicitly flagged for review). `models prepare` is the download/import boundary. Inference never downloads, regardless of download permission. Manifest aliases and hash-addressed model directories are installation metadata; scientific identities/input provenance remain canonical SQLite records.
-- **Native-runtime isolation:** the durable DAG remains in-process, but optional native inference runs in bounded child processes, with structured request/response files in private temporary directories. This provides cancellation/timeouts and contains optional import/ABI conflicts without adding a job server. The standalone worker can run under an explicitly selected interpreter, including per-capability overrides. This is important because MediaPipe's full/contrib OpenCV and WhisperX's large Torch stack must not replace the engine's headless OpenCV build. CPU inference is the verified default; device-support metadata does not assert GPU availability. Python socket connections/model-hub downloads are disabled in workers, with temporary matplotlib/Numba caches. Native packages/models remain trusted dependencies, not an OS security sandbox.
-- **Capability-specific contracts:** transcription/alignment use validated language/segment/nullable-word results; OCR uses normalized per-frame quadrilaterals; pose uses 33 model-estimated landmarks per detected pose; audio classification uses typed timestamped candidate windows; text/vision reasoning uses a bounded evidence/hypothesis schema. The registry checks model capability, implemented backend identity, checksums, and relevant runtime package versions. There is no arbitrary user-code loader or one untyped universal generation API.
-- **Same canonical timeline:** `0003_enrichment` adds word timing, frame-linked OCR boxes, inference-input evidence links and provider-call audits. Revision numbering follows deployment order, not milestone numbering; released revisions `0001`/`0002` are unchanged. Supplied subtitles, ASR, aligned ASR and OCR are separate tracks. Word timestamps are nullable and never evenly interpolated from text. OCR matching links adjacent samples with explicit sampling uncertainty. Pose/audio observations are model estimates/candidates, not identities, emotional diagnoses or verified sound labels. A deterministic ASR/subtitle token-agreement measurement is not labeled accuracy/WER without a gold reference.
-- **Atomic evidence/provenance gate:** a configured model cannot commit canonical outputs without provider identity and non-empty, registered source-evidence IDs belonging to the analyzed media. Task completion commits provider/model/revision/prompt/config provenance, input links and canonical outputs together. Failed model validation commits no observations. Transcription identity/settings/runtime changes invalidate alignment/comparison/reasoning/timeline dependencies while preserving unrelated decode, scene, visual, audio extraction and OCR cache entries. Interrupted committed model tasks are reusable under the existing lock/resume contract.
-- **Opt-in compatible reasoning:** an explicitly configured chat-completions server can accept bounded text and selected JPEG evidence. A local server requires a literal loopback address; remote profiles require HTTPS, an enabled profile, allowed data types and explicit consent. Offline mode blocks remote transfers. Global/leaf CLI consent flags are tri-state so an explicit denial overrides environment/TOML permission. No original video/audio, redirect, proxy-environment routing, implicit discovery or remote fallback is used. Credentials are read from named environment variables and exist only in request headers. API model/revision fields are operator attestations, not a server-weight verification mechanism.
-- **Audit before external side effects:** every compatible-provider attempt first commits an exact content-addressed JSON request and an `attempted` call row. Accepted responses are persisted separately after schema/evidence validation; failures retain the request audit. This intentional pre-call transaction differs from atomic canonical model-output commit and records what may have left the process even after cancellation. An interrupted attempt can be retried and billed twice: exactly-once provider execution/billing is not promised. Audit artifacts contain sensitive derived evidence, so they need the same local protection as source data; authorization headers are never persisted.
-- **Bounded interpretation, not causal analysis:** text token estimates use conservative UTF-8 byte bounds; selected frame count, request/response byte sizes, output-token requests, attempts and timeouts are bounded. Image tokenization/provider billing cannot be verified by a generic compatible adapter. Responses must cite only supplied evidence and supply alternative explanations. All accepted interpretations are labeled hypotheses with ordinal uncalibrated confidence. Invalid schemas/citations exhaust a small retry budget and produce a partial report. No psychological taxonomy, performance association, diarization or sensitive-attribute classifier is implemented here.
-- **Depth and failure semantics:** standard/deep use prepared ASR/OCR automatically, quick requires explicit selection, and deep enables word timing plus pre-run resource estimates. Alignment, pose, audio candidates and reasoning require explicit flags; `--no-ai` disables all of them. Optional auto-selected missing models are skipped; explicitly requested unavailable capabilities and actual model failures make analysis/report partial while leaving deterministic results usable. No-audio capabilities are not applicable, not invented failures. Alignment requires ASR and a matching prepared language model; it cannot overwrite the original transcript or download a missing NLTK/alignment dependency.
-- **Verified versus contract-only integrations:** real offline CPU ASR/OCR tests use generated libflite speech/Pillow text and verify cache reuse and process-restart persistence. Real MediaPipe pose/audio smoke tests run through an isolated interpreter and verified official bundles; the synthetic pose fixture does not assess positive human-landmark accuracy. WhisperX's pinned offline API/timing behavior and compatible-server schema/consent/audit behavior have contract tests, but this workspace did not install/run the large alignment checkpoint or evaluate a real VLM/LLM. GPU, macOS and Windows native optional-runtime behavior is not claimed verified. A manual GitHub Actions workflow explicitly prepares pinned ASR/OCR assets for opt-in native testing; core CI requires no models or hosted credentials.
-
-Configuration, safety boundaries, commands and interpretation limitations are documented in `docs/local-enrichment.md`. Milestone 3 was released as pre-release `0.0.3` because the planned memory/release gates had not been met; implementing enrichment out of order did not claim v0.2/v1 readiness.
-
-## 25. Milestone 4 implementation decisions (2026-11-05)
-
-The user selected account imports/analytics next. Canonical accounts, posts, media,
-timeline evidence and provenance are sufficient for this slice; Milestone 2 remains
-deferred, with no alternate vector/graph store or placeholder retrieval implementation.
-Version `0.0.4` is a pre-release, not completion of the roadmap's v0.3 memory-dependent gate.
-
-- **One normalized import contract:** strict Pydantic record unions cover accounts,
-  posts, media references, supplied tags/topics, minimized permitted comments,
-  metric definitions and post/account snapshots (including followers). JSON has a
-  versioned source envelope; CSV repeats version/source metadata and uses typed
-  record columns. Standard-library CSV parsing preserves external IDs without
-  dataframe inference. Arbitrary vendor exports need explicit mapping; no platform
-  API, automatic downloader or vendor-schema guessing is included. pandas is used
-  for analytics aggregation/design matrices, not lossy import inference.
-- **Atomic validation, provenance and identity:** parse errors and cross-record/DB
-  reference errors are row-addressed. Dry runs do not initialize/migrate storage or
-  write canonical/artifact records. Imports revalidate under the data lock, then
-  commit all records and raw source/provenance together. Batch IDs use dataset ID
-  plus raw SHA-256; entity IDs retain the existing namespace contract. SQLAlchemy
-  services remain distinct from decoding: `account_import_service.py` handles
-  exports while `import_service.py` continues local media registration. Shared CLI
-  envelopes/options moved to `cli/common.py` to avoid circular command dependencies.
-- **Append-only measurements, not mutable counters:** migration `0004_analytics`
-  adds import batches, references/tags/comments, metric definitions/observations,
-  derived metrics, frozen cohorts/members, analyses/typed terms and account-media
-  run links. SQLite UPDATE triggers protect metric definitions and observations;
-  definition changes need new platform/version keys. Corrected cells append a
-  superseding snapshot; unchanged overlapping exports reuse IDs. An exact original
-  file remains idempotent even after a correction; reversion needs a new export
-  revision. Independent-source disagreements remain stored but excluded, not averaged.
-  Account/post FKs constrain snapshot subjects; publication/ownership edits are
-  rejected so historical post ages cannot silently change.
-- **Exposure and missingness are part of the estimand:** collection time, optional
-  observation window, availability/reason and post age are distinct. Age uses window
-  end when supplied, not delayed collection time. Period outcomes require an exact
-  window width. Analysis chooses one nearest eligible nonsuperseded snapshot per
-  post/key within an explicit age tolerance, without interpolation or available-at-
-  another-age substitution. Rates require every aligned component and a positive
-  denominator. Unknown shares/saves/retention stay null; current follower counts
-  never become historical post denominators implicitly.
-- **Bounded local batches reuse the existing DAG:** `analyze account --analyze-media`
-  sequentially links/analyzes local video references using Milestone 1/3 services.
-  The default is deterministic; prepared local models need an explicit flag. Remote
-  references are never fetched. Failures/missing references/limit skips are explicit
-  and produce partial output without discarding successful media work. Changed
-  references invalidate current links, not historical media/report evidence. Reruns
-  reuse durable media task caches; no new queue/resume subsystem is introduced.
-  Analytics aggregates primary media only, with opening-3-second sampled medians
-  and exact evidence/producer-run IDs. Carousel-wide aggregation remains Milestone 6.
-- **Statistics are explicit and conservative:** default `model=none` delivers raw
-  summaries, missingness, exposure distributions, leave-one-post-out robust creator
-  baselines, descriptive Spearman effects, and cluster bootstrap intervals when
-  eligible. Opt-in OLS/Poisson/Gaussian GEE/random-intercept mixed paths have sample,
-  parameter, cluster, rank, conditioning, dispersion and convergence gates. These
-  are engineering safeguards, not universal statistical adequacy claims. Creator
-  fixed effects/cluster covariance or single-creator HAC are used where applicable;
-  warnings/unstable fits release no terms. OLS-design influence diagnostics are
-  labeled as such, including for non-OLS models.
-- **Separate estimands and test families:** post-level correlations remain
-  descriptive. Eligible cross-creator permutation tests operate on creator-median
-  aggregates and report a distinct effect/p-value. Benjamini–Yekutieli FDR replaces
-  the unspecified/BH default because exploratory content features can be dependent;
-  model-term and aggregate-correlation families remain explicit and retain all terms.
-  Same-creator context/duration matching uses no outcomes and can legitimately
-  produce zero pairs; unmatched group differences are descriptive/confounded.
-- **Leakage-safe checks, not retrospective accuracy claims:** chronological and
-  creator-held-out evaluations are separate checks. Chronological training purges
-  outcomes collected after the publication cutoff; grouped splits forbid creator
-  overlap. The production imputer/scaler/ridge pipeline fits only training rows.
-  Outcome-derived predictors are excluded by a small content registry; future
-  predictor availability and duplicate post leakage are audited. Exports cannot
-  prove that a caption was unchanged at publication, and reports state that limit.
-- **Frozen research inputs:** each analytics run atomically saves spec, seed,
-  engine/library versions, input hash, cohort rows, snapshot/evidence/provenance
-  locators, derived formula/input IDs, result terms and complete JSON output.
-  Reports reopen stored output, not live mutable posts. Reproduction reruns frozen
-  inputs with the same versions; ordinary reruns include new imports. Account metrics
-  remain canonical, while reports analyze declared post outcomes. Snapshot citations
-  use `socialdna:metric/ID`; the media-specific evidence table is not misused to
-  fabricate timestamped media evidence for account counters.
-- **Operational bounds and verification:** imports are bounded to 32 MiB/100000
-  records; analytics to 5000 candidate posts; batch processing to 1–1000 posts
-  (default 100). The embedded single-process lock remains authoritative. New tests
-  cover import/schema/history/provenance, hand-computed baselines/rates, SciPy and
-  statsmodels agreement, matching, leakage, insufficiency, actual FFmpeg batches,
-  and separate-process reports/reproduction. Distribution smoke checks now exercise
-  installed account imports and analytics as well as media. Local verification is
-  Linux/Python 3.11; the existing CI matrix covers other declared platforms.
-
-Contracts and runnable examples: `docs/import-formats.md`,
-`docs/performance-analytics.md`, `examples/imports/*`.
-Implementation references: [statsmodels GEE](https://www.statsmodels.org/stable/gee.html),
-[multiple-test correction](https://www.statsmodels.org/stable/generated/statsmodels.stats.multitest.multipletests.html),
-[scikit-learn leakage guidance](https://scikit-learn.org/stable/common_pitfalls.html),
-[group/time validation](https://scikit-learn.org/stable/modules/cross_validation.html),
-[SciPy permutation tests](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.permutation_test.html).
+| Deep psychological mechanism discovery | **Supported as falsifiable mechanism investigation**, not automatic causal discovery: constructs, reviewed sources, operationalizations, rivals and discriminating predictions | R3/R7/R10; annotated content validity, reviewed applicability and appropriately identified empirical tests. Observational data alone cannot prove a mechanism. |
+| Content → audience responses → performance | **Supported with qualified, versioned links**, selection coverage and outcome/denominator semantics | R1/R3–R5/R7; real source resolution, annotation validity, collection coverage and authorized outcome measurements. |
+| Cross-creator and cross-niche intelligence | **Supported with explicit separate designs**, as-of context, identifiability and transfer validation | R2/R9; overlap/balance, sufficient independent creators, actual model validation and held-out-niche tests. |
+| Multivariable creative-pattern discovery | **Supported within registered bounds**, temporal/conditional recipes, nonlinear candidates, all-attempt accounting and independent confirmation | R3/R9; recovery and false-discovery controls on synthetic fixtures plus independent real-data replication. |
+| Persistent psychological/performance intelligence | **Supported by canonical revisions and derived memory**, not embeddings alone | R1/R6/R7; cross-process persistence, crash repair, qualified graph/retrieval and real relevance evaluation. |
+| Learning and revising conclusions | **Supported through immutable assessments, dependencies, delta evidence and explicit weakening/rejection** | R7/R8/R10; a supported-in-scope result must be weakenable by new contrary data without rewriting history. |
+
+All six remain incompletely implemented today, and none is established as a scientifically validated intelligence capability. Unresolved empirical work includes technique/construct validity, reviewed corpus coverage, comment-link accuracy, adequate independent datasets, causal identification and external validity. These are research obligations, not problems solved by adding schema fields.
+
+## 15. Major decisions and tradeoffs
+
+| Decision | Why / cost |
+|---|---|
+| Add universal revision/evidence substrate; preserve legacy media subtype | Resolves non-media citations and historical identity without a destructive rewrite; adds resolver and typed-binding discipline. |
+| Versioned documents plus first-use relational projections | Avoids dozens of unused tables and opaque JSON-only analytics; requires strict schemas and incremental projection ownership. |
+| Explicit design specs and actual-pipeline validation | Fixes superficially successful but invalid comparisons; some requested analyses must return insufficient/unsupported. |
+| Small reviewed corpus and human annotations first | Enables a real psychology vertical slice without pretending model labels are mechanisms; limits initial breadth and adds review work. |
+| SQL authority + derived Qdrant/NetworkX | Keeps deployment local and rebuildable; accepts index lag, local lock limits and bounded graph views. |
+| Immutable assessments with eligibility projections | Preserves history and enables retraction; privacy erasure may legitimately prevent exact old reproduction. |
+| Separate simple analysis from research | Preserves creator usability and predictable costs; requires explicit capability/mode reporting rather than one magical “analyze everything” command. |
+
+## 16. Primary references and verification boundaries
+
+Official references inform contracts, not promises that connectors/models are already implemented. API capability assumptions must be rechecked during adapter delivery.
+
+- [SQLite foreign-key behavior](https://sqlite.org/foreignkeys.html): enforce registry/binding integrity on each connection.
+- [Qdrant Local implementation](https://github.com/qdrant/qdrant-client/blob/master/qdrant_client/local/qdrant_local.py): local lifecycle/locking and operational constraints; verify against the pinned installed version.
+- [scikit-learn cross-validation guidance](https://scikit-learn.org/stable/modules/cross_validation.html): group/time-aware validation; SocialDNA additionally requires source/feature availability and actual-estimator checks.
+- [Agent Skills specification](https://agentskills.io/specification): portable instruction format; actual host behavior still requires tests.
+- [YouTube channel analytics reports](https://developers.google.com/youtube/analytics/channel_reports), [retention dimensions](https://developers.google.com/youtube/analytics/dimensions#Audience_Retention) and [retention metrics](https://developers.google.com/youtube/analytics/metrics#Audience_retention_metrics): owner authority, relative coordinates and metric definitions.
+- [Meta's official Instagram API collection](https://www.postman.com/meta/instagram/documentation/6yqw8pt/instagram-api): supported account/authentication paths; no claim that every metric is available to every caller.
+- [TikTok Research API FAQ](https://developers.tiktok.com/docs/en/research-api-faq): eligibility and data-freshness constraints.
+- [Kang et al., 2009](https://www.cmu.edu/dietrich/sds/docs/loewenstein/WickCandleLearning.pdf): an example of operationalized curiosity research, not direct proof about cooking-video openings.
+- [Webb and Sheeran, 2006](https://pubmed.ncbi.nlm.nih.gov/16536643/): intention and subsequent behavior are not interchangeable.

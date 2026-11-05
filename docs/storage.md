@@ -1,4 +1,10 @@
-# Local storage (Milestones 0–1 and 3)
+# Local storage (implemented `0.0.4`)
+
+This page describes existing storage behavior, not the planned research schema.
+Historical Milestones 0, 1, 3, and 4 are implemented. Revised R1 introduces universal
+evidence contracts; R6 implements semantic/graph memory. See
+[research contracts](research-contracts.md), [migration strategy](migration-strategy.md),
+and the [roadmap](../PLAN.md) for planned changes.
 
 `open_application(Settings(...))` is the lifecycle boundary used by every command.
 It resolves the filesystem, rejects detected network mounts, creates a local data
@@ -19,13 +25,23 @@ The first migration creates:
 
 Migration `0002_timeline` adds `media_locations`, `media_probes`, task result/dependency
 tables, scenes, frames, text tracks/segments, audio segments, feature definitions,
-observations, evidence items, and reports. Vector-registry/outbox, graph, metrics,
-psychology, and research tables remain deferred. The baseline migration is unchanged.
+observations, evidence items, and reports. These evidence items are media-specific:
+they require a media/task identity and nonempty media interval. They are not yet a
+universal evidence registry. The baseline migration is unchanged.
 
 Revision `0003_enrichment` adds nullable paired `text_words` timing, normalized OCR-box
 evidence linked to frames/text segments, `inference_inputs` source-evidence foreign keys,
-and durable `provider_calls` request/response artifacts and status. This is the current
-head; no Milestone 2 memory schema is implied by the sequential revision number.
+and durable `provider_calls` request/response artifacts and status.
+
+Revision `0004_analytics` is the current head. It adds `import_batches`,
+`media_references`, `tags`, `post_tags`, `comments`, immutable `metric_definitions`,
+append-only `metric_observations`, `derived_metrics`, `cohorts`, `cohort_members`,
+`statistical_analyses`, `statistical_results`, and `account_media_runs`. Saved
+statistical inputs/results and reports support reproducibility; they do not yet
+provide a hypothesis-assessment lifecycle. Metric citations currently remain
+separate from media evidence. Vector-registry/outbox, persistent graph, universal
+evidence, and psychological research tables are still planned, not implemented.
+Migration numbering is independent of roadmap milestone numbering.
 
 All SQLAlchemy connections enable foreign keys, WAL, a bounded busy timeout,
 `synchronous=FULL`, and a 1,000-page automatic WAL checkpoint threshold. The engine
@@ -66,7 +82,7 @@ FTS5 using a temporary table, verifies every registered artifact checksum, detec
 unregistered artifacts, and reads Qdrant's local collection metadata.
 
 `doctor` also checks the current Python/dependency versions, disk free space,
-FFmpeg/ffprobe executable versions, and the absence of configured ML models. Missing
+FFmpeg/ffprobe executable versions, and optional model readiness metadata. Missing
 media tools are warnings for health/storage commands; video analysis requires them
 and returns dependency-unavailable exit code 3 before creating a run.
 
@@ -97,3 +113,13 @@ references commit together. A new run can reference an earlier successful produc
 rows. Failed/incomplete attempts have no committed canonical output. The writer lock
 allows interrupted tasks to be retried without a background lease-reaper service.
 See [video-analysis.md](video-analysis.md) for the execution and recovery contract.
+
+## Planned evolution, not current behavior
+
+R1 will add typed, versioned evidence locators while preserving existing media
+evidence IDs and report snapshots. R6 will add reconstructible lexical/vector/graph
+projections derived from canonical SQLite revisions; it will not make Qdrant or
+NetworkX authoritative. Existing released migrations must not be edited. Legacy
+rows must not gain fabricated comment timestamps, retrospective feature availability,
+or psychological interpretations during backfill. The staged compatibility and
+withdrawal rules are defined in the [migration strategy](migration-strategy.md).

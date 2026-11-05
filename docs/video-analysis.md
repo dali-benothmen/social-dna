@@ -1,5 +1,9 @@
 # Deterministic local video analysis
 
+Status: implemented `0.0.4` behavior. Planned R1 universal evidence and R3 semantic
+creative events extend this foundation; the [roadmap](../PLAN.md) does not require
+research registration, embeddings, or literature retrieval for basic video analysis.
+
 This describes the Milestone 1 deterministic foundation, still available with `--no-ai`.
 Milestone 3 adds [optional local enrichment](local-enrichment.md) to the same DAG/timeline.
 The deterministic path performs no inference, network media fetching, model downloads,
@@ -21,8 +25,9 @@ local registration → probe + SHA-256
 The application service owns this DAG; CLI callbacks only validate input and render
 results. `TaskRunner` commits outputs through SQLAlchemy Core and the existing artifact
 store. There is no second database/client lifecycle, job server, or repository abstraction
-per table. Media-specific import logic lives in `application/import_service.py` until
-additional ingestion adapters justify splitting it.
+per table. Local-video registration lives in `application/import_service.py`;
+normalized account exports use `ingestion/tabular.py` and
+`application/account_import_service.py`.
 
 All media intervals are integer milliseconds, half-open `[start, end)`, on the normalized
 source timeline. The origin is the earliest selected stream/container start reported by
@@ -66,6 +71,10 @@ integrated loudness is absent with a limitation, never reported as zero LUFS.
 Every observation and scene/frame/text/audio record has timestamped evidence; task
 results link to provenance, source records, configurations, dependency fingerprints,
 and tool/library versions. JSON reports include all timeline lanes and evidence IDs.
+These are existing media-specific evidence items, not the universal registry proposed
+in [research contracts](research-contracts.md). R1 must preserve their IDs. Timestamp
+alignment alone does not establish a cross-modal semantic relationship, and sampled
+non-detection is not evidence that a creative cue is absent.
 Markdown links evidence frames and cites subtitle/measurement evidence; it limits the
 measurement listing to 250 entries and directs readers to JSON for the remainder.
 Untrusted names/text are escaped, not interpreted as instructions or active Markdown.
@@ -100,5 +109,9 @@ pYIN and the first librosa/Numba compilation. No GPU is required. Temporary work
 removed on normal exit/interruption; SIGKILL may leave cache directories for inspection.
 These limits/protocol restrictions are safeguards, not an OS sandbox for hostile codecs.
 
-Qdrant semantic indexing, persistent graph construction and lexical search start in
-Milestone 2 (currently deferred) and do not trigger media reprocessing here.
+Qdrant semantic indexing, persistent graph construction and lexical search are planned
+in R6, superseding deferred historical Milestone 2. Existing extraction remains usable
+without them; compatible future indexing must not require re-decoding media. Reanalysis
+can still be necessary when a new event detector needs evidence never sampled by an
+earlier run. Photo/carousel analysis remains planned in U1; accepted post metadata
+does not imply that the video analyzers support those media types.

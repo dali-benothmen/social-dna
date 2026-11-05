@@ -1,5 +1,10 @@
 # Account export contract (version 1.0)
 
+Status: implemented `0.0.4` contract, unchanged by the research-design revision.
+Planned R1/R4/R5 contracts must use versioned extensions and preserve these exports;
+see [research contracts](research-contracts.md), [migration strategy](migration-strategy.md),
+and [PLAN.md](../PLAN.md). Proposed research records are not accepted by this importer.
+
 SocialDNA imports **normalized, authorized local exports**, not arbitrary vendor CSV
 layouts or live platform APIs. Adapt vendor columns into this documented contract;
 preserve the platform's actual metric definitions and missing fields. No import
@@ -79,6 +84,10 @@ warn that independent creator counts may be overstated. Omitted mutable metadata
 is preserved on update; supplied title/caption/profile values replace that field.
 Tags append; absence from a later export is not a deletion instruction. Comments
 are minimized text without imported author identifiers; parents/cycles are checked.
+They do not yet include collection sampling/coverage, reaction annotations, or links
+to media segments. Comment publication time is wall-clock time, not playback time.
+The importer accepts photo/carousel post metadata and references, but this is not
+photo/carousel analysis; current batch inference handles local videos only.
 
 ## Metric definitions and snapshots
 
@@ -98,9 +107,17 @@ Never write 0 for an unknown count. An omitted snapshot is reported as not suppl
 `window_start < window_end <= observed_at`; post windows cannot precede publication.
 Cumulative post windows, when supplied, start at publication. Period metrics require
 windows. Post exposure age is measured at `window_end` when present, otherwise
-`observed_at`, minus publication time. Delayed exports therefore do not inflate age.
+`observed_at`, minus publication time. A correctly supplied reporting window prevents
+collection delay from inflating age; without it, collection time is only a proxy and
+source lag remains unknown. Current imports do not establish precise historical freshness.
 Follower histories use `subject_type: account` and an account-scoped definition;
 they are retained but are **not** silently substituted for historical post denominators.
+Account-scoped snapshots are not currently outcomes for `analyze account`, whose
+performance outcome must be post-scoped. All current values are nonnegative, so
+signed net follower growth is not directly representable. Retention curves/bins,
+explicit audience-cohort denominators, replay semantics, source-freshness timestamps,
+and conversion-attribution contracts require planned versioned R5 extensions; do not
+encode them through invented scalar values or zero-filled missing data.
 
 ## Deduplication and history
 

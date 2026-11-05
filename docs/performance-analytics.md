@@ -1,6 +1,11 @@
 # Account performance analysis
 
-This milestone provides local, reproducible **observations and associations**, not
+Status: implemented `0.0.4` behavior, including known limitations. The revised
+[statistical design](statistical-design.md) specifies planned R2 repairs;
+[PLAN.md](../PLAN.md) is the implementation roadmap. Those repairs are not available
+in the current commands and do not retroactively alter saved reports.
+
+This release provides local, reproducible **observations and associations**, not
 causal attribution, a universal virality score, or psychological findings. It needs
 normalized exports: see [import formats](import-formats.md).
 
@@ -77,7 +82,12 @@ task IDs; they cite the exact underlying evidence. They are sampled, not all-pix
 or duration-weighted measures. Only primary media is aggregated; carousel-wide
 analysis and automated language/psychological feature discovery remain later work.
 Imports do not reconstruct historical caption edits or verify that an exported
-caption was unchanged at publication, so forecasting claims remain limited.
+caption was unchanged at publication. Production feature construction also does
+not populate per-feature `feature_available_at` metadata, even though the split
+auditor can check it when supplied. Consequently, the current checks do not establish
+publication-time feature availability; forecasting claims remain limited. Brightness
+is not warm lighting, loudness is not energetic narration, and no semantic creative
+event or psychological construct can be inferred from the registry name alone.
 
 ## Statistical safeguards
 
@@ -86,7 +96,11 @@ quartiles, exposure ages, definitions, exact snapshots, cohort members, features
 creator-relative baselines and limitations. Creator baselines use **leave-one-post-out**
 reference medians/MAD for ratios/robust z-scores (minimum three reference posts);
 zero reference median/MAD yields null, not an infinite score. These retrospective
-baselines never become predictive features.
+baselines never become predictive features. The reference population includes later
+posts in the selected cohort: adding future posts can change an earlier score.
+This is not an as-of-publication historical baseline. R2 must add a separate
+time-valid baseline policy and freeze its exact reference rows; it must preserve
+the interpretation of existing retrospective reports.
 
 Uncertainty uses a seeded creator-cluster percentile bootstrap of the post median,
 not frame/post-independent resampling. At least five observations and two clusters
@@ -101,6 +115,12 @@ of adequacy) require >=30 complete posts, >=10 posts/parameter, full-rank design
 nonconstant outcomes, no perfect prediction, and condition number <=1e8. Features
 and explicit interactions adjust for supplied platform/content-type/niche categories.
 OLS/Poisson add creator fixed effects when multiple creators are present.
+
+When each creator has one niche, the niche indicators can be aliased with creator
+fixed effects. Such multi-niche designs may therefore fail the rank gate despite
+large samples; the safeguard correctly withholds the fit, but the current model
+design does not solve the requested cross-niche estimand. R2 must define identifiable
+within-/between-creator designs, rather than disabling rank checks.
 
 - OLS: cluster-robust uncertainty for >=20 creators; single-creator chronological
   HAC uncertainty (maximum three lags). Few-cluster multi-creator fits are withheld.
@@ -117,14 +137,17 @@ sensitivity diagnostics, not claimed GLM/random-effect influence calculations.
 Benjamini–Yekutieli FDR corrects each exploratory test family (model terms and
 creator-aggregate correlations separately), conservatively allowing dependent tests.
 All tested terms remain stored; no positive-result filtering.
+This is per-run correction, not control over an unregistered sequence of changed
+specifications and repeated analyses of overlapping data.
 
 Matched comparison uses deterministic no-replacement matching on creator,
 platform, niche, content type, topic set, declared window width, actual age tolerance,
 and duration caliper. Matching never uses outcomes. It reports raw median paired
 differences and cluster bootstrap intervals when eligible. Distinct creators cannot
 form a same-creator pair: cross-creator account comparisons can legitimately have
-zero matches. `--unmatched` instead gives explicitly confounded descriptive group
-differences, without independence-based significance claims. With few/no pairs,
+zero matches. Cross-creator matching is unavailable; the account comparison command
+does not remove that restriction. `--unmatched` instead gives explicitly confounded
+descriptive group differences, without independence-based significance claims. With few/no pairs,
 the report preserves unmatched summaries and `insufficient_data` limitations.
 
 ## Validation, persistence and limits
@@ -135,8 +158,17 @@ uses the last publication-time block and purges training outcomes collected afte
 its cutoff; grouped holdout keeps creators disjoint (>=5 creators). The two checks
 test different generalizations, not joint time-and-creator generalization. Duplicate
 post IDs, overlapping creators in grouped splits, future predictors/outcomes, and
-target-derived feature names are rejected. Small or all-missing training splits are
-explicitly insufficient. Test preprocessing is never fitted separately or on all data.
+target-derived feature names are rejected where the required metadata is present.
+The production feature-timing limitation above still applies. Small or all-missing
+training splits are explicitly insufficient. Test preprocessing is never fitted
+separately or on all data.
+
+These are auxiliary **main-effect Ridge** checks regardless of the requested OLS,
+Poisson, GEE, mixed model, or interactions. They do not validate the selected model
+or a discovered interaction. Identical/near-identical media under different post IDs
+are not guaranteed to stay in one split, and there is no held-out-niche check. R2 must
+validate the actual prespecified transformation/model pipeline with time-valid lineage and
+duplicate-content groups; broader independent niche confirmation is planned in R9.
 
 Every run atomically stores its full spec, seed, library/engine versions, input hash,
 cohort members, frozen post inputs, derived rate inputs, machine-readable terms and
@@ -146,7 +178,22 @@ features cite timeline evidence IDs. New imports do not mutate previous reports.
 versions; it never silently substitutes current data. Re-running the ordinary
 account command instead includes newly imported data and reuses media task caches.
 
+Planned retention/withdrawal controls may make historical inputs or report bytes
+unavailable when erasure is required. Exact reproduction must then report the missing
+source and eligibility limitation, not silently substitute data; see
+[migration and retention strategy](migration-strategy.md).
+
 Runs are bounded to 5000 candidate posts; narrow the ID groups for larger libraries.
-SQLite/artifacts are authoritative. Semantic/vector/graph projections remain deferred
-with Milestone 2; analytics does not claim they exist. There is no distributed queue,
-automatic platform collection, model selection/search, or causal experiment engine.
+SQLite/artifacts are authoritative. Semantic/vector/graph projections remain planned
+in R6 (superseding deferred historical Milestone 2); analytics does not claim they
+exist. There is no distributed queue, automatic platform collection, model
+selection/search, or causal experiment engine.
+
+Comment text is imported but has no reaction annotations, collection-coverage
+manifest, or direct/semantic link to a video moment. Generic snapshots do not yet
+provide retention curves, cohort-specific denominators, conversion-attribution
+contracts, or account-growth analysis. An expressed intention is not a conversion;
+an observational content–outcome association does not establish a psychological
+mechanism. Planned R4–R5 and R7 extend those contracts; see
+[research contracts](research-contracts.md) and the
+[reference cooking investigation](research-use-case.md).

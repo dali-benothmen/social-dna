@@ -1,9 +1,14 @@
 # Optional local model enrichment (Milestone 3)
 
+Status: implemented `0.0.4` enrichment behavior. The revised [roadmap](../PLAN.md)
+preserves this historical milestone; R3 creative events and R7 psychological research
+are planned additions, not features of the current reasoning endpoint.
+
 This milestone was implemented before Milestone 2 at the user's explicit request.
 It uses the existing task DAG, SQLite timeline, evidence, provenance and artifacts.
 Semantic search, vector indexing, persistent graph queries and psychological discovery
-are still unavailable. They are not prerequisites for transcribing or reading a video.
+are still unavailable. Revised R6 supersedes the old memory milestone. Memory and
+research remain optional for ordinary transcription/video analysis.
 
 ## Install and prepare ASR/OCR
 
@@ -86,6 +91,12 @@ word estimates retain text with null timing. ASR/words are estimates; OCR and la
 scores are not calibrated truth. The ASR/subtitle comparison is symmetric token
 agreement, not WER/accuracy without a gold reference. No diarization or speaker identity
 inference is enabled.
+
+Aligned tracks share a clock; they do not yet establish a semantic relationship
+between a promise, a reveal, a sound effect, and an audience response. Sparse sampled
+frames cannot establish cue absence. Planned R3 creative events will record explicit
+cross-modal relationships, boundary uncertainty, coverage, and source evidence without
+rewriting existing observations. See [research contracts](research-contracts.md).
 
 ## Isolated optional pose/audio runtimes
 
@@ -196,6 +207,12 @@ cannot guarantee exactly-once provider billing. Request artifacts contain sensit
 derived evidence and should be protected like the source library. Reports expose audit
 artifact IDs/paths, never authorization headers. Source/model text is treated as untrusted
 data, and interpretations remain evidence-bound hypotheses requiring human review.
+The current reasoning task is deliberately bounded to supplied images/text and
+does not investigate psychological mechanisms or correlate comments/performance.
+Its prompt prohibits audience-psychology and performance claims. A future research
+service must preserve those boundaries for this task, use separate reviewed research
+inputs, evaluate competing explanations, and distinguish observational association
+from evidence of a psychological mechanism.
 
 ## Persistence, cache and verification
 
