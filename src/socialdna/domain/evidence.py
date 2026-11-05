@@ -144,6 +144,33 @@ class StudyLocator(BaseModel):
     location: str
 
 
+class ContextLocator(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    kind: Literal["context_record"] = "context_record"
+    subject: EntityRef
+    field: str | None = Field(default=None, min_length=1, max_length=200)
+    start_char: int | None = Field(default=None, strict=True, ge=0)
+    end_char: int | None = Field(default=None, strict=True, gt=0)
+    quote: str | None = Field(default=None, min_length=1, max_length=10000)
+    artifact_id: str | None = None
+
+    @model_validator(mode="after")
+    def exact_target(self) -> "ContextLocator":
+        if self.quote is None:
+            if any(v is not None for v in (self.field, self.start_char, self.end_char)):
+                raise ValueError("Context text needs field, bounds and exact quote")
+        elif (
+            self.field is None
+            or self.start_char is None
+            or self.end_char is None
+            or self.end_char <= self.start_char
+            or len(self.quote) != self.end_char - self.start_char
+            or self.artifact_id is not None
+        ):
+            raise ValueError("Use one exact Unicode text span or one asset citation")
+        return self
+
+
 class ResearchLocator(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
     kind: Literal["research_record"] = "research_record"
@@ -160,6 +187,7 @@ EvidenceLocator = Annotated[
     | AudienceLocator
     | BehavioralLocator
     | StudyLocator
+    | ContextLocator
     | ResearchLocator,
     Field(discriminator="kind"),
 ]

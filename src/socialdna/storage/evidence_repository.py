@@ -14,6 +14,7 @@ from socialdna.domain.evidence import (
     AudienceLocator,
     BehavioralLocator,
     CommentLocator,
+    ContextLocator,
     CreativeEventLocator,
     EntityRef,
     EvidenceRef,
@@ -41,6 +42,10 @@ LEGACY_KINDS = {
     "ocr_box": ("ocr_boxes", "id"),
 }
 AUTHORED_KINDS = {
+    "publication_context",
+    "publishing_window",
+    "trend_context",
+    "context_report",
     "literature_source",
     "study_finding",
     "psychological_construct",
@@ -173,6 +178,15 @@ class EvidenceRepository:
             from socialdna.storage.research_repository import validate_projection as research_check
 
             research_check(self, ref, json.loads(row["payload_json"]))
+        if ref.kind in (
+            "publication_context",
+            "publishing_window",
+            "trend_context",
+            "context_report",
+        ):
+            from socialdna.storage.context_repository import validate_projection as context_check
+
+            context_check(self, ref, json.loads(row["payload_json"]))
         provenance = self.get("provenance_records", row["provenance_id"])
         if provenance["source_record_id"] != row["source_id"]:
             raise StorageIntegrityError("Entity provenance/source mismatch")
@@ -362,6 +376,7 @@ class EvidenceRepository:
         | AudienceLocator
         | BehavioralLocator
         | StudyLocator
+        | ContextLocator
         | ResearchLocator,
         provenance_id: str,
         *,

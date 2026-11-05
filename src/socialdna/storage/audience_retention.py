@@ -98,11 +98,15 @@ def preview(
                 "reaction_cluster",
                 "content_reaction_link",
                 "audience_analysis",
+                "publication_context",
+                "publishing_window",
+                "trend_context",
+                "context_report",
             )
             for r in entities
         )
     ):
-        raise ConfigurationError("Selected source has no registered audience content")
+        raise ConfigurationError("Selected source has no registered audience or context content")
     affected = {r["id"] for r in entities if r["kind"] == "comment" and r["entity_id"] in comments}
     affected.update(
         r["id"]

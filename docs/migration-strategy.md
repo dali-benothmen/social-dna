@@ -43,7 +43,10 @@ Schema is introduced with its first real writer and consumer:
 Do not create every future locator or projection in R1. The generic identity/revision registry supplies the extension point. Low-volume future definitions remain validated versioned documents until a query/writer justifies additional tables.
 
 C1-A (`0.0.13`) reuses the existing creative projections and adds no migration;
-its professional labels require explicit annotation schema `2.0`. C1-B/C/D remain
+its professional labels require explicit annotation schema `2.0`. C1-B (`0.0.14`)
+adds `0013_context`: immutable context ownership/capture and typed citation bindings,
+preserving existing evidence triggers across the locator-CHECK rebuild. Any captured
+history prevents downgrade; verified backups remain the recovery path. C1-C/D remain
 planned first-use extensions. See the [capability contracts](research-contracts.md#8-production-and-growth-context-contracts)
 and [slice verification matrix](intelligence-capability-audit.md#4-bounded-delivery-and-verification).
 Preserve account-export v1, the closed R3 annotation v1 vocabulary and existing

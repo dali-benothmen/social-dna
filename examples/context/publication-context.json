@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "dataset_id": "replace-with-authorized-source-key",
+  "source_uri": "urn:replace-with-actual-source",
+  "permission_basis": "REPLACE: actual permission for supplied metadata and optional assets",
+  "records": [
+    {
+      "record_type": "publication_context",
+      "key": "packaging",
+      "account": {"kind": "account", "id": "REPLACE_ACCOUNT_ID", "revision_id": "00000000-0000-0000-0000-000000000000"},
+      "post": {"kind": "post", "id": "REPLACE_POST_ID", "revision_id": "00000000-0000-0000-0000-000000000000"},
+      "clock": {"captured_at": "2026-01-02T00:00:00Z", "validity_basis": "unknown"},
+      "published_original": "2026-01-01T00:00:00+00:00",
+      "timezone": null,
+      "native_format": "REPLACE_NATIVE_FORMAT",
+      "title": {"state": "not_collected"},
+      "description": {"state": "not_collected"},
+      "caption": {"state": "not_collected"},
+      "niche": "REPLACE_DECLARED_NICHE",
+      "audience": "REPLACE_DECLARED_AUDIENCE"
+    }
+  ]
+}

@@ -15,6 +15,7 @@ from socialdna.domain.evidence import (
     AudienceLocator,
     BehavioralLocator,
     CommentLocator,
+    ContextLocator,
     CreativeEventLocator,
     EntityRef,
     EvidenceLocator,
@@ -165,6 +166,9 @@ class EvidenceResolver:
                 actual_post = locator.post.id
             elif isinstance(locator, PostTextLocator):
                 actual_post = locator.subject.id
+            elif isinstance(locator, ContextLocator):
+                data = json.loads(entities[0]["payload_json"])
+                actual_post = data["post"]["id"] if data.get("post") else None
             elif isinstance(locator, AudienceLocator):
                 collection = json.loads(self.repository.entity(locator.collection)["payload_json"])
                 if locator.subject.kind == "reaction_annotation":
@@ -288,6 +292,31 @@ class EvidenceResolver:
                 )
             except ConfigurationError as exc:
                 limitations.append("Derived analysis input is ineligible: " + str(exc))
+        if isinstance(locator, ContextLocator):
+            document = json.loads(entities[0]["payload_json"])
+            from socialdna.memory.documents import entity_active as memory_entity_active
+
+            if locator.artifact_id and is_redacted(
+                self.connection, "artifact", locator.artifact_id
+            ):
+                limitations.append("Context asset was erased; visual evidence is unavailable")
+
+            for raw in document["entity_inputs"]:
+                try:
+                    memory_entity_active(
+                        self.connection, EntityRef.model_validate(raw), as_of=as_of
+                    )
+                except ConfigurationError as exc:
+                    limitations.append("Context entity is ineligible: " + str(exc))
+            for raw in document["evidence_inputs"]:
+                dependency = self.resolve(
+                    EvidenceRef.model_validate(raw),
+                    as_of=as_of,
+                    _ancestors=_ancestors | {row["id"]},
+                    _memo=memo,
+                )
+                if not dependency.eligible:
+                    limitations.append("Context input is ineligible: " + dependency.ref.id)
         if isinstance(locator, CreativeEventLocator):
             subject = json.loads(entities[0]["payload_json"])
             dependencies = (
@@ -415,6 +444,7 @@ class EvidenceResolver:
         | AudienceLocator
         | BehavioralLocator
         | StudyLocator
+        | ContextLocator
         | ResearchLocator,
     ) -> None:
         counts = {}
@@ -430,6 +460,7 @@ class EvidenceResolver:
             "creative_evidence_bindings",
             "study_evidence_bindings",
             "research_evidence_bindings",
+            "context_evidence_bindings",
         ):
             table = metadata.tables[name]
             counts[name] = (
@@ -442,7 +473,14 @@ class EvidenceResolver:
         if sum(value is not None for value in counts.values()) != 1:
             raise StorageIntegrityError("Evidence requires exactly one typed locator binding")
         subject = json.loads(self.repository.entity(locator.subject)["payload_json"])
-        if isinstance(locator, StudyLocator):
+        if isinstance(locator, ContextLocator):
+            from socialdna.storage.context_repository import validate_locator
+
+            binding = counts["context_evidence_bindings"]
+            if not binding or binding["subject_revision_id"] != locator.subject.revision_id:
+                raise StorageIntegrityError("Context citation has a mismatched typed binding")
+            validate_locator(self.repository, locator)
+        elif isinstance(locator, StudyLocator):
             binding = counts["study_evidence_bindings"]
             source = json.loads(self.repository.entity(locator.source_document)["payload_json"])
             spec = subject.get("spec", {})

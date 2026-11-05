@@ -12,6 +12,7 @@ from socialdna.storage.migrations.versions.v0009_behavioral import extend_metada
 from socialdna.storage.migrations.versions.v0010_memory import extend_metadata as memory
 from socialdna.storage.migrations.versions.v0011_research import extend_metadata as research
 from socialdna.storage.migrations.versions.v0012_reevaluation import extend_metadata as reevaluation
+from socialdna.storage.migrations.versions.v0013_context import extend_metadata as context
 
 metadata = foundation_metadata()
 extend_metadata(metadata)
@@ -25,3 +26,4 @@ behavioral(metadata)
 memory(metadata)
 research(metadata)
 reevaluation(metadata)
+context(metadata)

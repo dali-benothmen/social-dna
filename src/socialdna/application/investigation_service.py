@@ -139,6 +139,14 @@ def _scope_evidence(
         )
     elif locator.kind == "metric_snapshot":
         eligible = payload["measured_subject"]["id"] in post_ids | account_ids
+    elif locator.kind == "context_record":
+        members = document.get("spec", {}).get("posts", [])
+        post = document.get("post")
+        eligible = (
+            resolved.subject.kind in ("publication_context", "publishing_window", "trend_context")
+            and document["account"]["id"] in account_ids
+            and (post["id"] in post_ids if post else all(p["id"] in post_ids for p in members))
+        )
     else:
         eligible = False
     if not eligible:

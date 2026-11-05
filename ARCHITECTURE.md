@@ -766,3 +766,31 @@ additional vector collection or infrastructure is introduced by this delivery.
 
 See [production operations](docs/production-evidence.md). Broad interactions and
 actionable strategies remain R9/R10; automatic detector validation is not delivered.
+
+## 27. Publication context delivery (`0.0.14`)
+
+- `0013_context` adds one account/post/capture projection and one typed evidence
+  binding, extending the existing locator CHECK through the previously tested
+  trigger-preserving rebuild. Released migrations remain unchanged. Context field
+  locators cite actual strings/asset membership without fake playback coordinates.
+- Explicit schemas distinguish packaging observations, completeness-qualified
+  publishing inventories and dated query/trend context. Source capture, attested
+  validity and engine knowledge remain separate; no import backdates availability.
+  Original offsets validate against supplied IANA zones, including DST gaps/folds.
+- Two pinned deterministic report recipes expose local clock and complete-inventory
+  cadence. A frozen R2 comparison can align actual outcomes to exactly the same
+  posts without estimating a new context effect or extending the v2 numerical engine.
+  R9 owns new context regressions. Declared search/recommendation/conversion objectives
+  never reinterpret generic views as verified channel-specific outcomes.
+- Record-level reuse preserves unchanged source revisions when a neighboring record
+  changes. Frozen reports pin context and statistical citations. R7 supplementary
+  scope checks admit raw context only; R8 tracks its real dependencies. Existing
+  citation builders/eligibility, structural graph, indexing journal and confirmed
+  erasure machinery apply; no new collection or graph engine is introduced.
+- The historical `audience redact` command also accepts registered context sources
+  with the same explicit preview/confirmation and terminal tombstone workflow. It
+  does not gain authority to erase original post/account/media records or backups.
+
+See [operations and actual scope](docs/publication-context.md). Bounded asset
+verification/identity is not U1 visual interpretation, and dated trend imports are
+not an autonomous trend detector or evidence of a universal optimal posting time.

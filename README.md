@@ -1,7 +1,10 @@
 # SocialDNA
 
 SocialDNA is a local-first social-media research engine. The implemented release is
-`0.0.13`: reviewed professional production evidence and eight pinned numeric craft
+`0.0.14`: dated publication/packaging context, exact metadata/asset citations,
+timezone-safe local clocks and completeness-qualified cadence, aligned with frozen
+performance comparisons. See [publishing context](docs/publication-context.md).
+It extends `0.0.13`'s reviewed professional production evidence and eight pinned numeric craft
 recipes, joined to the existing comparison/research pipeline. See
 [production evidence](docs/production-evidence.md). It extends `0.0.12`'s
 incremental hypothesis reevaluation with immutable contradiction history,

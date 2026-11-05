@@ -84,6 +84,8 @@ TEXT_KEYS = {
     "distribution_context",
     "publishing_context",
     "profile_context",
+    "observation",
+    "query",
 }
 
 
@@ -331,6 +333,8 @@ def build(connection: Connection, kind: str, identity: str) -> dict[str, Any] | 
         citations = [ref for _, ref in references(payload) if isinstance(ref, EvidenceRef)]
     if locator.get("kind") in ("comment_span", "post_text"):
         text = locator["quote"]  # Index only the permitted exact cited span.
+    elif locator.get("kind") == "context_record" and locator.get("quote"):
+        text = locator["quote"]
     else:
         text = text_fields(payload)
         if owner.kind == "research_assessment" and "reevaluation" in payload:
@@ -384,7 +388,14 @@ def build(connection: Connection, kind: str, identity: str) -> dict[str, Any] | 
         if owner.kind in ("hypothesis", "psychological_construct", "operationalization")
         else "research_knowledge"
         if owner.kind
-        in ("research_question", "study_finding", "research_protocol", "experiment_brief")
+        in (
+            "research_question",
+            "study_finding",
+            "research_protocol",
+            "experiment_brief",
+            "context_report",
+            "trend_context",
+        )
         else "content_segments"
     )
     return {

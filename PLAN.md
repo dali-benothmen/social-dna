@@ -730,13 +730,14 @@ The next numbered research milestone is **R9**; C1 and U1/U2 remain separately a
 
 ## 19. C1 — Versioned production and growth-context evidence
 
-Status: **C1-A delivered in `0.0.13`; C1-B/C/D pending**. Four bounded deliveries,
+Status: **C1-A/B delivered in `0.0.13`/`0.0.14`; C1-C/D pending**. Four bounded deliveries,
 not one large implementation or a requirement to build live API adapters. Detailed
 boundaries are in the [capability audit](docs/intelligence-capability-audit.md#2-shared-extension-architecture--planned-not-implemented).
 
 Current authorization: implement C1-A through C1-D as four serial deliveries, each
 with working functionality, automated verification and its own professional commit.
-C1-A is complete; C1-B/C/D have not started. This does not authorize R9/R10 or U1/U2.
+C1-A/B are complete; C1-C/D have not started.
+This does not authorize R9/R10 or U1/U2.
 
 ### Objective and integration
 
@@ -771,6 +772,24 @@ Proposed file names below are responsibility boundaries, not scaffolding instruc
   strict mypy (152 modules), offline lock/build, fresh installed-wheel CLI and
   packaged/source equality checks pass. No real-model accuracy claim follows
   from skipped model smoke tests or generated fixtures.
+
+### Delivered publishing context (`0.0.14`)
+
+- `domain/context.py`, `application/context_service.py`, `storage/context_repository.py`
+  and `cli/context_commands.py` implement real typed publication/window/trend imports,
+  field/asset citations, immutable reports and two pinned local-clock/cadence recipes.
+  `0013_context` adds only the exercised ownership/capture and evidence bindings.
+- Actual six-post R2 matching/outcomes align with pinned context without claiming a
+  new posting-time effect. Unknown zones, incomplete inventory, future trends,
+  mismatched objectives and unavailable historical metadata are explicitly gated.
+  Raw contexts integrate with R7 population scope and R8's existing change journal;
+  reports are not reclassified as raw observations.
+- All 472 collected tests covered across regression partitions/final reruns: 469
+  pass and three optional prepared-model skips. Ruff, strict mypy (157 modules),
+  offline lock/build and installed-wheel commands pass. An intermediate test correctly
+  rejected a checksum after the *new, uncommitted* migration was changed during its
+  run; all 16 memory tests pass against the final fixed migration. Released migrations
+  were never modified. [Actual operations and limits](docs/publication-context.md).
 
 ### Acceptance criteria and tests
 
