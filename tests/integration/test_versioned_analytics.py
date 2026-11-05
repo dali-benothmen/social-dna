@@ -341,6 +341,21 @@ def test_legacy_method_reproduction_does_not_reinterpret_archived_spec(
         new = analyze_account(app, ACCOUNT, corrected(maturity_policy="collection_proxy"))
         assert new["schema_version"] == "2.0" and old["schema_version"] == "1.0"
         assert new["results"] != old["results"]
+        # Released corrected specs predate the optional creative fields. Their
+        # frozen input/result hashes must still reproduce under the unchanged
+        # numerical method, not be rebuilt with current creative defaults.
+        with app.database.transaction() as connection:
+            archived = json.loads(json.dumps(new))
+            archived["analysis_configuration"]["engine_version"] = "0.0.6"
+            for key in ("creative_recipes", "creative_annotation_key", "creative_label_policy"):
+                archived["analysis_configuration"]["spec"].pop(key, None)
+            table = metadata.tables["statistical_analyses"]
+            connection.execute(
+                table.update()
+                .where(table.c.run_id == new["run_id"])
+                .values(result_json=json.dumps(archived))
+            )
+        assert reproduce(app, new["run_id"])["results"] == new["results"]
         with app.database.transaction() as connection:
             table = metadata.tables["statistical_analyses"]
             corrupted = {**new, "reference_population": []}

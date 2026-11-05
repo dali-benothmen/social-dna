@@ -88,9 +88,8 @@ class PerformanceSpec(BaseModel):
     matched: bool = True
     duration_caliper_seconds: float = Field(default=10, ge=0)
 
-    @model_validator(mode="after")
-    def valid_features(self) -> "PerformanceSpec":
-        allowed = {
+    def allowed_features(self) -> set[str]:
+        return {
             "duration_seconds",
             "caption_length",
             "publishing_hour_utc",
@@ -98,6 +97,10 @@ class PerformanceSpec(BaseModel):
             "visual.appearance",
             "audio.loudness",
         }
+
+    @model_validator(mode="after")
+    def valid_features(self) -> "PerformanceSpec":
+        allowed = self.allowed_features()
         if len(set(self.features)) != len(self.features) or len(self.features) > 6:
             raise ValueError("Specify at most six unique content features")
         if set(self.features) - allowed:
@@ -153,6 +156,12 @@ class CorrectedPerformanceSpec(PerformanceSpec):
     family_id: str = Field(min_length=1, max_length=200)
     family_terms: tuple[str, ...] = Field(min_length=1, max_length=100)
     holdout_id: str | None = Field(default=None, min_length=1, max_length=200)
+    creative_recipes: dict[str, str] = Field(default_factory=dict, max_length=6)
+    creative_annotation_key: str | None = Field(default=None, min_length=1, max_length=100)
+    creative_label_policy: Literal["reviewed_only", "proposals_exploratory"] = "reviewed_only"
+
+    def allowed_features(self) -> set[str]:
+        return super().allowed_features() | set(self.creative_recipes)
 
     @field_validator("knowledge_cutoff", "publication_cutoff")
     @classmethod
@@ -163,6 +172,16 @@ class CorrectedPerformanceSpec(PerformanceSpec):
 
     @model_validator(mode="after")
     def coherent_design(self) -> "CorrectedPerformanceSpec":
+        import re
+
+        if any(
+            not re.fullmatch(r"creative\.[a-z_]+", key)
+            or not re.fullmatch(r"creative\.[a-z_]+\.v[1-9][0-9]*", value)
+            for key, value in self.creative_recipes.items()
+        ) or not set(self.creative_recipes).issubset(self.features):
+            raise ValueError(
+                "Creative features require declared names and exact versioned recipe IDs"
+            )
         estimands = {
             "descriptive": "descriptive",
             "within_creator": "within_creator_association",

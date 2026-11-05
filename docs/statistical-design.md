@@ -1,6 +1,6 @@
 # Statistical design and validation
 
-Status: the bounded R2 comparison/lineage/validation path is implemented in `0.0.6`; see [operations and supported limits](versioned-analytics.md). This document also specifies later capabilities, including broader discovery in R9; it is not a claim that all designs below are available. Existing unversioned analyses retain their original semantics. See [architecture](../ARCHITECTURE.md), [research contracts](research-contracts.md), [roadmap](../PLAN.md) and [cooking use case](research-use-case.md).
+Status: the bounded R2 comparison/lineage/validation path is preserved in `0.0.7`, with explicit R3 [creative-recipe joins](creative-analysis.md); see [operations and supported limits](versioned-analytics.md). This document also specifies later capabilities, including broader discovery in R9; it is not a claim that all designs below are available. Existing unversioned analyses retain their original semantics. See [architecture](../ARCHITECTURE.md), [research contracts](research-contracts.md), [roadmap](../PLAN.md) and [cooking use case](research-use-case.md).
 
 This specification defines analytical eligibility and interpretation. Passing a software test, obtaining a full-rank fit, or exceeding an engineering sample threshold does not demonstrate construct validity, causal identification, adequate power or external validity.
 

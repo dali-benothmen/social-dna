@@ -75,7 +75,12 @@ def build_report(application: Application, run_id: str) -> VideoReport:
                 .order_by(provenance_table.c.id)
             ).mappings()
         ]
-    data = timeline(application, run["target_id"], run_id=run_id)
+    creative_enabled = bool(json.loads(run["config_json"]).get("creative"))
+    data = timeline(application, run["target_id"], run_id=run_id, include_creative=creative_enabled)
+    if creative_enabled and not data["creative"]["eligible"]:
+        from socialdna.core.exceptions import ConfigurationError
+
+        raise ConfigurationError("Creative report inputs are withdrawn or ineligible")
     with application.database.transaction() as connection:
         for frame in data["frames"]:
             row = application.artifacts.get(connection, frame["artifact_id"])
@@ -124,6 +129,13 @@ def build_report(application: Application, run_id: str) -> VideoReport:
             f"Run execution status is {run['status']}; "
             "this report includes only committed successful task outputs."
         )
+    if creative_enabled:
+        limitations.extend(data["creative"].get("limitations", []))
+        limitations.append(
+            "Creative labels are reviewed assertions or literal-text proposals, not "
+            "validated visual recognition or psychological explanations. Sparse samples "
+            "cannot establish absence; caption/hashtag evidence has no playback offset."
+        )
     for raw in result_rows:
         result = json.loads(raw)
         limitations.extend(result.get("limitations", []))
@@ -135,6 +147,7 @@ def build_report(application: Application, run_id: str) -> VideoReport:
                 f"{task['task_key']} failed: {json.loads(task['error_json']).get('message', '')}"
             )
     return VideoReport(
+        schema_version="2.0" if creative_enabled else "1.0",
         run_id=run_id,
         media_id=run["target_id"],
         status="partial" if run["status"] != "succeeded" else "success",
@@ -236,7 +249,7 @@ def generate_report(
                 run_id=run_id,
                 format=report_format,
                 artifact_id=artifact_id,
-                schema_version="1.0",
+                schema_version=report.schema_version,
                 created_at=utc_now(),
             )
             .on_conflict_do_update(

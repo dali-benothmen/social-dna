@@ -9,6 +9,7 @@ from socialdna import __version__
 from socialdna.application.bootstrap import initialize
 from socialdna.cli.account_commands import register as register_accounts
 from socialdna.cli.common import ConfigFile, DataDir, Format, execute
+from socialdna.cli.creative_commands import register as register_creative_commands
 from socialdna.cli.errors import error_result
 from socialdna.cli.output import emit
 from socialdna.cli.research_commands import register as register_research_commands
@@ -166,6 +167,9 @@ def analyze_video_command(
     pose: bool = False,
     classify_audio: bool = False,
     reason: bool = False,
+    creative_profile: str | None = None,
+    creative_annotations: Path | None = None,
+    creative_frame_budget: int = 12,
     offline: bool | None = None,
     remote_media_consent: bool | None = None,
     data_dir: DataDir = None,
@@ -195,6 +199,8 @@ def analyze_video_command(
                     "pose": pose,
                     "classify_audio": classify_audio,
                     "reason": reason,
+                    "creative_profile": creative_profile,
+                    "creative_frame_budget": creative_frame_budget,
                 }
             )
         except ValidationError as exc:
@@ -211,6 +217,7 @@ def analyze_video_command(
                 subtitles=subtitles,
                 copy_media=copy_media,
                 resume=resume,
+                creative_annotations=creative_annotations,
                 on_run=lambda run_id: typer.echo(f"Analysis run: {run_id}", err=True),
                 on_estimate=(
                     lambda estimate: typer.echo(
@@ -307,6 +314,7 @@ def parse_offset(value: str) -> int:
 def timeline_command(
     ctx: typer.Context,
     media_id: str,
+    creative: bool = False,
     start: str = "0s",
     end: str | None = None,
     run: str | None = None,
@@ -326,6 +334,7 @@ def timeline_command(
                 parse_offset(start),
                 parse_offset(end) if end is not None else None,
                 run_id=run,
+                include_creative=creative,
             )
 
     execute(ctx, "timeline.show", operation, data_dir, config, output_format)
@@ -409,5 +418,6 @@ def main() -> None:
         raise SystemExit(ExitCode.INTERNAL) from exc
 
 
+register_creative_commands(app)
 register_accounts(ingestion, analysis, compare_app)
 register_research_commands(app, storage)

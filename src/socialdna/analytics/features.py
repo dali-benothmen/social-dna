@@ -91,9 +91,12 @@ class FeatureMaterializer:
         media: dict[str, Any],
         media_run: dict[str, Any],
         spec: CorrectedPerformanceSpec,
+        creative_bundle: dict[str, Any] | None = None,
     ) -> dict[str, dict[str, Any]]:
         result = {}
         for key in sorted(set(spec.features) | set(spec.covariates)):
+            if key in spec.creative_recipes:
+                continue
             field = "caption" if key == "caption_length" else "published_at"
             origin = field_revision(history, field)
             revision_ids = [origin["id"]]
@@ -161,7 +164,182 @@ class FeatureMaterializer:
                 "lineage": lineage,
                 "coverage": document["coverage"],
             }
+        if spec.creative_recipes:
+            for key, recipe_id in sorted(spec.creative_recipes.items()):
+                result[key] = materialize_creative_value(
+                    self.connection,
+                    recipe_id,
+                    feature_key=key,
+                    subject={
+                        "kind": "post",
+                        "id": history[-1]["entity_id"],
+                        "revision_id": history[-1]["id"],
+                    },
+                    bundle=creative_bundle
+                    or {"events": [], "coverage": [], "reason": "missing_media"},
+                    post_payload=history[-1]["payload"],
+                    feature_policy=spec.feature_policy,
+                    proposals=spec.creative_label_policy == "proposals_exploratory",
+                    cutoff=spec.knowledge_cutoff,
+                )
         return result
+
+
+def materialize_creative_value(
+    connection: Connection,
+    recipe_id: str,
+    *,
+    feature_key: str,
+    subject: dict[str, str],
+    bundle: dict[str, Any],
+    post_payload: dict[str, Any] | None = None,
+    feature_policy: str = "retrospective_content",
+    proposals: bool = False,
+    cutoff: str | None = None,
+) -> dict[str, Any]:
+    from socialdna.analytics.creative_recipes import dependencies, evaluate_recipe
+    from socialdna.analyzers.creative import RECIPES
+    from socialdna.domain.evidence import EntityRef, PostTextLocator
+    from socialdna.storage.creative_repository import (
+        cite_post_text,
+        post_text,
+        register_definitions,
+    )
+
+    if recipe_id not in RECIPES:
+        from socialdna.core.exceptions import ConfigurationError
+
+        raise ConfigurationError("Unknown pinned creative recipe: " + recipe_id)
+    register_definitions(connection)
+    recipe = RECIPES[recipe_id]
+    repository = EvidenceRepository(connection)
+    entity = repository.entity(EntityRef.model_validate(subject))
+    recipe_record = repository.get("feature_recipes", recipe_id)
+    relevant = dependencies(recipe) | {"unclassified"}
+    events = []
+    for item in bundle["events"]:
+        event = item["annotation"]
+        if event["technique"] not in relevant:
+            continue
+        if event["post"]:
+            if subject["kind"] != "post" or event["post"]["id"] != subject["id"]:
+                continue
+            matching = True
+            for data in item["inputs"]:
+                evidence = repository.get("evidence_revisions", data["ref"]["revision_id"])
+                if evidence["locator_kind"] == "post_text":
+                    locator = PostTextLocator.model_validate_json(evidence["locator_json"])
+                    original = post_text(
+                        repository, locator.subject, locator.field, locator.tag_index
+                    )
+                    current = (
+                        (post_payload or {}).get("caption")
+                        if locator.field == "caption"
+                        else (post_payload or {}).get("hashtags", [])
+                    )
+                    matching = matching and (
+                        original == current
+                        if locator.field == "caption"
+                        else isinstance(current, list) and original in current
+                    )
+            if not matching:
+                continue
+        events.append(item)
+    coverages = [
+        item
+        for item in bundle["coverage"]
+        if set(item["coverage"]["techniques"]).intersection(relevant)
+    ]
+    selected = {**bundle, "events": events, "coverage": coverages}
+    evidence_refs = [item["evidence"] for item in events + coverages]
+    entities = [item["ref"] for item in events + coverages]
+    source_ids = {item["source_id"] for item in events + coverages if item["source_id"]}
+    available_times = [item["available_at"] for item in events + coverages]
+    recipe_document = json.loads(recipe_record["spec_json"])
+    for technique in recipe_document["techniques"]:
+        definition = repository.entity(EntityRef.model_validate(technique))
+        entities.append(technique)
+        if definition["source_id"]:
+            source_ids.add(definition["source_id"])
+        available_times.append(definition["available_at"])
+    protocols = [item["protocol"] for item in events + coverages]
+    if recipe.operation == "hashtag_count":
+        tags = (post_payload or {}).get("hashtags")
+        evaluated = {
+            "value": float(len(tags)) if isinstance(tags, list) else None,
+            "coverage": "observed" if isinstance(tags, list) else "unknown",
+            "reason": "captured_normalized_hashtag_inventory"
+            if isinstance(tags, list)
+            else "unknown_hashtag_inventory",
+        }
+        entities.append(subject)
+        if entity["source_id"]:
+            source_ids.add(entity["source_id"])
+        available_times.append(entity["available_at"])
+        if tags:
+            for index in range(len(tags)):
+                evidence_refs.append(
+                    cite_post_text(
+                        connection, EntityRef.model_validate(subject), "hashtag", tag_index=index
+                    ).model_dump()
+                )
+    else:
+        evaluated = evaluate_recipe(recipe, selected, proposals=proposals)
+    # Absence is an assertion about coverage as well as a lack of positive events.
+    # Whole selection revisions live in the analysis row, not the dependency cache
+    # key; unrelated annotation changes do not invalidate an unchanged measurement.
+    known_times = [time for time in available_times if time]
+    available_at = (
+        max([recipe_record["available_at"], *known_times])
+        if known_times and len(known_times) == len(available_times)
+        else None
+    )
+    eligible = evaluated["value"] is not None
+    if cutoff and (available_at is None or available_at > cutoff):
+        eligible = False
+    if feature_policy == "historical_prediction":
+        decision = (post_payload or {}).get("published_at")
+        eligible = bool(eligible and available_at and decision and available_at <= decision)
+    lineage = {
+        "recipe_spec": json.loads(recipe_record["spec_json"]),
+        "recipe_available_at": recipe_record["available_at"],
+        "entity_refs": sorted(entities, key=lambda item: item["revision_id"]),
+        "evidence_refs": sorted(evidence_refs, key=lambda item: item["revision_id"]),
+        "source_ids": sorted(source_ids),
+        "reason": evaluated["reason"],
+        "annotation_protocols": protocols,
+        "label_policy": "proposals_exploratory" if proposals else "reviewed_only",
+        "outcome_blind": bool(protocols)
+        and all(p["outcome_access"] == "blinded" for p in protocols),
+        "scientific_scope": "observable annotation only; no psychological or causal claim",
+    }
+    document = {
+        "post_id": subject["id"] if subject["kind"] == "post" else None,
+        "subject_revision_id": subject["revision_id"],
+        "recipe_id": recipe_id,
+        "feature_key": feature_key,
+        "value": evaluated["value"],
+        "available_at": available_at,
+        "content_valid_at": None,
+        "lineage_json": canonical_json(lineage),
+        "coverage": evaluated["coverage"],
+        "media_id": subject["id"] if subject["kind"] == "media" else None,
+    }
+    identity = stable_id("creative-feature-value", hash_config(document))
+    connection.execute(
+        insert(metadata.tables["feature_values"])
+        .values(id=identity, **document, materialized_at=utc_now())
+        .on_conflict_do_nothing()
+    )
+    return {
+        "id": identity,
+        "value": evaluated["value"],
+        "available_at": available_at,
+        "content_valid_at": None,
+        "coverage": evaluated["coverage"],
+        "eligible": eligible,
+        "lineage": lineage,
+    }
 
 
 def eligible_rows(

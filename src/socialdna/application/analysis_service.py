@@ -39,10 +39,18 @@ def analyze_video(
     on_run: Callable[[str], None] | None = None,
     after_task: Callable[[str], None] | None = None,
     on_estimate: Callable[[dict[str, Any]], None] | None = None,
+    creative_annotations: Path | None = None,
 ) -> dict[str, Any]:
     require_tool("ffmpeg")
     require_tool("ffprobe")
     options = options or AnalysisOptions()
+    annotation_spec = None
+    if creative_annotations:
+        from socialdna.application.creative_service import read_annotations
+
+        if not options.creative_profile:
+            raise InvalidMedia("Creative annotations require an explicit creative profile")
+        annotation_spec = read_annotations(creative_annotations)
     selections = select_providers(application, options)
     if subtitles is not None:
         subtitles = subtitles.expanduser().resolve()
@@ -51,6 +59,8 @@ def analyze_video(
         if subtitles.stat().st_size > 5_000_000:
             raise InvalidMedia("Subtitle file exceeds the 5 MB limit.")
     media_id, source, info, checksum = resolve_media(application, target, copy_media=copy_media)
+    if annotation_spec and annotation_spec.media_sha256 != checksum:
+        raise InvalidMedia("Creative annotations do not belong to these media bytes")
     with application.database.transaction() as connection:
         assert_media_active(connection, media_id)
     estimate = {
@@ -73,8 +83,6 @@ def analyze_video(
         "limitations": "Estimates exclude decoder/native-runtime overhead; "
         "GPU support depends on installed runtime.",
     }
-    if on_estimate:
-        on_estimate(estimate)
     versions = {name: tool_version(name) for name in ("ffmpeg", "ffprobe")}
     libraries = {
         name: version(name)
@@ -90,7 +98,7 @@ def analyze_video(
         )
     }
     config = {
-        **options.model_dump(),
+        **options.model_dump(exclude={"creative_profile", "creative_frame_budget"}),
         "subtitles_hash": hash_file(subtitles) if subtitles else None,
         "tools": versions,
         "libraries": libraries,
@@ -118,6 +126,20 @@ def analyze_video(
             }
         },
     }
+    if options.creative_profile:
+        config["creative"] = {
+            "profile": options.creative_profile,
+            "frame_budget": options.creative_frame_budget,
+            "annotations_hash": hash_config(annotation_spec.model_dump(mode="json"))
+            if annotation_spec
+            else None,
+            "method_version": "creative-1",
+        }
+        estimate["creative_extra_frame_budget"] = min(
+            options.creative_frame_budget, application.settings.max_enrichment_frames
+        )
+    if on_estimate:
+        on_estimate(estimate)
     runs = metadata.tables["analysis_runs"]
     with application.database.transaction() as connection:
         if resume:
@@ -297,6 +319,90 @@ def analyze_video(
         )
 
         run_enrichment(application, runner, options, selections, duration, after_task=after_task)
+        if options.creative_profile:
+            from socialdna.analyzers.creative import resample_candidates
+            from socialdna.application.creative_service import (
+                assert_bundle_active,
+                automatic_annotation,
+                import_into_application,
+            )
+            from socialdna.domain.evidence import EntityRef
+            from socialdna.storage.creative_repository import load_annotations
+
+            creative_directory = work / "creative"
+            creative_directory.mkdir()
+            candidates = resample_candidates(
+                prepared["timestamps_ms"],
+                [anchor for event in annotation_spec.events for anchor in event.anchors]
+                if annotation_spec
+                else [],
+                limit=min(
+                    options.creative_frame_budget, application.settings.max_enrichment_frames
+                ),
+            )
+            run(
+                "frames.creative",
+                {
+                    "method_version": "creative-sampling-1",
+                    "candidates": candidates,
+                    "pillow": libraries["Pillow"],
+                },
+                ["prepare"],
+                lambda ctx: (
+                    extract_frames(
+                        proxy(),
+                        prepared["timestamps_ms"],
+                        candidates,
+                        duration,
+                        creative_directory,
+                        ctx,
+                        preserve_samples=True,
+                    )
+                    if candidates
+                    else TaskOutput(skipped="Creative resampling budget is zero")
+                ),
+            )
+            imported_creative = (
+                import_into_application(application, annotation_spec) if annotation_spec else None
+            )
+
+            def creative(ctx: TaskContext) -> TaskOutput:
+                if imported_creative:
+                    return TaskOutput(
+                        result={
+                            "creative_annotation_ref": imported_creative["ref"],
+                            "creative_event_count": len(imported_creative["events"]),
+                        }
+                    )
+                spec, evidence_ids = automatic_annotation(application, media_id, run_id)
+                return TaskOutput(creative_annotation=spec, input_evidence_ids=evidence_ids)
+
+            if imported_creative:
+                with application.database.transaction() as connection:
+                    assert_bundle_active(
+                        connection,
+                        load_annotations(
+                            connection,
+                            media_id,
+                            cutoff=utc_now(),
+                            revision=EntityRef.model_validate(imported_creative["ref"]),
+                        ),
+                    )
+            creative_dependencies = (
+                ["prepare"]
+                if imported_creative
+                else [key for key in runner.tasks if key != "reasoning"]
+            )
+            run(
+                "creative.events",
+                {
+                    "method_version": "creative-literal-or-import-1",
+                    "annotation_ref": imported_creative["ref"] if imported_creative else None,
+                },
+                creative_dependencies,
+                creative,
+                allow_partial=True,
+            )
         dependencies = list(runner.tasks)
         run(
             "timeline",

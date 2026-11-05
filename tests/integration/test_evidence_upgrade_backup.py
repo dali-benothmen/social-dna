@@ -95,7 +95,14 @@ def released_library(settings: Settings, head: str) -> tuple[str, bytes]:
 
 @pytest.mark.parametrize(
     "head",
-    ["0001_foundation", "0002_timeline", "0003_enrichment", "0004_analytics", "0005_evidence"],
+    [
+        "0001_foundation",
+        "0002_timeline",
+        "0003_enrichment",
+        "0004_analytics",
+        "0005_evidence",
+        "0006_designs",
+    ],
 )
 def test_released_upgrade_keeps_ids_and_report_bytes_and_makes_verified_backup(
     settings: Settings,
@@ -105,7 +112,7 @@ def test_released_upgrade_keeps_ids_and_report_bytes_and_makes_verified_backup(
     evidence_id, archived = released_library(settings, head)
     with open_application(settings) as application:
         with application.database.transaction() as connection:
-            assert current_revision(connection) == "0006_designs"
+            assert current_revision(connection) == "0007_creative"
             assert (
                 connection.scalar(select(metadata.tables["creators"].c.display_name)) == "Keep me"
             )
@@ -176,6 +183,90 @@ def test_populated_evidence_parent_rebuild_rolls_back_and_preserves_bindings(
         database.close()
 
 
+@pytest.mark.parametrize("inject_failure", [False, True])
+def test_creative_upgrade_preserves_populated_features_and_analysis_links(
+    settings: Settings,
+    tmp_path: Path,
+    inject_failure: bool,
+) -> None:
+    from socialdna.storage.migration_runner import MIGRATIONS
+
+    released_library(settings, "0006_designs")
+    database = Database(DataPaths(settings.data_dir).database)
+    try:
+        backfill_evidence(database)
+        with database.transaction() as connection:
+            connection.exec_driver_sql(
+                "INSERT INTO posts (id,platform,content_type,caption) "
+                "VALUES ('prior-post','local','video','preserved caption')"
+            )
+            ref = EvidenceRepository(connection).capture(
+                "post", "prior-post", "old-provenance", mode="source_capture"
+            )
+            connection.exec_driver_sql(
+                "INSERT INTO feature_recipes VALUES ('prior-recipe','1.0','{}',?)", (utc_now(),)
+            )
+            connection.exec_driver_sql(
+                "INSERT INTO feature_values VALUES ('prior-value','prior-post',?,'prior-recipe',"
+                "'caption_length',17,?,NULL,?,'{}','observed')",
+                (ref.revision_id, utc_now(), utc_now()),
+            )
+            connection.exec_driver_sql(
+                "INSERT INTO statistical_analyses VALUES ('prior-analysis','performance-2','{}',"
+                "'fixture','insufficient_data','{}','old-run')"
+            )
+            connection.exec_driver_sql(
+                "INSERT INTO analysis_feature_values VALUES ('prior-analysis','prior-value')"
+            )
+            evidence_before = connection.exec_driver_sql(
+                "SELECT * FROM evidence_revisions ORDER BY id"
+            ).all()
+            values_before = connection.exec_driver_sql(
+                "SELECT * FROM feature_values ORDER BY id"
+            ).all()
+        if inject_failure:
+            location = tmp_path / "creative-failure"
+            shutil.copytree(MIGRATIONS, location)
+            migration = location / "versions/v0007_creative.py"
+            migration.write_text(
+                migration.read_text().replace(
+                    "\n    for table in metadata.sorted_tables:",
+                    "\n    raise RuntimeError('injected creative rebuild failure')\n"
+                    "    for table in metadata.sorted_tables:",
+                )
+            )
+            with pytest.raises(RuntimeError, match="injected creative"):
+                migrate(database, location=location)
+            with database.transaction() as connection:
+                assert current_revision(connection) == "0006_designs"
+                assert (
+                    connection.exec_driver_sql("SELECT * FROM feature_values ORDER BY id").all()
+                    == values_before
+                )
+                assert (
+                    connection.exec_driver_sql("SELECT * FROM evidence_revisions ORDER BY id").all()
+                    == evidence_before
+                )
+                assert connection.exec_driver_sql("PRAGMA foreign_keys").scalar() == 1
+                assert not connection.exec_driver_sql("PRAGMA foreign_key_check").all()
+        migrate(database)
+        with database.transaction() as connection:
+            assert current_revision(connection) == "0007_creative"
+            assert (
+                connection.exec_driver_sql("SELECT * FROM evidence_revisions ORDER BY id").all()
+                == evidence_before
+            )
+            after = connection.exec_driver_sql("SELECT * FROM feature_values ORDER BY id").all()
+            assert [tuple(row)[:-1] for row in after] == [tuple(row) for row in values_before]
+            assert after[0][-1] is None
+            assert connection.exec_driver_sql("SELECT * FROM analysis_feature_values").all() == [
+                ("prior-analysis", "prior-value")
+            ]
+            assert not connection.exec_driver_sql("PRAGMA foreign_key_check").all()
+    finally:
+        database.close()
+
+
 def test_backfill_interruption_resumes_committed_cursor(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -233,7 +324,7 @@ def test_downgrade_refuses_to_discard_registered_revisions(
                 config.attributes["connection"] = connection
                 command.downgrade(config, "0004_analytics")
         with application.database.transaction() as connection:
-            assert current_revision(connection) == "0006_designs"
+            assert current_revision(connection) == "0007_creative"
             assert (
                 connection.scalar(
                     select(func.count()).select_from(metadata.tables["entity_revisions"])
@@ -281,7 +372,7 @@ def test_restore_replays_later_withdrawals_and_keeps_absent_target_tombstones(
                 )
                 == "Also revoked"
             )
-    assert verify_backup(checkpoint)["database_revision"] == "0006_designs"
+    assert verify_backup(checkpoint)["database_revision"] == "0007_creative"
 
 
 def test_restore_without_latest_authority_is_restricted_and_never_overwrites(

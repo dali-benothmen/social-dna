@@ -24,6 +24,7 @@ def timeline(
     end_ms: int | None = None,
     *,
     run_id: str | None = None,
+    include_creative: bool = False,
 ) -> dict[str, Any]:
     with application.database.transaction() as connection:
         assets, runs = metadata.tables["media_assets"], metadata.tables["analysis_runs"]
@@ -140,4 +141,44 @@ def timeline(
                 .order_by(calls.c.created_at, calls.c.id)
             ).mappings()
         ]
+    if include_creative:
+        from socialdna.application.creative_service import creative_timeline
+        from socialdna.domain.evidence import EntityRef
+
+        with application.database.transaction() as connection:
+            tasks, task_results = (
+                metadata.tables[name] for name in ("analysis_tasks", "analysis_task_results")
+            )
+            task = (
+                connection.execute(
+                    select(tasks).where(
+                        tasks.c.run_id == run_id, tasks.c.task_key == "creative.events"
+                    )
+                )
+                .mappings()
+                .first()
+            )
+            creative_ref = None
+            if task and task["status"] == "succeeded":
+                raw = connection.scalar(
+                    select(task_results.c.result_json).where(
+                        task_results.c.task_id == (task["reused_from_task_id"] or task["id"])
+                    )
+                )
+                creative_ref = json.loads(raw).get("creative_annotation_ref") if raw else None
+        if task and not creative_ref:
+            result["creative"] = {
+                "events": [],
+                "coverage": [],
+                "relations": [],
+                "eligible": True,
+                "reason": "creative_task_has_no_committed_annotation",
+                "limitations": ["No successful creative annotation output for this run."],
+            }
+        else:
+            result["creative"] = creative_timeline(
+                application,
+                media_id,
+                revision=EntityRef.model_validate(creative_ref) if creative_ref else None,
+            )
     return result

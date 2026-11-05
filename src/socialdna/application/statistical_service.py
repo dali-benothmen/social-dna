@@ -263,6 +263,21 @@ def _save(
     }
     if any(r["creator_identity"] == "account_proxy" for r in rows):
         results["limitations"].append("Account proxies can overcount independent creator clusters.")
+    if spec.creative_recipes:
+        results["limitations"].append(
+            "Pinned creative features represent observable annotations, not validated "
+            "psychological constructs or causal mechanisms."
+        )
+        if spec.creative_label_policy == "proposals_exploratory" or any(
+            not row["feature_values"][key]["lineage"]["outcome_blind"]
+            for row in rows
+            for key in spec.creative_recipes
+            if row["feature_values"][key]["value"] is not None
+        ):
+            results["limitations"].append(
+                "Includes unreviewed, outcome-aware or unknown-blinding labels; "
+                "these associations cannot serve as independent confirmation."
+            )
     if expected_results is not None and hash_config(results) != hash_config(expected_results):
         raise StorageIntegrityError("Recomputed versioned results differ from the frozen results")
     with application.database.transaction() as connection:

@@ -2,8 +2,9 @@
 
 Implemented in `0.0.5`, SQLite revision `0005_evidence`. R1 is an offline citation
 and registration foundation, **not** a psychological or statistical evaluation engine.
-This foundation is preserved in `0.0.6`, which adds [R2 versioned analytics](versioned-analytics.md).
-R3–R10 and U1/U2 remain planned. Existing video/account analysis stays available.
+This foundation is preserved in `0.0.7`, alongside [R2 versioned analytics](versioned-analytics.md)
+and [R3 creative events and recipes](creative-analysis.md).
+R4–R10 and U1/U2 remain planned. Existing video/account analysis stays available.
 
 ## What works
 

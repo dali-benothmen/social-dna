@@ -1,6 +1,6 @@
 # Migration, compatibility and retention strategy
 
-Status: R1 backup/restricted-restore and R2 statistical/feature/ledger migration are implemented in `0.0.6` / `0006_designs`; later migration work remains planned. Date: 2026-11-05. See [R1 operations](research-foundation.md), [versioned analytics](versioned-analytics.md), [architecture](../ARCHITECTURE.md), [roadmap](../PLAN.md) and [research contracts](research-contracts.md). Released migrations `0001`–`0005` remain unchanged. Extending the evidence locator CHECK requires a data-preserving SQLite table rebuild; it is atomic, FK-checked and preceded by a verified backup, not an edit to a released migration.
+Status: R1 backup/restricted-restore, R2 statistical/feature/ledger and R3 creative-event/recipe migrations are implemented in `0.0.7` / `0007_creative`; later migration work remains planned. Date: 2026-11-05. See [R1 operations](research-foundation.md), [versioned analytics](versioned-analytics.md), [creative analysis](creative-analysis.md), [architecture](../ARCHITECTURE.md), [roadmap](../PLAN.md) and [research contracts](research-contracts.md). Released migrations `0001`–`0006` remain unchanged. Extending evidence locator kinds or media-only feature subjects requires data-preserving SQLite table rebuilds; they are atomic, FK-checked and preceded by a verified backup, not edits to released migrations.
 
 ## 1. Compatibility contract
 

@@ -1,6 +1,7 @@
 # Time-aware comparisons and model validation
 
-Available in `0.0.6`, SQLite `0006_designs`. This is the implemented statistical
+Introduced in `0.0.6`, preserved in `0.0.7` / SQLite `0007_creative` with explicit
+[creative-recipe joins](creative-analysis.md). This is the implemented statistical
 correctness slice, not psychological discovery or causal identification.
 The [statistical design](statistical-design.md) remains the normative broader
 contract. [Legacy analytics](performance-analytics.md) describes the deliberately
@@ -62,9 +63,10 @@ Missing metrics and denominators remain missing, never zero.
 ## Production features and context
 
 The existing primitive registry is unchanged: duration, caption length, publication
-hour, opening motion/brightness and loudness. No semantic or psychological detector
-is added. Account media batches still require explicit `--analyze-media`; URI-only
-imports are not decoded media.
+hour, opening motion/brightness and loudness. R3 optionally adds explicitly mapped
+[pinned creative recipes](creative-analysis.md), not implicit semantic/psychological
+detectors or a changed primitive registry. Account media batches still require explicit
+`--analyze-media`; URI-only imports are not decoded media.
 
 Prepare/link local media **before** choosing an evaluation cutoff if its duration
 or measurements should be included. A media batch performed after a fixed past
@@ -185,5 +187,5 @@ Local runs are bounded to 500 target posts and 5000 captured historical posts.
 Reference work grows with target × creator-history size; this release deliberately
 does not add a distributed queue, model service or new dependency. Narrow the
 declared population or compare explicit post groups when a bound is reached.
-Future semantic features, audience series, broader nonlinear/transfer discovery
-and mechanism evaluation remain separate milestones.
+Additional semantic providers, audience series, broader nonlinear/transfer discovery
+and mechanism evaluation remain separate work beyond the explicit R3 recipe slice.

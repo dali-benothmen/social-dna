@@ -225,6 +225,21 @@ class TaskRunner:
                 for evidence_row in output.records.get("evidence_items", []):
                     evidence_repository.media_evidence(evidence_row["id"], legacy=False)
                 result = substitute(output.result)
+                if output.creative_annotation is not None:
+                    from socialdna.storage.creative_repository import persist_annotations
+
+                    creative = persist_annotations(
+                        connection,
+                        self.media_id,
+                        output.creative_annotation,
+                        provenance_id,
+                        run_id=self.run_id,
+                        task_id=task_id,
+                    )
+                    result.update(
+                        creative_annotation_ref=creative["ref"],
+                        creative_event_count=len(creative["events"]),
+                    )
                 result["artifacts"] = list(artifacts.values())
                 result["producer_task_id"] = task_id
                 if output.skipped:

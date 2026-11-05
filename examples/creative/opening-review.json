@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0",
+  "key": "opening-review",
+  "media_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "permission_basis": "REPLACE with authorization for the actual registered video and annotation",
+  "protocol": {
+    "origin": "human",
+    "author": "REPLACE_WITH_REVIEWER",
+    "procedure": "REPLACE with actual review procedure and revision",
+    "outcome_access": "unknown",
+    "label_frozen_before_outcomes": false
+  },
+  "coverage": [],
+  "events": [],
+  "tolerance_ms": 100
+}

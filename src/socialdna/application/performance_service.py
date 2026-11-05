@@ -377,9 +377,32 @@ def build_design_population(
                 else None,
                 **media_run.get("features", {}),
             }
+            creative_bundle = None
+            if spec.creative_recipes:
+                from socialdna.application.creative_service import assert_bundle_active
+                from socialdna.storage.creative_repository import load_annotations
+
+                creative_bundle = load_annotations(
+                    connection,
+                    media.get("id", ""),
+                    cutoff=spec.knowledge_cutoff,
+                    key=spec.creative_annotation_key,
+                )
+                assert_bundle_active(connection, creative_bundle, cutoff=spec.knowledge_cutoff)
+                if creative_bundle.get("source_id"):
+                    source_ids.add(creative_bundle["source_id"])
             feature_values = materializer.materialize(
-                history, features, media=media, media_run=media_run, spec=spec
+                history,
+                features,
+                media=media,
+                media_run=media_run,
+                spec=spec,
+                creative_bundle=creative_bundle,
             )
+            if spec.creative_recipes:
+                features.update(
+                    {key: feature_values[key]["value"] for key in spec.creative_recipes}
+                )
             for feature in feature_values.values():
                 source_ids.update(feature["lineage"]["source_ids"])
             selected, states = {}, {}
@@ -459,6 +482,16 @@ def build_design_population(
                     identity, (roles or {}).get(post["account_id"], "population")
                 ),
             }
+            if spec.creative_recipes:
+                row["creative_annotation_ref"] = (creative_bundle or {}).get("ref")
+                row["feature_evidence_ids"] = sorted(
+                    set(row["feature_evidence_ids"])
+                    | {
+                        ref["id"]
+                        for key in spec.creative_recipes
+                        for ref in feature_values[key]["lineage"]["evidence_refs"]
+                    }
+                )
             # Missing topic context remains unknown, never an invented empty label set.
             if in_population({**row, "topics": row["topics"] or []}, spec.population):
                 history_rows.append(row)
@@ -963,8 +996,13 @@ def reproduce(
         and hash_config({"rows": report["reference_population"]}) != configuration["reference_hash"]
     ):
         raise StorageIntegrityError("Frozen reference inputs do not match their stored hash")
-    compatible_engine = configuration["engine_version"] == __version__ or (
-        method == "performance-1" and configuration["engine_version"] in ("0.0.4", "0.0.5")
+    compatible_engine = (
+        configuration["engine_version"] == __version__
+        or (
+            method == "performance-1"
+            and configuration["engine_version"] in ("0.0.4", "0.0.5", "0.0.6")
+        )
+        or (method == "performance-2" and configuration["engine_version"] == "0.0.6")
     )
     if not compatible_engine or any(
         importlib.metadata.version(name) != version for name, version in versions.items()

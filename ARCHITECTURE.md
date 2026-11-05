@@ -1,6 +1,6 @@
 # SocialDNA architecture
 
-Revised: 2026-11-05. Implementation: **0.0.6**, database head **0006_designs**. R1's evidence/registration foundation and R2's bounded statistical corrections are implemented; **R3–R10 and U1/U2 remain planned**. The architecture incorporates the approved [intelligence audit](docs/architecture-audit.md). See [R1 operations](docs/research-foundation.md) and [versioned analytics](docs/versioned-analytics.md) for the exact available surface and limitations.
+Revised: 2026-11-05. Implementation: **0.0.7**, database head **0007_creative**. R1's evidence/registration foundation, R2's bounded statistical corrections and R3's creative-event/recipe slice are completed and verified; **R4–R10 and U1/U2 remain planned**. The architecture incorporates the approved [intelligence audit](docs/architecture-audit.md). See [R1 operations](docs/research-foundation.md), [versioned analytics](docs/versioned-analytics.md) and [creative analysis](docs/creative-analysis.md) for the exact available surface and limitations.
 
 The [implementation plan](PLAN.md) defines delivery and acceptance gates. Detailed contracts live in [research contracts](docs/research-contracts.md), [statistical design](docs/statistical-design.md), [migration strategy](docs/migration-strategy.md), and the [twelve-step cooking use case](docs/research-use-case.md). The [previous architecture](docs/history/ARCHITECTURE.pre-research-revision.md) is a historical record, not a competing specification. Architecture/plan line references inside the unchanged audit refer to those pre-revision documents.
 
@@ -480,3 +480,42 @@ audience/paid/traffic covariates, near-duplicate discovery, new-creator marginal
 prediction, broader nonlinear search, independent niche confirmation and causal
 identification are not manufactured from the current exports. Missing source
 freshness can support a labeled collection-proxy summary, not strict model evidence.
+
+## 19. Creative-event implementation decisions
+
+R3 is implemented in `0.0.7` / `0007_creative`; exact commands and boundaries are
+documented in [creative analysis operations](docs/creative-analysis.md). It introduces
+observable creative annotations and reusable measurements, not a second reasoning
+engine, psychological ontology or general pattern search.
+
+| Decision | Implementation and justification |
+|---|---|
+| Reviewed import is the required offline semantic path | Strict annotation documents refer to actual registered media hashes. Humans can certify review and scoped coverage; imported model/rule proposals cannot self-adjudicate. Author, procedure, provider identity, outcome access and freeze assertions remain visible. No new VLM/runtime is needed to finish this vertical slice. |
+| Small opt-in profile, not implicit semantic classification | `cooking-opening-v1` proposes literal wording from existing ASR/subtitle/OCR/caption evidence and requests bounded actual-PTS frames. It does not recognize dishes, infer emotion from sound energy, or label warmth from brightness. Prepared optional enrichment remains the existing separate pipeline. |
+| Reuse the universal revision registry | Technique definitions and annotation-set/event/coverage/relation documents use existing immutable entity identities/revisions. Query projections have real media, entity, run/task and evidence FKs; no generic disconnected JSON catalog or dummy post is introduced. |
+| Coverage is independent of positive labels | `creative_coverages` and set membership freeze modality/technique/window/sampling assertions separately. Sparse non-detection stays unknown. Only explicit human exhaustive review can support an opening absence; untimed captions cannot inherit video-clock absence claims. |
+| Event revisions are independent of whole imports | Stable media/set/event keys preserve unchanged event revisions and their original authorized inputs/protocol/source. Annotation sets freeze ordered memberships. A changed unrelated color label does not rewrite an existing dish cue or invalidate its result-first measurement. Identical imports are idempotent, not implicit re-adjudication. |
+| Anchor uncertainty is first-class | `creative_event_anchors` preserves ordered discontinuous interval/point/spatial/untimed anchors, feasible bounds and optional nominal coordinates. All clocks are original presentation ms. No offsets are manufactured for post captions/hashtags. |
+| Temporal evidence is not semantic reinforcement | Versioned interval algebra produces precedes, overlap and onset-synchrony edges. Verified requires all feasible bounds (conservatively all anchor pairs for discontinuities); possible retains ambiguity. A reversed precedes edge represents follows. No causal-looking reinforcement relation is inferred. |
+| Inputs remain literal and independently resolvable | New `creative_event`, `creative_coverage` and `post_text` evidence locators share the existing resolver. Direct-media bindings cite actual registered whole-source spans when a human supplies no narrower timed inputs. Caption/hashtag bindings cite exact captured Unicode text/normalized inventory; supplied narrower observed cues must support their declared modality and timing. |
+| Pinned feature grammar rather than broad discovery | Eleven recipes cover presence, first-cue order, modality-specific promises, reviewed color, strict conjunction, reviewed onset synchrony and captured hashtag counts. Definitions include exact technique revisions, temporal rule, window, unit, role and missingness. Same-version definition/recipe mutation is refused. No feature search, new estimator or R9 candidate engine is added. |
+| Existing feature store, with real media-only subjects | `feature_values` now requires exactly one post or media FK. Values freeze the subject revision, recipe, relevant cue/coverage/definition/evidence/source lineage, actual availability and eligibility. Dependency hashes exclude unrelated set revisions; frozen statistical rows separately retain the full selected set. |
+| Explicit analytics opt-in | Schema-2 specs map declared `creative.*` predictor names to pinned recipe IDs and an annotation key/review policy. As-of input selection and publication-time forecast gates remain R2 rules. Legacy specs, primitive recipe contents and numerical methods do not change. Unknown/outcome-aware or exploratory labels cannot be presented as independent confirmation. |
+| Cache and report compatibility | Creative task/resampling fingerprints do not enter primitive task dependencies. Opt-in video reports use schema 2 and the committed annotation revision. Ordinary video reports remain schema 1. Failed creative tasks never substitute a different set. Model proposals and human imports remain distinguishable. |
+| Add only exercised persistence | Canonical annotation/event/coverage/relation tables, anchor/input/membership projections, evidence bindings and media-valued recipe measurements have writers, resolvers/readers and tests. No future audience, graph or embedding tables are introduced. SQLite remains authoritative. |
+
+The migration atomically rebuilds the evidence-locator CHECK and feature-value
+parent table on the existing dedicated FK-safe migration connection, copying old rows
+and preserving child links/immutable history. Pre-upgrade backups and interrupted-rebuild
+rollback are verified. Released migrations 0001–0006 are unchanged. Populated libraries
+refuse downgrade in favor of verified restore.
+
+Eligibility is checked transitively for annotation sources, technique definitions and
+literal inputs, including reused event revisions. Current views withhold ineligible
+lanes; new measurements/comparisons/reports cannot silently fall back to an older set.
+Retained historical artifacts remain immutable; withdrawal is not erasure.
+
+The acceptance fixtures exercise real media bytes and production paths under controlled
+annotations. They do not establish cooking-recognition accuracy, inter-reviewer agreement,
+external model quality or psychological validity. Real-corpus annotation validation is
+still required before research claims. R4–R10 and U1/U2 remain unimplemented.

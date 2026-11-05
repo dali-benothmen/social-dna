@@ -1,0 +1,20 @@
+{
+  "schema_version": "2.0",
+  "metric_key": "demo.views.v1",
+  "estimand": "within_creator_association",
+  "design": "within_creator",
+  "knowledge_cutoff": "2026-11-05T00:00:00Z",
+  "publication_cutoff": "2026-11-01T00:00:00Z",
+  "baseline_cutoff": "evaluation",
+  "feature_policy": "retrospective_content",
+  "sampling_frame": "REPLACE with the declared authorized creator/post population",
+  "features": ["caption_length", "creative.result_first"],
+  "covariates": ["caption_length"],
+  "creative_recipes": {"creative.result_first": "creative.result_first.v1"},
+  "creative_annotation_key": "opening-review",
+  "creative_label_policy": "reviewed_only",
+  "family_id": "REPLACE_WITH_DECLARED_CREATIVE_FAMILY",
+  "family_terms": ["caption_length", "creative.result_first"],
+  "model": "none",
+  "bootstrap_resamples": 500
+}

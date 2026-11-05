@@ -123,6 +123,8 @@ def extract_frames(
     duration_ms: int,
     directory: Path,
     context: TaskContext,
+    *,
+    preserve_samples: bool = False,
 ) -> TaskOutput:
     previous: ImageArray | None = None
     previous_hash: str | None = None
@@ -136,6 +138,7 @@ def extract_frames(
         # Histogram/absolute pixel agreement prevents solid colors sharing dHash from collapsing.
         if (
             previous is not None
+            and not preserve_samples
             and previous_hash == phash
             and float(np.mean(cv2.absdiff(previous, frame))) < 2
             and candidates[ordinal] != "scene-keyframe"

@@ -1,13 +1,14 @@
 # SocialDNA
 
 SocialDNA is a local-first social-media research engine. The implemented release is
-`0.0.6`: versioned media/comment/metric/statistical citations, draft registration,
-withdrawal-aware reports, verified backup/restore and explicit time-aware analytics. The foundation and
+`0.0.7`: revisioned creative events, pinned multimodal recipes, versioned
+media/comment/metric/statistical citations, draft registration, withdrawal-aware
+reports, verified backup/restore and explicit time-aware analytics. The foundation and
 historical Milestones 1, 3, and 4 retain local-video analysis, optional enrichment,
 account imports, and bounded performance analytics.
 
 The revised [architecture](ARCHITECTURE.md) and [roadmap](PLAN.md) distinguish R1's
-implemented citation/statistical foundation from later research capabilities.
+implemented citation/statistical/creative foundation from later research capabilities.
 Semantic/graph memory remains planned in R6. Registering a draft
 does not evaluate it or establish an association or psychological mechanism.
 
@@ -49,6 +50,13 @@ Working capabilities:
   support/balance diagnostics, real feature/recipe availability, duplicate-safe splits,
   selected OLS/Poisson interaction-pipeline validation, durable test/holdout ledgers,
   and exact statistical term/diagnostic citations. Legacy methods remain unchanged.
+- Authorized reviewed creative-event imports, uncertain original-media anchors,
+  modality/coverage evidence and qualified temporal relations; opt-in literal-text
+  proposals and budgeted targeted frames without invalidating primitive caches.
+- Eleven pinned observable-content recipes, persistent media/post feature lineage,
+  as-of annotation selection, explicit version-2 comparison joins and pinned video reports.
+  Sparse sampling stays unknown; no automatic dish recognition or psychological mechanism
+  validation is claimed. See [creative analysis](docs/creative-analysis.md).
 
 Embeddings, persistent graph queries, psychological pattern
 discovery, and the Agent Skill remain unavailable. Model interpretations are labeled

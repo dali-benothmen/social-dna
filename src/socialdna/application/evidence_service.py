@@ -13,11 +13,13 @@ from socialdna.core.ids import stable_id
 from socialdna.core.time import utc_now
 from socialdna.domain.evidence import (
     CommentLocator,
+    CreativeEventLocator,
     EntityRef,
     EvidenceLocator,
     EvidenceRef,
     MediaLocator,
     MetricLocator,
+    PostTextLocator,
     ResolvedEvidence,
     StatisticalLocator,
 )
@@ -94,8 +96,11 @@ class EvidenceResolver:
         ):
             raise StorageIntegrityError("Evidence locator and registry subject disagree")
         related = [locator.subject]
-        if isinstance(locator, MediaLocator):
+        if isinstance(locator, (MediaLocator, CreativeEventLocator)):
             related.append(locator.media)
+            if isinstance(locator, CreativeEventLocator) and locator.kind == "creative_event":
+                event = json.loads(self.repository.entity(locator.subject)["payload_json"])
+                related.append(EntityRef.model_validate(event["technique"]))
         elif isinstance(locator, CommentLocator):
             related.append(locator.post)
         elif isinstance(locator, MetricLocator):
@@ -106,12 +111,17 @@ class EvidenceResolver:
         self._validate_binding(row, locator)
         if expected_subject and locator.subject != expected_subject:
             raise ConfigurationError("Evidence does not cite the expected entity revision")
-        if media_id and (not isinstance(locator, MediaLocator) or locator.media.id != media_id):
+        if media_id and (
+            not isinstance(locator, (MediaLocator, CreativeEventLocator))
+            or locator.media.id != media_id
+        ):
             raise ConfigurationError("Evidence belongs to different media")
         if post_id:
             actual_post: str | None
             if isinstance(locator, CommentLocator):
                 actual_post = locator.post.id
+            elif isinstance(locator, PostTextLocator):
+                actual_post = locator.subject.id
             elif isinstance(locator, MetricLocator):
                 actual_post = (
                     locator.measured_subject.id if locator.measured_subject.kind == "post" else None
@@ -190,6 +200,21 @@ class EvidenceResolver:
                 )
             except ConfigurationError as exc:
                 limitations.append("Derived analysis input is ineligible: " + str(exc))
+        if isinstance(locator, CreativeEventLocator):
+            subject = json.loads(entities[0]["payload_json"])
+            dependencies = (
+                [item["ref"] for item in subject["inputs"]]
+                if locator.kind == "creative_event"
+                else [subject["input"]]
+            )
+            for dependency in dependencies:
+                resolved = self.resolve(
+                    EvidenceRef.model_validate(dependency),
+                    as_of=as_of,
+                    _ancestors=_ancestors | {row["id"]},
+                )
+                if not resolved.eligible:
+                    limitations.append("Creative input is ineligible: " + resolved.ref.id)
         if as_of:
             try:
                 cutoff = timestamp(as_of)
@@ -224,7 +249,12 @@ class EvidenceResolver:
     def _validate_binding(
         self,
         row: dict[str, Any],
-        locator: MediaLocator | CommentLocator | MetricLocator | StatisticalLocator,
+        locator: MediaLocator
+        | CommentLocator
+        | MetricLocator
+        | StatisticalLocator
+        | PostTextLocator
+        | CreativeEventLocator,
     ) -> None:
         counts = {}
         for name in (
@@ -232,6 +262,9 @@ class EvidenceResolver:
             "comment_evidence_bindings",
             "metric_evidence_bindings",
             "statistical_evidence_bindings",
+            "direct_media_evidence_bindings",
+            "post_text_evidence_bindings",
+            "creative_evidence_bindings",
         ):
             table = metadata.tables[name]
             counts[name] = (
@@ -244,7 +277,38 @@ class EvidenceResolver:
         if sum(value is not None for value in counts.values()) != 1:
             raise StorageIntegrityError("Evidence requires exactly one typed locator binding")
         subject = json.loads(self.repository.entity(locator.subject)["payload_json"])
-        if isinstance(locator, StatisticalLocator):
+        if isinstance(locator, CreativeEventLocator):
+            binding = counts["creative_evidence_bindings"]
+            key = (
+                "event_revision_id" if locator.kind == "creative_event" else "coverage_revision_id"
+            )
+            if (
+                not binding
+                or binding[key] != locator.subject.revision_id
+                or locator.subject.kind != locator.kind
+                or (subject["media"] != locator.media.model_dump() or locator.media.kind != "media")
+            ):
+                raise StorageIntegrityError(
+                    "Creative evidence does not match its captured event/coverage"
+                )
+            self.repository.entity(locator.media)
+        elif isinstance(locator, PostTextLocator):
+            from socialdna.storage.creative_repository import post_text
+
+            binding = counts["post_text_evidence_bindings"]
+            text = post_text(self.repository, locator.subject, locator.field, locator.tag_index)
+            if (
+                not binding
+                or binding["post_revision_id"] != locator.subject.revision_id
+                or any(
+                    binding[key] != getattr(locator, key)
+                    for key in ("field", "tag_index", "start_char", "end_char")
+                )
+                or locator.end_char > len(text)
+                or text[locator.start_char : locator.end_char] != locator.quote
+            ):
+                raise StorageIntegrityError("Post text locator does not match captured text")
+        elif isinstance(locator, StatisticalLocator):
             binding = counts["statistical_evidence_bindings"]
             analysis = self.repository.get("statistical_analyses", locator.analysis_id)
             report = json.loads(analysis["result_json"])
@@ -338,6 +402,23 @@ class EvidenceResolver:
                     "Metric locator does not match its captured snapshot/definition"
                 )
         else:
+            direct = counts["direct_media_evidence_bindings"]
+            if direct:
+                provenance = self.repository.get("provenance_records", row["provenance_id"])
+                if (
+                    locator.subject != locator.media
+                    or locator.subject.kind != "media"
+                    or direct["media_id"] != locator.media.id
+                    or direct["media_revision_id"] != locator.media.revision_id
+                    or locator.interval.end_ms > subject["duration_ms"]
+                    or locator.artifact_id != subject["artifact_id"]
+                    or locator.excerpt is not None
+                    or provenance["source_record_id"] != row["source_id"]
+                ):
+                    raise StorageIntegrityError(
+                        "Direct media locator does not match its captured original"
+                    )
+                return
             binding = counts["legacy_media_evidence_bindings"]
             if (
                 not binding

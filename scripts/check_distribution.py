@@ -6,6 +6,7 @@ when build tooling is isolated outside PATH.
 """
 
 import argparse
+import hashlib
 import json
 import shutil
 import subprocess
@@ -249,6 +250,102 @@ def main() -> None:
                 if not report["data"]["content"]["timeline"]["observations"]:
                     raise RuntimeError("Installed media report has no measurements.")
                 print(f"PASS: {distribution.name} installed video analysis and report restart")
+                annotation = isolated / "creative.json"
+                annotation.write_text(
+                    json.dumps(
+                        {
+                            "key": "installed-review",
+                            "media_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+                            "permission_basis": "Owned generated acceptance fixture, "
+                            "not a semantic-quality benchmark",
+                            "protocol": {
+                                "origin": "human",
+                                "author": "acceptance fixture",
+                                "procedure": "controlled synthetic assertion",
+                                "outcome_access": "blinded",
+                            },
+                            "coverage": [
+                                {
+                                    "modality": "visual",
+                                    "techniques": ["finished_dish", "preparation_instruction"],
+                                    "mode": "exhaustive_review",
+                                    "intervals": [{"start_ms": 0, "end_ms": 500}],
+                                    "limitation": "Controlled labels only",
+                                }
+                            ],
+                            "events": [
+                                {
+                                    "key": "result",
+                                    "technique": "finished_dish",
+                                    "description": "Synthetic test label; clip is a color card",
+                                    "modalities": ["visual"],
+                                    "anchors": [
+                                        {"kind": "point", "start_min_ms": 0, "start_max_ms": 0}
+                                    ],
+                                    "state": "reviewed",
+                                    "reviewer": "fixture",
+                                }
+                            ],
+                        }
+                    )
+                )
+                imported = json.loads(
+                    run([*base, "creative", "import", str(annotation)], cwd=isolated)
+                )["data"]
+                values = json.loads(
+                    run(
+                        [
+                            *base,
+                            "creative",
+                            "materialize",
+                            analysis["data"]["media_id"],
+                            "--recipe",
+                            "creative.result_first.v1",
+                        ],
+                        cwd=isolated,
+                    )
+                )["data"]
+                if values["values"]["creative.result_first.v1"]["value"] != 1:
+                    raise RuntimeError("Installed short-video creative recipe failed")
+                cited = json.loads(
+                    run(
+                        [*base, "evidence", "resolve", imported["events"][0]["evidence"]["id"]],
+                        cwd=isolated,
+                    )
+                )["data"]
+                if not cited["eligible"] or cited["locator"]["kind"] != "creative_event":
+                    raise RuntimeError("Installed creative citation lost its exact binding")
+                enriched = json.loads(
+                    run(
+                        [
+                            *base,
+                            "analyze",
+                            "video",
+                            analysis["data"]["media_id"],
+                            "--no-ai",
+                            "--creative-profile",
+                            "cooking-opening-v1",
+                            "--creative-annotations",
+                            str(annotation),
+                            "--creative-frame-budget",
+                            "2",
+                        ],
+                        cwd=isolated,
+                    )
+                )["data"]
+                pinned = json.loads(
+                    run([*base, "report", "generate", "--run", enriched["run_id"]], cwd=isolated)
+                )["data"]["content"]
+                if (
+                    pinned["schema_version"] != "2.0"
+                    or not pinned["timeline"]["creative"]["events"]
+                ):
+                    raise RuntimeError("Installed creative report lost pinned annotation lanes")
+                run([*base, "storage", "verify"], cwd=isolated)
+                print(
+                    f"PASS: {distribution.name} installed creative import, recipe, "
+                    "citation and report restart"
+                )
             print(f"PASS: {distribution.name} isolated install, initialization and verification")
 
 

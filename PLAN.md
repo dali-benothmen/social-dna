@@ -1,8 +1,8 @@
 # SocialDNA implementation plan
 
-Revised: 2026-11-05. Scope: R1 and R2 completed and verified. No R3 or later implementation is claimed.
+Revised: 2026-11-05. Scope: R1–R3 completed and verified. No R4 or later implementation is claimed.
 
-Runtime: package `0.0.6`, SQLite head `0006_designs`. Released migrations `0001_foundation`–`0005_evidence` remain unchanged. Legacy Milestones 0, 1, 3 and 4 are completed deliveries; their limitations remain visible. Legacy Milestones 2, 5 and 6 are **superseded, not completed**. R1 and R2 are completed and verified; **R3–R10 and U1/U2 remain planned and unimplemented**.
+Runtime: package `0.0.7`, SQLite head `0007_creative`. Released migrations `0001_foundation`–`0006_designs` remain unchanged. Legacy Milestones 0, 1, 3 and 4 are completed deliveries; their limitations remain visible. Legacy Milestones 2, 5 and 6 are **superseded, not completed**. R1–R3 are completed and verified; **R4–R10 and U1/U2 remain planned and unimplemented**.
 
 Authoritative design: [ARCHITECTURE.md](ARCHITECTURE.md), [research contracts](docs/research-contracts.md), [statistical design](docs/statistical-design.md), [migration strategy](docs/migration-strategy.md), and [reference use case](docs/research-use-case.md). The [audit](docs/architecture-audit.md) records the reasons for this revision; the [previous roadmap](docs/history/PLAN.pre-research-revision.md) is historical, not an alternative active plan.
 
@@ -20,7 +20,7 @@ Delivery rules:
 - Keep basic media/account analysis fast: do not register a research question, load a graph, index embeddings or invoke a reasoner merely to describe a video.
 - Missing data is not zero; absent detection under sparse sampling is not demonstrated absence; expressed intention is not behavior; association is not causation.
 - Every research result declares its population, availability, estimand, evidence version, uncertainty, alternatives and limitations. `insufficient_data`, rejected and inconclusive results are successful research outcomes when honestly supported.
-- Implementation changes require unit/integration/contract/end-to-end verification, migration/compatibility checks, documentation updates and a scoped working commit when authorized. Implementation authority currently extends through R2 only. Commit messages describe the engineering change without type prefixes or milestone labels.
+- Implementation changes require unit/integration/contract/end-to-end verification, migration/compatibility checks, documentation updates and a scoped working commit when authorized. Implementation authority currently extends through R3 only. Commit messages describe the engineering change without type prefixes or milestone labels.
 
 ## 2. Preserved implementation and historical deliveries
 
@@ -41,7 +41,7 @@ M4 delivered its scoped implementation, but its retrospective baseline, same-cre
 |---|---|---|---|
 | R1 | Universal evidence with usable metric/comment citations and minimal research registration | Existing `0.0.4` foundation | Completed and verified, `0.0.5` |
 | R2 | Correct historical baselines, comparison designs, feature timing and actual-pipeline validation | R1 | Completed and verified, `0.0.6` |
-| R3 | Semantic creative events and reproducible multimodal feature recipes | R1; R2 for analytics joins | Planned |
+| R3 | Semantic creative events and reproducible multimodal feature recipes | R1; R2 for analytics joins | Completed and verified, `0.0.7` |
 | R4 | Audience collection provenance, reaction annotations and qualified content links | R1, R3 | Planned |
 | R5 | Behavioral metric series, denominators, attribution and account outcomes | R1, R2; R3 for event overlays | Planned |
 | R6 | Persistent SQL/FTS/Qdrant/SQLite-backed NetworkX research memory | R1–R4; R5 for behavioral projections | Planned |
@@ -139,7 +139,7 @@ Verification record (Linux/Python 3.11):
 - Ruff lint/format, strict mypy, example-spec validation, local documentation links, `git diff --check` and offline locked dependency check passed. Released migration files 0001–0005 are unchanged; no dependencies were added.
 - Wheel and sdist builds and isolated offline installs passed version-2 analysis → statistical citation resolution → exact reproduction across process restarts, plus the existing citation/registration, account and real FFmpeg video/report workflows. No platform API or model download was required.
 
-No subsequent milestone has been started.
+This verification record closes R2; R3 delivery is recorded separately below.
 
 ### Objective
 
@@ -173,7 +173,33 @@ Import same-creator and multi-creator cooking histories → request a seven-day 
 
 ## 7. R3 — Semantic creative events and multimodal recipes
 
-Status: **planned, unimplemented**.
+Status: **completed and verified**, `0.0.7` / `0007_creative`, 2026-11-05.
+
+Delivered:
+
+- Strict observable technique/annotation/protocol/coverage contracts and uncertain original-media anchors, including points, spatial regions and discontinuities.
+- Canonical annotation-set, event, coverage and relation revisions with immutable typed FK projections. Exact whole-video or narrower literal input citations; captured Unicode caption/normalized-hashtag citations remain untimed.
+- Human-reviewed import with real ownership/duration/permission checks and bounded no-write dry runs. Imported model proposals preserve exact provider identity and cannot self-adjudicate.
+- Opt-in `cooking-opening-v1` profile with literal-text proposals and source-PTS-snapped budgeted extra frames; existing primitive workflow/cache stays independent. No new mandatory or prepared VLM adapter is claimed.
+- As-of/pinned event lanes, honest missingness and qualified temporal relations; opt-in schema-2 video reports preserve review/blinding/coverage and escape imported text. Ordinary schema-1 reports retain their behavior.
+- Eleven pinned recipes for result/ingredient order, visible dish, modality-specific promises, reviewed color, conjunction, reveal/SFX and cut/SFX synchrony, and hashtag inventory. Persistent media/post values carry exact lineage, availability and review policy; unrelated label edits preserve unchanged values.
+- Explicit recipe mappings in existing schema-2 analyses, frozen selected annotation revisions, transitive withdrawal and exact reproduction without primitive reprocessing. Numerical methods, old recipe versions and unversioned feature whitelists remain unchanged.
+- Additive migration, verified pre-upgrade backups, preserved old evidence/features/analysis links, rollback after both table rebuilds and conservative populated-library downgrade refusal. No new dependencies, vector collection or graph projection.
+
+Implementation map: new `domain/creative.py`, `analyzers/creative.py`, `analytics/creative_recipes.py`, `storage/creative_repository.py`, `application/creative_service.py`, `cli/creative_commands.py` and migration `0007_creative`; focused extensions to existing evidence, media task/timeline/report and feature/comparison paths. See [operations](docs/creative-analysis.md) and [implementation decisions](ARCHITECTURE.md#19-creative-event-implementation-decisions).
+
+Verification record (Linux/Python 3.11):
+
+- Full `pytest -q`: **265 passed, 2 skipped**, 704.73 seconds. Only opt-in native-model smoke tests were skipped because a prepared model library/isolated MediaPipe interpreter was not configured.
+- Focused creative contracts, real-media workflows and evidence-upgrade/backup suite: **52 passed**. Includes exhaustive feasible-bound timing checks, result/ingredient/ambiguous/sparse cases, delayed subtitles versus speech, cut/SFX synchrony, missing audio, discontinuous anchors, Unicode/normalized hashtags, model/human provenance and blinding, same-version mutation refusal, as-of/selective feature reuse, cache preservation and cross-process CLI persistence.
+- Final strengthened two-video comparison/statistical-withdrawal case: **1 passed**; archived report bytes remain unchanged and revoked reviewed labels block new statistical use/reproduction. Final strengthened legacy/version-2 compatibility cases: **2 passed**, including `0.0.6` corrected specs without creative fields. These strengthen existing cases, not additional distinct-test counts.
+- Every released head 0001–0006 upgrades with preserved identities/report bytes and verified backup. Populated feature/evidence parent rebuilds preserve analysis links; injected failure after both rebuilds rolls back exactly with FK enforcement restored. Populated-history downgrade refusal and restore reconciliation pass.
+- Ruff lint/format, strict mypy, unchanged released migration files, example validation, local documentation links and `git diff --check` passed. Offline `uv lock --check` passed with no dependency changes.
+- Wheel/sdist builds and isolated offline installs pass reviewed annotation import → pinned short-video recipe → exact creative citation → opt-in analysis/pinned report → process restart/storage verification, alongside existing video/account/statistical/research workflows. No platform API, model download or new service was used.
+
+Generated clips verify real byte/clock/storage/comparison workflows under controlled annotations, not real-world cooking recognition, inter-reviewer agreement, VLM accuracy or psychological validity. Those empirical validations are not claimed.
+
+No subsequent milestone has been started.
 
 ### Objective
 

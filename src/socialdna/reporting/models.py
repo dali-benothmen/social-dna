@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class VideoReport(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    schema_version: Literal["1.0"] = "1.0"
+    schema_version: Literal["1.0", "2.0"] = "1.0"
     report_type: Literal["video"] = "video"
     run_id: str
     media_id: str

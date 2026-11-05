@@ -35,6 +35,8 @@ class AnalysisOptions(BaseModel):
     pose: bool = False
     classify_audio: bool = False
     reason: bool = False
+    creative_profile: Literal["cooking-opening-v1"] | None = None
+    creative_frame_budget: int = Field(default=12, ge=0, le=48)
 
     @property
     def sample_ms(self) -> int:

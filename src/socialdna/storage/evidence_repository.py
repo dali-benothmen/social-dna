@@ -12,10 +12,12 @@ from socialdna.core.ids import stable_id
 from socialdna.core.time import MediaInterval, utc_now
 from socialdna.domain.evidence import (
     CommentLocator,
+    CreativeEventLocator,
     EntityRef,
     EvidenceRef,
     MediaLocator,
     MetricLocator,
+    PostTextLocator,
     StatisticalLocator,
 )
 from socialdna.storage.schema import metadata
@@ -34,7 +36,17 @@ LEGACY_KINDS = {
     "audio_segment": ("audio_segments", "id"),
     "ocr_box": ("ocr_boxes", "id"),
 }
-AUTHORED_KINDS = {"research_question", "hypothesis", "citation_report", "statistical_analysis"}
+AUTHORED_KINDS = {
+    "research_question",
+    "hypothesis",
+    "citation_report",
+    "statistical_analysis",
+    "creative_technique",
+    "creative_annotation_set",
+    "creative_event",
+    "creative_relation",
+    "creative_coverage",
+}
 
 
 class EvidenceRepository:
@@ -92,6 +104,15 @@ class EvidenceRepository:
                 raise StorageIntegrityError(
                     "Statistical subject does not match its frozen analysis"
                 )
+        elif row["kind"] in (
+            "creative_annotation_set",
+            "creative_event",
+            "creative_relation",
+            "creative_coverage",
+        ):
+            from socialdna.storage.creative_repository import validate_projection
+
+            validate_projection(self, ref, json.loads(row["payload_json"]))
         provenance = self.get("provenance_records", row["provenance_id"])
         if provenance["source_record_id"] != row["source_id"]:
             raise StorageIntegrityError("Entity provenance/source mismatch")
@@ -224,6 +245,13 @@ class EvidenceRepository:
                     .where(links.c.post_id == identity, tags.c.kind == "topic")
                 )
             )
+            payload["hashtags"] = sorted(
+                self.connection.scalars(
+                    select(tags.c.normalized_value)
+                    .join(links, links.c.tag_id == tags.c.id)
+                    .where(links.c.post_id == identity, tags.c.kind == "hashtag")
+                )
+            )
         if kind == "comment":
             post = self.latest("post", payload["post_id"]) or self.capture(
                 "post", payload["post_id"]
@@ -257,7 +285,12 @@ class EvidenceRepository:
     def save_evidence(
         self,
         identity: str,
-        locator: MediaLocator | CommentLocator | MetricLocator | StatisticalLocator,
+        locator: MediaLocator
+        | CommentLocator
+        | MetricLocator
+        | StatisticalLocator
+        | PostTextLocator
+        | CreativeEventLocator,
         provenance_id: str,
         *,
         task_id: str | None = None,

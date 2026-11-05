@@ -82,4 +82,38 @@ def render_markdown(report: VideoReport) -> str:
         )
     if len(report.timeline["observations"]) > 250:
         lines.append("Additional measurements are included in the complete JSON report.")
+    if "creative" in report.timeline:
+        creative = report.timeline["creative"]
+        lines += [
+            "",
+            "## Creative event lanes",
+            "",
+            "Timing relations are not semantic reinforcement or causal evidence.",
+            "",
+        ]
+        if creative.get("ref"):
+            lines.append("Pinned annotation revision: " + escape(creative["ref"]["revision_id"]))
+        if creative.get("reason"):
+            lines.append(escape(creative["reason"]))
+        for item in creative["events"]:
+            event = item["annotation"]
+            lines.append(
+                f"- {escape(event['technique'])} / {escape(', '.join(event['modalities']))}: "
+                f"{escape(event['description'])}; {escape(event['state'])}; "
+                f"outcome access: {escape(item['protocol']['outcome_access'])}; "
+                f"evidence {escape(item['evidence']['id'])} "
+                f"revision {escape(item['evidence']['revision_id'])}"
+            )
+            for anchor in event["anchors"]:
+                lines.append("  - Original-media anchor (ms): " + escape(anchor))
+        lines += ["", "### Review and sampling coverage", ""]
+        for item in creative["coverage"]:
+            lines.append("- " + escape(item["coverage"]))
+        lines += ["", "### Qualified temporal relations", ""]
+        for relation in creative["relations"]:
+            lines.append(
+                f"- {escape(relation['source']['revision_id'])} "
+                f"{escape(relation['relation'])} {escape(relation['target']['revision_id'])}: "
+                f"{escape(relation['status'])} (tolerance {relation['tolerance_ms']} ms)"
+            )
     return "\n".join(lines) + "\n"
