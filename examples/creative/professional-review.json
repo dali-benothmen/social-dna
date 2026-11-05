@@ -1,0 +1,16 @@
+{
+  "schema_version": "2.0",
+  "key": "professional-review",
+  "media_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "permission_basis": "REPLACE: actual authorization to analyze the registered video",
+  "protocol": {
+    "origin": "human",
+    "author": "REPLACE: actual reviewer",
+    "procedure": "REPLACE: review procedure, actual original-media coverage and limitations",
+    "outcome_access": "unknown",
+    "label_frozen_before_outcomes": false
+  },
+  "coverage": [],
+  "events": [],
+  "tolerance_ms": 100
+}

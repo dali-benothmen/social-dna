@@ -4,6 +4,7 @@ from typing import Any
 
 from socialdna.analyzers.creative import temporal_relation, window_membership
 from socialdna.domain.creative import FeatureRecipe, MediaAnchor
+from socialdna.domain.production import ProductionRecipe
 
 
 def _covers(bundle: dict[str, Any], technique: str, modality: str, end_ms: int) -> bool:
@@ -113,7 +114,7 @@ def _first(
     return None, "ordering_uncertain"
 
 
-def dependencies(recipe: FeatureRecipe) -> set[str]:
+def dependencies(recipe: FeatureRecipe | ProductionRecipe) -> set[str]:
     result: set[str] = set(recipe.techniques)
     if recipe.operation == "conjunction":
         result.add("preparation_instruction")

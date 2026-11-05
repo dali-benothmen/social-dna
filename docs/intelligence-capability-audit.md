@@ -1,5 +1,11 @@
 # Production, distribution, discoverability and conversion capability audit
 
+Delivery update (`0.0.13`): C1-A now implements reviewed professional v2 annotation
+imports and eight craft recipes through existing comparison, evidence and incremental
+research services. See [actual operations and limits](production-evidence.md).
+C1-B/C/D remain pending. The original audit below records the earlier baseline;
+it is not a claim that all four intelligence areas or empirical validity are complete.
+
 Reviewed: 2026-11-05 against package `0.0.10`, SQLite head `0010_memory`, the active roadmap, design documents and implementation. This is a documentation-only revision: R1–R6 remain delivered; R7 remains next. **None of the four requested areas is complete today.** Existing extensibility is not an implemented capability or empirical validation.
 
 This document supplements, rather than rewrites, the historical [architecture audit](architecture-audit.md). It defines the future C1 extension track in [PLAN.md](../PLAN.md), using the existing [architecture](../ARCHITECTURE.md), [research contracts](research-contracts.md), [statistical design](statistical-design.md) and [migration strategy](migration-strategy.md). Names of new records, services and files below are **planned responsibility boundaries, not existing APIs, tables or commands**.

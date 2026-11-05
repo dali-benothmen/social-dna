@@ -730,7 +730,13 @@ The next numbered research milestone is **R9**; C1 and U1/U2 remain separately a
 
 ## 19. C1 — Versioned production and growth-context evidence
 
-Status: **planned, unimplemented; four bounded deliveries after R7, not one large implementation**. This is core future capability coverage, not a requirement to build live API adapters. Detailed payloads, boundaries and per-slice acceptance/tests are in the [capability audit](docs/intelligence-capability-audit.md#2-shared-extension-architecture--planned-not-implemented).
+Status: **C1-A delivered in `0.0.13`; C1-B/C/D pending**. Four bounded deliveries,
+not one large implementation or a requirement to build live API adapters. Detailed
+boundaries are in the [capability audit](docs/intelligence-capability-audit.md#2-shared-extension-architecture--planned-not-implemented).
+
+Current authorization: implement C1-A through C1-D as four serial deliveries, each
+with working functionality, automated verification and its own professional commit.
+C1-A is complete; C1-B/C/D have not started. This does not authorize R9/R10 or U1/U2.
 
 ### Objective and integration
 
@@ -738,7 +744,7 @@ Supply the canonical inputs missing from professional craft, platform distributi
 
 ### Modules, interfaces and delivery boundaries
 
-Proposed file names below are responsibility boundaries, not scaffolding instructions. New record/service/CLI signatures are finalized by each slice's tested writer/reader. Add a new migration only where needed; never edit released `0001`–`0011`.
+Proposed file names below are responsibility boundaries, not scaffolding instructions. New record/service/CLI signatures are finalized by each slice's tested writer/reader. Add a new migration only where needed; never edit released `0001`–`0012`.
 
 | Delivery | Planned work and candidate files | Dependencies and integration |
 |---|---|---|
@@ -747,10 +753,48 @@ Proposed file names below are responsibility boundaries, not scaffolding instruc
 | C1-C: platform research inputs | Add `domain/platform_research.py` and import/service helpers for official-document statements, platform/surface specifications, source capability manifests and mapped traffic-window observations. Reuse context storage/CLI patterns and R5 measurements, not a new connector framework. | R1/R5/R6 and R7 shared research envelope. Reuse R8 invalidation when delivered; R9 compares distinct surface-specific questions. No live API prerequisite. |
 | C1-D: profile/funnel context | Extend context schemas/import/service for typed profile snapshots, text/photo/link/pin evidence, frozen branding/pillar rubrics and compatible funnel-stage summaries. Add actual profile/link/campaign subject bindings to behavioral contracts only when used. | R1/R5/R6; after R7; U1 for static visual lane. C1-B context helpers may be reused but unrelated publishing analytics are not required. R9/R10 consume validated summaries and attribution limits. |
 
+### Delivered production evidence (`0.0.13`)
+
+- Separate v2 professional schema/definitions and eight numeric recipes in
+  `domain/production.py`, `analyzers/production.py` and `analytics/production_recipes.py`.
+  Existing creative import/materialize/R2/R7/R8 paths consume these without changing
+  v1 labels, pins, reports or released migrations. Database head remains `0012_reevaluation`.
+- Six real generated videos from three creators, controlled outcome observations
+  including a fast-editing failure, actual matched comparison, literature-backed
+  assessment, correction/reevaluation, frozen report, restart and withdrawal are tested.
+  Synthetic review/outcome fixtures validate software, not craft effectiveness.
+- Exact review coverage/partition requirements preserve unknowns. No detector,
+  automatic quality score or actionable growth recommendation is delivered.
+  [Operations and limits](docs/production-evidence.md).
+- Verification: all 462 collected tests covered across regression partitions and
+  targeted final reruns (459 pass, three optional prepared-model skips); Ruff,
+  strict mypy (152 modules), offline lock/build, fresh installed-wheel CLI and
+  packaged/source equality checks pass. No real-model accuracy claim follows
+  from skipped model smoke tests or generated fixtures.
+
 ### Acceptance criteria and tests
 
 Deliver each slice as a working import → typed evidence → feature/context report → new-process reload, with compatible old imports/reports preserved. The [slice verification matrix](docs/intelligence-capability-audit.md#4-bounded-delivery-and-verification) defines the exact demonstrations and rejection fixtures: production ambiguity/coverage; timezone/DST/incomplete cadence; official-document/surface/version and feedback leakage; profile clocks/branching funnels/denominators/credit duplication. Include source withdrawal/erasure, memory builder eligibility and no-provider CLI tests. Optional model performance and real-corpus validity require separate measured evidence, not generated-fixture assertions.
 
-### Explicitly deferred
+### Per-delivery acceptance and integration gates
 
-Broad nonlinear/cross-creator discovery belongs to R9; recommendations and creator experiment outcomes belong to R10; host workflows belong to U2. No automatic account edits, posting, experiments, scraping, new infrastructure, full professional detector suite or universal algorithm model is part of a C1 slice. Request authority for one delivery at a time.
+These gates are required in this plan, not delegated solely to the audit. Fixtures
+exercise real writers, evidence resolution and saved reports; synthetic labels and
+outcomes test software behavior, not real-world detector or scientific validity.
+
+| Slice | Required working acceptance scenario | Required integration and rejection tests |
+|---|---|---|
+| C1-A | Import reviewed, versioned professional annotations for several authorized videos from multiple creators, including ordinary/failure examples. Reproduce pinned shot-duration/pacing, subtitle and cut/beat features with exact citations; compare selected features with imported, compatible performance observations through R2. Preserve a frozen comparison after annotation edits and demonstrate R8 staleness/reevaluation. No automatic professional-quality or causal score. | `tests/integration/test_production_evidence.py`: multi-video import → numeric recipes → actual outcome comparison → report → new-process reload; old v1 imports/recipes unchanged; source withdrawal; ambiguous timing and incomplete coverage stay unknown; camera/subject motion distinct; invalid vocabulary/recipe pins rejected; optional detectors require separate held-out validation. |
+| C1-B | Import dated publication/packaging/language/timezone snapshots and a complete account observation window. Produce reproducible local-time/cadence features, exact metadata citations and a comparison with compatible imported outcomes. Search, recommendation distribution and conversion remain distinct objectives. Static visual interpretation waits for U1. | `tests/integration/test_publication_context.py`: real CLI/service import/report/reload, historical edits and frozen features; DST folds/gaps and unknown zones; incomplete/omitted posting windows refuse cadence; incompatible objectives/windows and future trend/metadata leakage rejected; title spans/asset identity and old exports preserved; withdrawal/invalidation. |
+| C1-C | Import reviewed official document versions/statements separately from authorized distribution observations. Produce distinct platform/surface manifests and a descriptive early-response/later-distribution comparison with exact citations, or an explicit data-access refusal. Reports distinguish official guidance, local inference and experimental evidence. Proprietary ranking weights/rules, bypass and guaranteed distribution are not deliverables. | `tests/integration/test_platform_research.py`: official excerpt versus observational result labels survive report/reload; platform/surface and metric mappings remain distinct; paid/organic/unknown traffic; non-overlapping windows and lag; reject same-window feedback leakage, unavailable/suppressed metrics and unsupported algorithm/causal claims; document correction and withdrawal propagate. |
+| C1-D | Compare two dated public profile snapshots using a frozen, qualified rubric. Separately import authorized source-defined funnel observations and report compatible measured follower/business/app-install conversion rates or explicit incompatibility. A profile assessment or link click cannot substitute for a measured follow/install. | `tests/integration/test_profile_conversion.py`: profile fields/order/links/pins and exact citations; independent profile-assessment and measured-conversion outputs; actual numerator/denominator evidence, cohort/window/uniqueness and attribution checks; reject inferred individual journeys, nearest-post credit, missing private data and duplicate conversion credit; historical profile exposure unknown unless supplied; persistence, withdrawal and erasure. |
+
+Every slice also requires unit/schema tests, no-provider CLI contracts, FK/artifact
+checks, idempotent retries, existing-library compatibility and unchanged frozen
+report bytes. Reuse SQL/FTS/vector/graph producers and eligibility gates; create
+only first-use schema. Record actual delivered limits rather than claiming future
+R9 discovery, R10 recommendations or U1 image analysis.
+
+### Explicitly deferred scope
+
+Broad nonlinear/cross-creator discovery belongs to R9; recommendations and creator experiment outcomes belong to R10; host workflows belong to U2. No automatic account edits, posting, experiments, scraping, new infrastructure, full professional detector suite or universal algorithm model is part of a C1 slice. Finish and verify each authorized C1 delivery before starting the next.

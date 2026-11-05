@@ -22,6 +22,7 @@ from socialdna.core.ids import stable_id
 from socialdna.core.time import utc_now
 from socialdna.domain.creative import CreativeAnnotationSet
 from socialdna.domain.evidence import EntityRef, EvidenceRef
+from socialdna.domain.production import ProductionAnnotationSet
 from socialdna.ingestion.tabular import timestamp
 from socialdna.storage.creative_repository import (
     load_annotations,
@@ -42,13 +43,16 @@ def _cutoff(value: str | None) -> str:
     return cutoff
 
 
-def read_annotations(path: Path) -> CreativeAnnotationSet:
+def read_annotations(path: Path) -> CreativeAnnotationSet | ProductionAnnotationSet:
     try:
         with path.open("rb") as stream:
             raw = stream.read(2_000_001)
         if len(raw) > 2_000_000:
             raise ValueError("Annotation document exceeds 2 MB")
-        return CreativeAnnotationSet.model_validate_json(raw)
+        document = json.loads(raw)
+        if isinstance(document, dict) and document.get("schema_version") == "2.0":
+            return ProductionAnnotationSet.model_validate(document)
+        return CreativeAnnotationSet.model_validate(document)
     except (OSError, ValueError, ValidationError) as exc:
         raise ConfigurationError(f"Invalid creative annotations: {exc}") from exc
 
@@ -83,7 +87,7 @@ def import_annotations(settings: Settings, path: Path, *, dry_run: bool = False)
 
 
 def import_into_application(
-    application: Application, specification: CreativeAnnotationSet
+    application: Application, specification: CreativeAnnotationSet | ProductionAnnotationSet
 ) -> dict[str, Any]:
     with application.database.transaction() as connection:
         assets = metadata.tables["media_assets"]
@@ -186,23 +190,29 @@ def creative_timeline(
             **bundle,
             "eligible": True,
             "limitations": [
+                *bundle.get("limitations", []),
                 "Temporal relations do not prove semantic reinforcement or "
-                "psychological mechanisms."
+                "psychological mechanisms.",
             ],
         }
 
 
 def definitions(application: Application) -> dict[str, Any]:
     from socialdna.analyzers.creative import RECIPES, TECHNIQUES
+    from socialdna.analyzers.production import RECIPES as PRODUCTION_RECIPES
+    from socialdna.analyzers.production import TECHNIQUES as PRODUCTION_TECHNIQUES
 
     with application.database.transaction() as connection:
         refs = register_definitions(connection)
     return {
         "techniques": [
             {"ref": refs[key].model_dump(), **definition.model_dump(mode="json")}
-            for key, definition in TECHNIQUES.items()
+            for key, definition in {**TECHNIQUES, **PRODUCTION_TECHNIQUES}.items()
         ],
-        "recipes": [recipe.model_dump(mode="json") for recipe in RECIPES.values()],
+        "recipes": [
+            recipe.model_dump(mode="json")
+            for recipe in (*RECIPES.values(), *PRODUCTION_RECIPES.values())
+        ],
     }
 
 

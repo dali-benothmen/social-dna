@@ -26,17 +26,35 @@ from socialdna.storage.evidence_repository import EvidenceRepository
 from socialdna.storage.schema import metadata
 
 
-def assert_design_inputs(connection: Connection, rows: list[dict[str, Any]]) -> None:
-    for row in rows:
-        assert_active_inputs(
-            connection,
-            source_ids=tuple(row["source_ids"]),
-            evidence_ids=tuple(
-                stable_id("metric-evidence", item) for item in row["dependency_snapshot_ids"]
-            ),
-        )
-        for identity in row["feature_evidence_ids"]:
+def assert_design_inputs(
+    connection: Connection,
+    rows: list[dict[str, Any]],
+    *,
+    resolve_feature: Callable[[str], None] | None = None,
+) -> None:
+    """Check the exact dependency union, without revisiting overlapping populations.
+
+    A recursive citation caller may share its *current traversal* resolver. No
+    eligibility cache survives this call or a subsequent permission change.
+    """
+    assert_active_inputs(
+        connection,
+        source_ids=tuple(sorted({item for row in rows for item in row["source_ids"]})),
+        evidence_ids=tuple(
+            sorted(
+                {
+                    stable_id("metric-evidence", item)
+                    for row in rows
+                    for item in row["dependency_snapshot_ids"]
+                }
+            )
+        ),
+    )
+    for identity in sorted({item for row in rows for item in row["feature_evidence_ids"]}):
+        if resolve_feature is None:
             EvidenceResolver(connection).resolve(identity, purpose="new_claim")
+        else:
+            resolve_feature(identity)
 
 
 def _begin_attempt(

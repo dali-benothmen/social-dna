@@ -269,9 +269,22 @@ class EvidenceResolver:
 
             analysis = self.repository.get("statistical_analyses", locator.analysis_id)
             report = json.loads(analysis["result_json"])
+
+            def resolve_feature(identity: str) -> None:
+                dependency = self.resolve(
+                    identity,
+                    as_of=as_of,
+                    _ancestors=_ancestors | {row["id"]},
+                    _memo=memo,
+                )
+                if not dependency.eligible:
+                    raise ConfigurationError("Ineligible feature evidence: " + identity)
+
             try:
                 assert_design_inputs(
-                    self.connection, report["posts"] + report["reference_population"]
+                    self.connection,
+                    report["posts"] + report["reference_population"],
+                    resolve_feature=resolve_feature,
                 )
             except ConfigurationError as exc:
                 limitations.append("Derived analysis input is ineligible: " + str(exc))

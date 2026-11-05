@@ -1,7 +1,10 @@
 # SocialDNA
 
 SocialDNA is a local-first social-media research engine. The implemented release is
-`0.0.12`: incremental hypothesis reevaluation with immutable contradiction history,
+`0.0.13`: reviewed professional production evidence and eight pinned numeric craft
+recipes, joined to the existing comparison/research pipeline. See
+[production evidence](docs/production-evidence.md). It extends `0.0.12`'s
+incremental hypothesis reevaluation with immutable contradiction history,
 bounded change tracking, restart checkpoints and preserved historical reports. See
 [incremental research](docs/incremental-research.md). It extends `0.0.11`'s reviewed
 source excerpts, competing predictions, immutable assessments, scoped findings and

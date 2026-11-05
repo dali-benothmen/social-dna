@@ -42,7 +42,14 @@ Schema is introduced with its first real writer and consumer:
 
 Do not create every future locator or projection in R1. The generic identity/revision registry supplies the extension point. Low-volume future definitions remain validated versioned documents until a query/writer justifies additional tables.
 
-C1 is a planned evidence-extension track, not a migration in this documentation audit. See the [capability contracts](research-contracts.md#8-production-and-growth-context-contracts--planned-c1) and [slice verification matrix](intelligence-capability-audit.md#4-bounded-delivery-and-verification). Preserve account-export v1, the closed R3 annotation v1 vocabulary and existing post/account metric semantics. New professional labels need a new explicit parser/schema version; unknown labels must not silently become valid in an old format. Existing profile JSON revisions remain historical captured data, not retrospectively complete typed profile snapshots.
+C1-A (`0.0.13`) reuses the existing creative projections and adds no migration;
+its professional labels require explicit annotation schema `2.0`. C1-B/C/D remain
+planned first-use extensions. See the [capability contracts](research-contracts.md#8-production-and-growth-context-contracts)
+and [slice verification matrix](intelligence-capability-audit.md#4-bounded-delivery-and-verification).
+Preserve account-export v1, the closed R3 annotation v1 vocabulary and existing
+post/account metric semantics; unknown labels must not silently become valid in
+an old format. Existing profile JSON revisions remain historical captured data,
+not retrospectively complete typed profile snapshots.
 
 Introduce new entity/locator/subject kinds only with actual FK bindings, source/clock/missingness validation, no-model imports and a usable report. Do not backfill guessed local timezones, metadata effective dates, profile exposure, surface classifications, individual conversion paths or proprietary weights. New memory builders reuse R6 document/FTS/outbox/graph protocols, extending eligibility, erasure and restore verification for every added payload and asset. No new collection per domain and no edits to released migration scripts.
 

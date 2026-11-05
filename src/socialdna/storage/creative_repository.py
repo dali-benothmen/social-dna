@@ -12,13 +12,23 @@ from socialdna.core.exceptions import ConfigurationError, StorageIntegrityError
 from socialdna.core.hashing import canonical_json, hash_config
 from socialdna.core.ids import stable_id
 from socialdna.core.time import MediaInterval, utc_now
-from socialdna.domain.creative import CreativeAnnotationSet, MediaAnchor
+from socialdna.domain.creative import (
+    CreativeAnnotation,
+    CreativeAnnotationSet,
+    MediaAnchor,
+    SamplingCoverage,
+)
 from socialdna.domain.evidence import (
     CreativeEventLocator,
     EntityRef,
     EvidenceRef,
     MediaLocator,
     PostTextLocator,
+)
+from socialdna.domain.production import (
+    ProductionAnnotation,
+    ProductionAnnotationSet,
+    ProductionCoverage,
 )
 from socialdna.storage.evidence_repository import EvidenceRepository
 from socialdna.storage.schema import metadata
@@ -107,6 +117,75 @@ def register_definitions(connection: Connection) -> dict[str, EntityRef]:
         existing = connection.scalar(select(recipes.c.spec_json).where(recipes.c.id == key))
         if existing is not None and existing != canonical_json(document):
             raise StorageIntegrityError("Creative recipe changed without a new pinned version")
+        _put(
+            connection,
+            "feature_recipes",
+            id=key,
+            version=recipe.version,
+            spec_json=canonical_json(document),
+            available_at=utc_now(),
+        )
+    refs.update(_register_production(connection))
+    return refs
+
+
+def _register_production(connection: Connection) -> dict[str, EntityRef]:
+    from socialdna.analyzers.production import RECIPES, TECHNIQUES
+    from socialdna.application.evidence_service import assert_active_inputs
+
+    repository = EvidenceRepository(connection)
+    source_id = stable_id("creative-definitions-source", "2")
+    provenance_id = stable_id("creative-definitions-provenance", "2")
+    assert_active_inputs(connection, source_ids=(source_id,))
+    _put(
+        connection,
+        "source_records",
+        id=source_id,
+        source_kind="engine_definition",
+        source_uri="socialdna:creative-definitions/2",
+        permission_basis="locally installed Apache-2.0 engine definitions",
+        terms_json="{}",
+        retrieved_at=utc_now(),
+    )
+    _put(
+        connection,
+        "provenance_records",
+        id=provenance_id,
+        source_record_id=source_id,
+        method="creative-definitions-2",
+        tool_name="socialdna",
+        tool_version=__version__,
+        config_json=canonical_json(
+            {"scope": "reviewed professional craft proxies; no quality guarantee"}
+        ),
+        created_at=utc_now(),
+    )
+    refs = {}
+    for key, definition in TECHNIQUES.items():
+        identity = stable_id("creative-technique-v2", key)
+        captured = repository.latest("creative_technique", identity)
+        document = definition.model_dump(mode="json")
+        if captured and json.loads(repository.entity(captured)["payload_json"]) != document:
+            raise StorageIntegrityError("Professional definition changed without a version")
+        refs[key] = _reuse(repository, "creative_technique", identity, document, provenance_id)
+    recipes = metadata.tables["feature_recipes"]
+    for key, recipe in RECIPES.items():
+        technique_refs = []
+        for technique in recipe.techniques:
+            ref = refs.get(technique) or repository.latest(
+                "creative_technique", stable_id("creative-technique", technique)
+            )
+            if ref is None:
+                raise StorageIntegrityError("Professional recipe has an unregistered technique")
+            technique_refs.append(ref.model_dump())
+        document = {
+            "recipe": recipe.model_dump(mode="json"),
+            "techniques": technique_refs,
+            "temporal_rule": "professional-craft-2",
+        }
+        previous = connection.scalar(select(recipes.c.spec_json).where(recipes.c.id == key))
+        if previous is not None and previous != canonical_json(document):
+            raise StorageIntegrityError("Professional recipe changed without a pinned version")
         _put(
             connection,
             "feature_recipes",
@@ -261,7 +340,7 @@ def _creative_evidence(
 def persist_annotations(
     connection: Connection,
     media_id: str,
-    spec: CreativeAnnotationSet,
+    spec: CreativeAnnotationSet | ProductionAnnotationSet,
     provenance_id: str,
     *,
     run_id: str | None = None,
@@ -303,7 +382,8 @@ def persist_annotations(
         producer_task_id=task_id,
     )
     coverages = []
-    for ordinal, coverage in enumerate(spec.coverage):
+    coverage_specs: tuple[SamplingCoverage | ProductionCoverage, ...] = spec.coverage
+    for ordinal, coverage in enumerate(coverage_specs):
         if (
             coverage.modality in ("audio", "speech")
             and not has_audio
@@ -347,7 +427,8 @@ def persist_annotations(
         EvidenceResolver(connection).resolve(evidence, purpose="new_claim")
         coverages.append({"ref": ref.model_dump(), "evidence": evidence.model_dump(), **payload})
     events = []
-    for ordinal, annotation in enumerate(spec.events):
+    event_specs: tuple[CreativeAnnotation | ProductionAnnotation, ...] = spec.events
+    for ordinal, annotation in enumerate(event_specs):
         if set(annotation.modalities).intersection(("audio", "speech")) and not has_audio:
             raise ConfigurationError("Audio events require an actual source audio stream")
         try:
@@ -483,8 +564,11 @@ def persist_annotations(
         EvidenceResolver(connection).resolve(evidence, purpose="new_claim")
         events.append({"ref": ref.model_dump(), "evidence": evidence.model_dump(), **payload})
     relations = []
-    for index, left in enumerate(events):
-        for right in events[index + 1 :]:
+    # V2's richer shot/beat timelines would produce quadratic durable rows.
+    # Pinned v2 recipes compute only their declared temporal relationships.
+    relation_events = events if spec.schema_version == "1.0" else []
+    for index, left in enumerate(relation_events):
+        for right in relation_events[index + 1 :]:
             for relation in ("precedes", "overlaps", "simultaneous_within_tolerance"):
                 for a, b in (
                     ((left, right), (right, left)) if relation == "precedes" else ((left, right),)
@@ -546,6 +630,14 @@ def persist_annotations(
         "relations": relations,
         "protocol": spec.protocol.model_dump(mode="json"),
         "limitations": [
+            *(
+                [
+                    "Professional v2 temporal combinations are computed by pinned recipes; "
+                    "all-pairs relations are not materialized."
+                ]
+                if spec.schema_version == "2.0"
+                else []
+            ),
             "Human/model labels are assertions with provenance, not independently "
             "validated technique accuracy.",
             "Sampling gaps are unknown; timing co-occurrence is not semantic "
@@ -686,6 +778,12 @@ def load_annotations(
         "relations": [],
         "reason": None,
     }
+    if set_payload["spec"].get("schema_version") == "2.0":
+        result["schema_version"] = "2.0"
+        result["limitations"] = [
+            "Professional v2 temporal combinations are computed by pinned recipes; "
+            "all-pairs relations are not materialized."
+        ]
     for table_name, column_name, output in (
         ("creative_annotation_members", "event_revision_id", "events"),
         ("creative_set_coverages", "coverage_revision_id", "coverage"),

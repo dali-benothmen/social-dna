@@ -648,9 +648,12 @@ never require Qdrant to open. Health checks distinguish derived damage/lag from
 canonical data loss. Rebuilds are explicit and resumable, not mandatory on every
 command. See [operations and verification boundaries](docs/research-memory.md).
 
-## 23. Production and growth-context extension decisions — planned
+## 23. Production and growth-context extension decisions
 
-This documentation decision follows the [four-area audit](docs/intelligence-capability-audit.md); it does not change package version, database head or application code. Generic creative annotations, platform metric namespaces and arbitrary profile JSON are useful foundations but cannot honestly stand in for complete craft, distribution, publishing or conversion intelligence.
+This design follows the [four-area audit](docs/intelligence-capability-audit.md).
+C1-A is implemented in `0.0.13` (details below); B/C/D remain planned. Generic
+creative annotations, platform metric namespaces and arbitrary profile JSON cannot
+honestly stand in for complete craft, distribution, publishing or conversion intelligence.
 
 | Decision | Rationale and boundary |
 |---|---|
@@ -737,3 +740,29 @@ remain historical descriptions of their own scope.
 
 R9/R10, C1 and U1/U2 remain unimplemented; no live adapter, model dependency,
 additional vector collection or infrastructure is introduced by this delivery.
+
+## 26. Professional production evidence (`0.0.13`)
+
+- A separate annotation schema `2.0` adds 16 craft labels and technique-specific
+  categorical values. The released v1 schema, definitions and eleven recipe payloads
+  remain frozen. Common timing, source and review validation is reused, not loosened.
+- Eight new pins quantify reviewed shot durations, temporal-half pacing, cut density,
+  subtitle occupancy, cut/beat proximity, angle changes and close framing. Complete
+  human coverage and exact intervals/partitions are required where appropriate;
+  ambiguity, sparse coverage and missing denominators produce unknown, not zero.
+  Apparent movement/lighting/color/focus do not recover rigs, intent or original grades.
+- Existing creative projections/typed citations store the v2 documents; no DDL,
+  dependency or vector collection is needed. A v2 document permits 512 events but
+  does not precompute quadratic all-pairs temporal relations. Declared recipes
+  selectively compute the temporal relationships they actually require. V1 relation
+  behavior is unchanged; an empty v2 relation lane is explicitly qualified.
+- The R2 feature join, lineage, R7 evaluator and R8 invalidation consume new pins
+  directly. One evidence traversal shares its memo through statistical dependencies
+  and deduplicates overlapping selected/reference inputs. No permission cache survives
+  a top-level call, so same-connection withdrawal is checked again immediately.
+- C1-A's generated multi-video integration validates actual import, matching,
+  citations, assessment/reevaluation and historical report persistence, not empirical
+  professional-label accuracy, mechanism mediation or causal performance effects.
+
+See [production operations](docs/production-evidence.md). Broad interactions and
+actionable strategies remain R9/R10; automatic detector validation is not delivered.

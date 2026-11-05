@@ -156,15 +156,15 @@ def test_statistical_diagnostic_citations_survive_restart_and_propagate_withdraw
             assert connection.scalar(select(metadata.tables["reports"].c.schema_version)) == "2.0"
     with open_application(settings) as app:
         with app.database.transaction() as connection:
-            resolved = EvidenceResolver(connection).resolve(
-                citation, purpose="new_claim", run_id=report["run_id"]
-            )
+            resolver = EvidenceResolver(connection)
+            resolved = resolver.resolve(citation, purpose="new_claim", run_id=report["run_id"])
             assert resolved.locator_kind == "statistical_result"
             assert resolved.subject.kind == "statistical_analysis"
             with pytest.raises(ConfigurationError, match="requested run"):
                 EvidenceResolver(connection).resolve(citation, run_id="wrong")
             withdraw(connection, source_id=imported["source_id"], reason="No longer authorized")
-            assert not EvidenceResolver(connection).resolve(citation).eligible
+            # Reusing the resolver must not reuse pre-withdrawal eligibility.
+            assert not resolver.resolve(citation).eligible
             with pytest.raises(ConfigurationError, match="Ineligible evidence"):
                 EvidenceResolver(connection).resolve(citation, purpose="new_claim")
         with pytest.raises(ConfigurationError, match="Withdrawn"):

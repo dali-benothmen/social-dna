@@ -199,19 +199,23 @@ def materialize_creative_value(
 ) -> dict[str, Any]:
     from socialdna.analytics.creative_recipes import dependencies, evaluate_recipe
     from socialdna.analyzers.creative import RECIPES
+    from socialdna.analyzers.production import RECIPES as PRODUCTION_RECIPES
+    from socialdna.domain.creative import FeatureRecipe
     from socialdna.domain.evidence import EntityRef, PostTextLocator
+    from socialdna.domain.production import ProductionRecipe
     from socialdna.storage.creative_repository import (
         cite_post_text,
         post_text,
         register_definitions,
     )
 
-    if recipe_id not in RECIPES:
+    recipes: dict[str, FeatureRecipe | ProductionRecipe] = {**RECIPES, **PRODUCTION_RECIPES}
+    if recipe_id not in recipes:
         from socialdna.core.exceptions import ConfigurationError
 
         raise ConfigurationError("Unknown pinned creative recipe: " + recipe_id)
     register_definitions(connection)
-    recipe = RECIPES[recipe_id]
+    recipe = recipes[recipe_id]
     repository = EvidenceRepository(connection)
     entity = repository.entity(EntityRef.model_validate(subject))
     recipe_record = repository.get("feature_recipes", recipe_id)
@@ -284,7 +288,13 @@ def materialize_creative_value(
                     ).model_dump()
                 )
     else:
-        evaluated = evaluate_recipe(recipe, selected, proposals=proposals)
+        from socialdna.analytics.production_recipes import evaluate_recipe as production_recipe
+
+        evaluated = (
+            production_recipe(recipe, selected)
+            if isinstance(recipe, ProductionRecipe)
+            else evaluate_recipe(recipe, selected, proposals=proposals)
+        )
     # Absence is an assertion about coverage as well as a lack of positive events.
     # Whole selection revisions live in the analysis row, not the dependency cache
     # key; unrelated annotation changes do not invalidate an unchanged measurement.
