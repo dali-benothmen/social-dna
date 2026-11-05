@@ -2,6 +2,7 @@ import json
 import os
 import subprocess
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
 
 
@@ -98,3 +99,45 @@ def test_bundled_import_examples_validate_without_storage(tmp_path: Path) -> Non
             "--dry-run",
         )["data"]["valid"]
         assert not data_dir.exists()
+
+
+def test_versioned_analysis_and_statistical_citation_reopen_in_separate_processes(
+    account_export: Path,
+    tmp_path: Path,
+) -> None:
+    data_dir = tmp_path / "versioned-processes"
+    imported = command(data_dir, "import", "json", str(account_export))["data"]
+    account_id = imported["account_ids"][0]
+    specification = tmp_path / "corrected.json"
+    specification.write_text(
+        json.dumps(
+            {
+                "schema_version": "2.0",
+                "metric_key": "demo.views.v1",
+                "features": ["caption_length"],
+                "covariates": ["caption_length"],
+                "design": "within_creator",
+                "estimand": "within_creator_association",
+                "feature_policy": "retrospective_content",
+                "maturity_policy": "collection_proxy",
+                "knowledge_cutoff": datetime.now(UTC).isoformat(),
+                "publication_cutoff": "2026-11-01T00:00:00Z",
+                "sampling_frame": "authorized acceptance fixture",
+                "family_id": "cross-process-analysis",
+                "family_terms": ["caption_length"],
+            }
+        )
+    )
+    analyzed = command(data_dir, "analyze", "account", account_id, "--spec", str(specification))[
+        "data"
+    ]
+    assert analyzed["schema_version"] == "2.0" and analyzed["results"]["available_n"] == 6
+    report = command(data_dir, "report", "generate", "--run", analyzed["run_id"])["data"]
+    assert report["content"]["results"] == analyzed["results"]
+    ref = analyzed["statistical_evidence"][0]["ref"]
+    resolved = command(data_dir, "evidence", "resolve", ref["id"])["data"]
+    assert resolved["eligible"] and resolved["ref"] == ref
+    assert resolved["locator_kind"] == "statistical_result"
+    rerun = command(data_dir, "compare", "reproduce", analyzed["run_id"])["data"]
+    assert rerun["results"] == analyzed["results"]
+    assert command(data_dir, "storage", "verify")["status"] == "success"

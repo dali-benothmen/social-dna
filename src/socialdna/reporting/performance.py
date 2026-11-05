@@ -90,6 +90,33 @@ def render_performance(report: dict[str, Any]) -> str:
                 f"raw artifact `{snapshot['raw_artifact_id']}`"
             )
     lines.extend(["", "## Limitations", ""])
+    if report["schema_version"] == "2.0":
+        lines.extend(
+            [
+                "",
+                "## Baseline references and test ledger",
+                "",
+                "```json",
+                json.dumps(
+                    {
+                        "baselines": results["creator_baselines"],
+                        "test_ledger": report["test_ledger"],
+                    },
+                    indent=2,
+                ).replace("<", "\\u003c"),
+                "```",
+                "",
+                "## Statistical citations",
+                "",
+            ]
+        )
+        for citation in report["statistical_evidence"]:
+            ref = citation["ref"]
+            lines.append(
+                f"- {_safe(citation['term'] or citation['diagnostic'])}: "
+                f"`{ref['id']}` revision `{ref['revision_id']}`"
+            )
+        lines.extend(["", "## Limitations", ""])
     lines.extend(f"- {_safe(item)}" for item in report["limitations"])
     lines.extend(
         [

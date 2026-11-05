@@ -1,10 +1,10 @@
 # Account performance analysis
 
-Status: existing analytical methods from `0.0.4`, preserved in `0.0.5` with R1's
-source/evidence withdrawal gates; no R2 statistical repairs are claimed. The revised
-[statistical design](statistical-design.md) specifies planned R2 repairs;
-[PLAN.md](../PLAN.md) is the implementation roadmap. Those repairs are not available
-in the current commands and do not retroactively alter saved reports.
+This page documents the **legacy, unversioned** analytical methods from `0.0.4`,
+preserved for compatibility. `0.0.6` additionally supports explicitly versioned
+[time-aware comparisons and actual-pipeline validation](versioned-analytics.md).
+Select those repairs with `schema_version: "2.0"`; they do not reinterpret old
+specifications or saved reports. The limitations below apply to legacy v1.
 
 This release provides local, reproducible **observations and associations**, not
 causal attribution, a universal virality score, or psychological findings. It needs

@@ -1,4 +1,5 @@
 import json
+import shutil
 from pathlib import Path
 
 import pytest
@@ -93,7 +94,8 @@ def released_library(settings: Settings, head: str) -> tuple[str, bytes]:
 
 
 @pytest.mark.parametrize(
-    "head", ["0001_foundation", "0002_timeline", "0003_enrichment", "0004_analytics"]
+    "head",
+    ["0001_foundation", "0002_timeline", "0003_enrichment", "0004_analytics", "0005_evidence"],
 )
 def test_released_upgrade_keeps_ids_and_report_bytes_and_makes_verified_backup(
     settings: Settings,
@@ -103,7 +105,7 @@ def test_released_upgrade_keeps_ids_and_report_bytes_and_makes_verified_backup(
     evidence_id, archived = released_library(settings, head)
     with open_application(settings) as application:
         with application.database.transaction() as connection:
-            assert current_revision(connection) == "0005_evidence"
+            assert current_revision(connection) == "0006_designs"
             assert (
                 connection.scalar(select(metadata.tables["creators"].c.display_name)) == "Keep me"
             )
@@ -127,6 +129,51 @@ def test_released_upgrade_keeps_ids_and_report_bytes_and_makes_verified_backup(
         if head != "0001_foundation":
             with application.database.transaction() as connection:
                 assert EvidenceResolver(connection).resolve(evidence_id).ref.id == evidence_id
+
+
+def test_populated_evidence_parent_rebuild_rolls_back_and_preserves_bindings(
+    settings: Settings,
+    tmp_path: Path,
+) -> None:
+    from socialdna.storage.migration_runner import MIGRATIONS
+
+    evidence_id, _ = released_library(settings, "0005_evidence")
+    database = Database(DataPaths(settings.data_dir).database)
+    try:
+        backfill_evidence(database)
+        with database.transaction() as connection:
+            before = connection.exec_driver_sql(
+                "SELECT * FROM evidence_revisions ORDER BY id"
+            ).all()
+            assert before
+        location = tmp_path / "failing-rebuild"
+        shutil.copytree(MIGRATIONS, location)
+        migration = location / "versions/v0006_designs.py"
+        migration.write_text(
+            migration.read_text().replace(
+                "\ndef downgrade()",
+                "\n    raise RuntimeError('injected rebuild failure')\n\ndef downgrade()",
+            )
+        )
+        with pytest.raises(RuntimeError, match="injected rebuild"):
+            migrate(database, location=location)
+        with database.transaction() as connection:
+            assert current_revision(connection) == "0005_evidence"
+            assert (
+                connection.exec_driver_sql("SELECT * FROM evidence_revisions ORDER BY id").all()
+                == before
+            )
+            assert connection.exec_driver_sql("PRAGMA foreign_keys").scalar() == 1
+            assert not connection.exec_driver_sql("PRAGMA foreign_key_check").all()
+        migrate(database)
+        with database.transaction() as connection:
+            assert (
+                connection.exec_driver_sql("SELECT * FROM evidence_revisions ORDER BY id").all()
+                == before
+            )
+            assert EvidenceResolver(connection).resolve(evidence_id).ref.id == evidence_id
+    finally:
+        database.close()
 
 
 def test_backfill_interruption_resumes_committed_cursor(
@@ -186,7 +233,7 @@ def test_downgrade_refuses_to_discard_registered_revisions(
                 config.attributes["connection"] = connection
                 command.downgrade(config, "0004_analytics")
         with application.database.transaction() as connection:
-            assert current_revision(connection) == "0005_evidence"
+            assert current_revision(connection) == "0006_designs"
             assert (
                 connection.scalar(
                     select(func.count()).select_from(metadata.tables["entity_revisions"])
@@ -234,7 +281,7 @@ def test_restore_replays_later_withdrawals_and_keeps_absent_target_tombstones(
                 )
                 == "Also revoked"
             )
-    assert verify_backup(checkpoint)["database_revision"] == "0005_evidence"
+    assert verify_backup(checkpoint)["database_revision"] == "0006_designs"
 
 
 def test_restore_without_latest_authority_is_restricted_and_never_overwrites(

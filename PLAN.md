@@ -1,8 +1,8 @@
 # SocialDNA implementation plan
 
-Revised: 2026-11-05. Scope: R1 completed and verified. No later milestone implementation is claimed.
+Revised: 2026-11-05. Scope: R1 and R2 completed and verified. No R3 or later implementation is claimed.
 
-Runtime: package `0.0.5`, SQLite head `0005_evidence`. Released migrations `0001_foundation`–`0004_analytics` remain unchanged; `0005_evidence` is frozen with the R1 delivery. Legacy Milestones 0, 1, 3 and 4 are completed deliveries; their limitations remain visible. Legacy Milestones 2, 5 and 6 are **superseded, not completed**. R1 is completed and verified; **R2–R10 and U1/U2 remain planned and unimplemented**.
+Runtime: package `0.0.6`, SQLite head `0006_designs`. Released migrations `0001_foundation`–`0005_evidence` remain unchanged. Legacy Milestones 0, 1, 3 and 4 are completed deliveries; their limitations remain visible. Legacy Milestones 2, 5 and 6 are **superseded, not completed**. R1 and R2 are completed and verified; **R3–R10 and U1/U2 remain planned and unimplemented**.
 
 Authoritative design: [ARCHITECTURE.md](ARCHITECTURE.md), [research contracts](docs/research-contracts.md), [statistical design](docs/statistical-design.md), [migration strategy](docs/migration-strategy.md), and [reference use case](docs/research-use-case.md). The [audit](docs/architecture-audit.md) records the reasons for this revision; the [previous roadmap](docs/history/PLAN.pre-research-revision.md) is historical, not an alternative active plan.
 
@@ -20,7 +20,7 @@ Delivery rules:
 - Keep basic media/account analysis fast: do not register a research question, load a graph, index embeddings or invoke a reasoner merely to describe a video.
 - Missing data is not zero; absent detection under sparse sampling is not demonstrated absence; expressed intention is not behavior; association is not causation.
 - Every research result declares its population, availability, estimand, evidence version, uncertainty, alternatives and limitations. `insufficient_data`, rejected and inconclusive results are successful research outcomes when honestly supported.
-- Implementation changes require unit/integration/contract/end-to-end verification, migration/compatibility checks, documentation updates and a scoped working commit when authorized. Implementation authority currently covers R1 only.
+- Implementation changes require unit/integration/contract/end-to-end verification, migration/compatibility checks, documentation updates and a scoped working commit when authorized. Implementation authority currently extends through R2 only. Commit messages describe the engineering change without type prefixes or milestone labels.
 
 ## 2. Preserved implementation and historical deliveries
 
@@ -40,7 +40,7 @@ M4 delivered its scoped implementation, but its retrospective baseline, same-cre
 | ID | Working result | Hard dependencies | Status |
 |---|---|---|---|
 | R1 | Universal evidence with usable metric/comment citations and minimal research registration | Existing `0.0.4` foundation | Completed and verified, `0.0.5` |
-| R2 | Correct historical baselines, comparison designs, feature timing and actual-pipeline validation | R1 | Planned; next implementation milestone |
+| R2 | Correct historical baselines, comparison designs, feature timing and actual-pipeline validation | R1 | Completed and verified, `0.0.6` |
 | R3 | Semantic creative events and reproducible multimodal feature recipes | R1; R2 for analytics joins | Planned |
 | R4 | Audience collection provenance, reaction annotations and qualified content links | R1, R3 | Planned |
 | R5 | Behavioral metric series, denominators, attribution and account outcomes | R1, R2; R3 for event overlays | Planned |
@@ -114,7 +114,32 @@ Import the cooking fixture and real comment/metric records → register a resear
 
 ## 6. R2 — Statistical correctness and comparison repairs
 
-Status: **planned, unimplemented**.
+Status: **completed and verified**, `0.0.6` / `0006_designs`.
+
+Delivered:
+
+- Explicit `schema_version: "2.0"` dispatch with estimand/design, two cutoffs, baseline/maturity/feature policies, sampling frame, covariates, family and split controls; unversioned execution remains legacy.
+- Historical references from complete declared creator history, as-of source corrections and exact frozen reference manifests; separate publication/evaluation benchmarks and retrospective cohort policy.
+- Outcome-blind within/distinct-creator matching, support/balance/distribution diagnostics, signed/missing covariates and honest descriptive/unsupported results.
+- Persistent primitive feature lineage, recipe availability, captured topics and versioned media associations/invalidation; actual import/recipe availability gates historical prediction.
+- Identifiable within-creator OLS/Poisson design with explicit absorbed nuisance context, real declared interactions and train-only transformations; the same model pipeline is used for validation. Unseen-creator intercept prediction is explicitly unsupported, not replaced with Ridge.
+- Duplicate-SHA-aware chronological/creator/joint splits; declared-family attempts including null/failure/refusal states and single-use holdout reservations, with overlapping-post/media reuse refusal.
+- Exact analysis/term/diagnostic citations through the existing universal resolver, transitive withdrawal, versioned reports and reference/input hash checks on reproduction.
+- Data-preserving, rollback-tested migration and verified pre-upgrade backup; no new dependencies, models, network collection or servers.
+
+Implementation map: existing analytics helpers plus `analytics/{features,designs}.py`; versioned contracts in `domain/research.py`; population and legacy dispatch in `application/performance_service.py`; persistence/ledgers in `application/statistical_service.py`; typed statistical evidence bindings in the common repository/resolver; thin existing CLI adapters and performance renderer. All new tables have exercised writers/readers.
+
+Supported limits and decisions are recorded in [versioned analytics operations](docs/versioned-analytics.md) and [architecture decisions](ARCHITECTURE.md#18-statistical-correctness-implementation-decisions). Cross-creator matches remain descriptive without defensible exchangeability/dependence assumptions; between-creator/niche causal effects and unseen-creator prediction are withheld. GEE/mixed remain legacy, while R2 deliberately supports corrected OLS/Poisson. Near-duplicate detection, semantic predictors, automatic discovery and held-out-niche generalization are not claimed.
+
+Verification record (Linux/Python 3.11):
+
+- Full `pytest -q`: **224 passed, 2 skipped** in 642.72 seconds. Only opt-in native-model smoke tests were skipped because no prepared model library/isolated MediaPipe interpreter was configured.
+- Focused statistical/production-lineage/evidence/upgrade suite: **45 passed**. Includes pure interaction scoring through the selected pipeline, Simpson/within-between confounding, nested niche absorption, train-only transforms, future-cutoff invariance, signed/unknown covariates, duplicate purging, consumed/overlapping holdout refusal, actual fitted-term citations, old-snapshot/media-mapping withdrawal dependencies and exact legacy `0.0.4`/`0.0.5` reproduction.
+- Every released schema head 0001–0005 upgrades with preserved IDs/artifact bytes and a verified backup. Failure after the populated evidence-table rebuild rolls back exactly; FK enforcement, immutable history, downgrade refusal and restore reconciliation remain tested.
+- Ruff lint/format, strict mypy, example-spec validation, local documentation links, `git diff --check` and offline locked dependency check passed. Released migration files 0001–0005 are unchanged; no dependencies were added.
+- Wheel and sdist builds and isolated offline installs passed version-2 analysis → statistical citation resolution → exact reproduction across process restarts, plus the existing citation/registration, account and real FFmpeg video/report workflows. No platform API or model download was required.
+
+No subsequent milestone has been started.
 
 ### Objective
 

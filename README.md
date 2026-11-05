@@ -1,14 +1,14 @@
 # SocialDNA
 
 SocialDNA is a local-first social-media research engine. The implemented release is
-`0.0.5`: R1 adds versioned media/comment/metric citations, draft research registration,
-withdrawal-aware citation reports, and verified backup/restore. The foundation and
+`0.0.6`: versioned media/comment/metric/statistical citations, draft registration,
+withdrawal-aware reports, verified backup/restore and explicit time-aware analytics. The foundation and
 historical Milestones 1, 3, and 4 retain local-video analysis, optional enrichment,
 account imports, and bounded performance analytics.
 
 The revised [architecture](ARCHITECTURE.md) and [roadmap](PLAN.md) distinguish R1's
-implemented citation foundation from later research capabilities. R2's analytical
-repairs are next; semantic/graph memory remains planned in R6. Registering a draft
+implemented citation/statistical foundation from later research capabilities.
+Semantic/graph memory remains planned in R6. Registering a draft
 does not evaluate it or establish an association or psychological mechanism.
 
 Working capabilities:
@@ -45,14 +45,19 @@ Working capabilities:
   leave-one-post-out creator normalization, same-creator matched comparisons,
   cluster uncertainty, guarded regression/GLM/GEE/mixed models, main-effect Ridge
   holdout checks, per-run FDR correction, and frozen, reproducible cohorts.
+- Explicit version-2 historical baselines, within/distinct-creator matching with
+  support/balance diagnostics, real feature/recipe availability, duplicate-safe splits,
+  selected OLS/Poisson interaction-pipeline validation, durable test/holdout ledgers,
+  and exact statistical term/diagnostic citations. Legacy methods remain unchanged.
 
 Embeddings, persistent graph queries, psychological pattern
 discovery, and the Agent Skill remain unavailable. Model interpretations are labeled
 uncertain hypotheses, not psychological/performance findings or verified facts.
-Cross-creator matching, publication-time historical baselines, validated creative
-interactions, and cross-niche discovery are not current capabilities. Existing
-rank/availability/validation limitations are documented in
-[performance analytics](docs/performance-analytics.md).
+Cross-creator effects remain descriptive; unsupported niche/between-creator effects
+and unseen-creator fixed-effect predictions are withheld. Historical baselines need
+measurements genuinely known by the cutoff; late imports do not establish forecasting
+availability. See [versioned analytics](docs/versioned-analytics.md) and
+[legacy performance analytics](docs/performance-analytics.md) for exact limits.
 
 The target product supports individual videos and photos, complete accounts,
 captions/hashtags, within- and cross-niche research, original experiments, and durable

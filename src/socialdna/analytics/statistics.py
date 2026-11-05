@@ -10,10 +10,10 @@ import statsmodels.api as sm
 from statsmodels.stats.multitest import multipletests
 from statsmodels.tools.sm_exceptions import PerfectSeparationError
 
-from socialdna.analytics.baselines import creator_baselines, robust_summary
-from socialdna.analytics.cohorts import match_pairs
-from socialdna.analytics.validation import predictive_validation
-from socialdna.domain.research import PerformanceSpec
+from socialdna.analytics.baselines import creator_baselines, robust_summary, time_aware_baselines
+from socialdna.analytics.cohorts import balance_diagnostics, designed_pairs, match_pairs
+from socialdna.analytics.validation import predictive_validation, validate_pipeline
+from socialdna.domain.research import CorrectedPerformanceSpec, PerformanceSpec
 
 
 def adjust_fdr(results: list[dict[str, Any]]) -> None:
@@ -389,4 +389,122 @@ def analyze_rows(
         "comparison": comparison(rows, spec) if comparing else None,
         "multiple_testing": "Benjamini-Yekutieli FDR per test family; all terms retained",
         "limitations": limitations,
+    }
+
+
+def designed_comparison(
+    rows: list[dict[str, Any]], spec: CorrectedPerformanceSpec
+) -> dict[str, Any]:
+    pairs = designed_pairs(rows, spec) if spec.design != "descriptive" else []
+    balance = balance_diagnostics(rows, pairs, spec)
+    retained = {item for pair in pairs for item in pair}
+    by_id = {row["post_id"]: row for row in rows}
+    supported = len(pairs) >= 5 and all(
+        value["after"]["smd"] is not None and abs(value["after"]["smd"]) <= spec.max_abs_smd
+        for value in balance.values()
+    )
+    differences = [by_id[a]["outcome"] - by_id[b]["outcome"] for a, b in pairs]
+    return {
+        "design": spec.design,
+        "estimand": spec.estimand,
+        "left": robust_summary(
+            [r["outcome"] for r in rows if r["role"] == "left" and r["outcome"] is not None]
+        ),
+        "right": robust_summary(
+            [r["outcome"] for r in rows if r["role"] == "right" and r["outcome"] is not None]
+        ),
+        "status": "descriptive"
+        if spec.design == "descriptive"
+        else ("supported_descriptive" if supported else "insufficient_overlap"),
+        "pairs": pairs,
+        "replacement": False,
+        "tie_break": "distance then post ID",
+        "balance": balance,
+        "retained_n": len(retained),
+        "dropped_post_ids": sorted(set(by_id) - retained),
+        "effective_creator_count": len({by_id[item]["creator_id"] for item in retained}),
+        "matched_effect": {
+            **robust_summary(differences),
+            "estimate": float(np.median(differences)) if supported else None,
+            "ci_low": None,
+            "ci_high": None,
+            "status": "descriptive_only" if supported else "withheld",
+        },
+        "caliper_sensitivity": {
+            str(factor): len(designed_pairs(rows, spec, multiplier=factor))
+            for factor in (0.5, 1, 2)
+        }
+        if spec.design != "descriptive"
+        else {},
+        "unknown_confounders": [
+            "as-of audience",
+            "paid distribution",
+            "traffic source",
+            "collaboration",
+            "timezone",
+        ],
+        "limitations": [
+            "Matched left-minus-right post differences are observational, not causal.",
+            "Measured balance cannot establish exchangeability; unknown confounding remains.",
+            "Pairs can share creators/content dependence; no pair-independent CI is issued.",
+        ],
+    }
+
+
+def analyze_designed_rows(
+    rows: list[dict[str, Any]],
+    history: list[dict[str, Any]],
+    spec: CorrectedPerformanceSpec,
+    *,
+    comparing: bool,
+    split: dict[str, Any],
+) -> dict[str, Any]:
+    from socialdna.analytics.designs import designed_regression
+
+    available = [r for r in rows if r["outcome"] is not None]
+    model = designed_regression(rows, spec)
+    missingness = {
+        state: sum(r["availability"] == state for r in rows)
+        for state in sorted({r["availability"] for r in rows})
+    }
+    return {
+        "method_version": "performance-2",
+        "claim_level": "association" if model["status"] == "fitted" else "observation",
+        "estimand": spec.estimand,
+        "population_n": len(rows),
+        "available_n": len(available),
+        "missing_n": len(rows) - len(available),
+        "missingness": missingness,
+        "feature_missingness": {
+            key: sum(not r["feature_values"][key]["eligible"] for r in rows)
+            for key in spec.features
+        },
+        "outcome": robust_summary([r["outcome"] for r in available]),
+        "outcome_interval": {"ci_low": None, "ci_high": None, "status": "descriptive_only"},
+        "observation_age_seconds": robust_summary(
+            [r["age_seconds"] for r in available if r["age_seconds"] is not None]
+        ),
+        "creator_baselines": time_aware_baselines(rows, history, spec),
+        "correlations": [],
+        "regression": model,
+        "validation": validate_pipeline(rows, spec, split),
+        "comparison": designed_comparison(rows, spec) if comparing else None,
+        "multiple_testing": (
+            "Declared fixed-family BY; untested terms assigned p=1. "
+            "Repeated attempts are exploratory, not global adaptive FDR control."
+        ),
+        "limitations": [
+            "Observational association only; unknown confounding and sampling selection remain.",
+            "Population is the declared canonical SQL sampling frame, never vector neighbors.",
+            "Exact hashes group known duplicates; near-duplicate/unlinked coverage is unknown.",
+            "Imported captions do not establish historical wording. "
+            "Account niche is profile context, not a post-level label.",
+            "Small-sample gates are engineering safeguards, not power guarantees.",
+        ]
+        + (
+            ["Collection age is only a freshness proxy; strict maturity inference is withheld."]
+            if spec.maturity_policy == "collection_proxy"
+            else []
+        )
+        + ([model["reason"]] if model["status"] == "insufficient_data" else []),
     }

@@ -1,6 +1,6 @@
 # Migration, compatibility and retention strategy
 
-Status: R1's additive migration, backup and restricted-restore paths are implemented in `0.0.5` / `0005_evidence`; later migration work remains planned. Date: 2026-11-05. See [R1 operations](research-foundation.md), [architecture](../ARCHITECTURE.md), [roadmap](../PLAN.md) and [research contracts](research-contracts.md).
+Status: R1 backup/restricted-restore and R2 statistical/feature/ledger migration are implemented in `0.0.6` / `0006_designs`; later migration work remains planned. Date: 2026-11-05. See [R1 operations](research-foundation.md), [versioned analytics](versioned-analytics.md), [architecture](../ARCHITECTURE.md), [roadmap](../PLAN.md) and [research contracts](research-contracts.md). Released migrations `0001`–`0005` remain unchanged. Extending the evidence locator CHECK requires a data-preserving SQLite table rebuild; it is atomic, FK-checked and preceded by a verified backup, not an edit to a released migration.
 
 ## 1. Compatibility contract
 

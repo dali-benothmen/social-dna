@@ -68,8 +68,28 @@ class MetricLocator(BaseModel):
     window_end: str | None
 
 
+class StatisticalLocator(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    kind: Literal["statistical_result"] = "statistical_result"
+    subject: EntityRef
+    analysis_id: str
+    result_id: str | None = None
+    term: str | None = None
+    diagnostic: Literal["regression", "validation", "creator_baselines", "comparison"] | None = None
+
+    @model_validator(mode="after")
+    def exact_target(self) -> "StatisticalLocator":
+        if (self.result_id is None) == (self.diagnostic is None):
+            raise ValueError(
+                "A statistical locator needs exactly one result or declared diagnostic"
+            )
+        if (self.result_id is None) != (self.term is None):
+            raise ValueError("A statistical term needs its exact result identity")
+        return self
+
+
 EvidenceLocator = Annotated[
-    MediaLocator | CommentLocator | MetricLocator, Field(discriminator="kind")
+    MediaLocator | CommentLocator | MetricLocator | StatisticalLocator, Field(discriminator="kind")
 ]
 
 

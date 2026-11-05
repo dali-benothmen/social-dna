@@ -16,6 +16,7 @@ from socialdna.domain.evidence import (
     EvidenceRef,
     MediaLocator,
     MetricLocator,
+    StatisticalLocator,
 )
 from socialdna.storage.schema import metadata
 
@@ -33,7 +34,7 @@ LEGACY_KINDS = {
     "audio_segment": ("audio_segments", "id"),
     "ocr_box": ("ocr_boxes", "id"),
 }
-AUTHORED_KINDS = {"research_question", "hypothesis", "citation_report"}
+AUTHORED_KINDS = {"research_question", "hypothesis", "citation_report", "statistical_analysis"}
 
 
 class EvidenceRepository:
@@ -65,6 +66,32 @@ class EvidenceRepository:
             _, key = LEGACY_KINDS[row["kind"]]
             if payload.get(key) != ref.id:
                 raise StorageIntegrityError("Captured entity identity does not match its binding")
+        elif row["kind"] == "statistical_analysis":
+            binding = self.get("statistical_entity_bindings", ref.revision_id, "revision_id")
+            analysis = self.get("statistical_analyses", binding["analysis_id"])
+            report = json.loads(analysis["result_json"])
+            configuration = report["analysis_configuration"]
+            payload = json.loads(row["payload_json"])
+            if (
+                binding["analysis_id"] != ref.id
+                or payload
+                != {
+                    "analysis_id": ref.id,
+                    "run_id": analysis["run_id"],
+                    "input_hash": configuration["input_hash"],
+                    "reference_hash": configuration["reference_hash"],
+                    "results_hash": hash_config(report["results"]),
+                }
+                or hash_config(
+                    {"rows": report["posts"], "definitions": report["metric_definitions"]}
+                )
+                != payload["input_hash"]
+                or hash_config({"rows": report["reference_population"]})
+                != payload["reference_hash"]
+            ):
+                raise StorageIntegrityError(
+                    "Statistical subject does not match its frozen analysis"
+                )
         provenance = self.get("provenance_records", row["provenance_id"])
         if provenance["source_record_id"] != row["source_id"]:
             raise StorageIntegrityError("Entity provenance/source mismatch")
@@ -188,6 +215,15 @@ class EvidenceRepository:
         provenance_id = (
             provenance_id or payload.get("provenance_id") or self.provenance(kind, identity)
         )
+        if kind == "post" and mode == "source_capture":
+            tags, links = (metadata.tables[name] for name in ("tags", "post_tags"))
+            payload["topics"] = sorted(
+                self.connection.scalars(
+                    select(tags.c.normalized_value)
+                    .join(links, links.c.tag_id == tags.c.id)
+                    .where(links.c.post_id == identity, tags.c.kind == "topic")
+                )
+            )
         if kind == "comment":
             post = self.latest("post", payload["post_id"]) or self.capture(
                 "post", payload["post_id"]
@@ -221,7 +257,7 @@ class EvidenceRepository:
     def save_evidence(
         self,
         identity: str,
-        locator: MediaLocator | CommentLocator | MetricLocator,
+        locator: MediaLocator | CommentLocator | MetricLocator | StatisticalLocator,
         provenance_id: str,
         *,
         task_id: str | None = None,

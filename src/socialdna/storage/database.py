@@ -41,5 +41,27 @@ class Database:
         with self.engine.begin() as connection:
             yield connection
 
+    @contextmanager
+    def migration_transaction(self) -> Iterator[Connection]:
+        """Atomic SQLite table rebuild with FK validation before commit.
+
+        SQLite requires foreign_keys=OFF outside the transaction for a parent
+        table rebuild. This dedicated, unpooled connection is never lent to an
+        application writer while enforcement is disabled.
+        """
+        from socialdna.core.exceptions import StorageIntegrityError
+
+        with self.engine.connect() as connection:
+            driver = connection.connection.driver_connection
+            assert driver is not None
+            driver.execute("PRAGMA foreign_keys=OFF")
+            try:
+                with connection.begin():
+                    yield connection
+                    if connection.exec_driver_sql("PRAGMA foreign_key_check").first():
+                        raise StorageIntegrityError("Migration foreign-key check failed")
+            finally:
+                driver.execute("PRAGMA foreign_keys=ON")
+
     def close(self) -> None:
         self.engine.dispose()

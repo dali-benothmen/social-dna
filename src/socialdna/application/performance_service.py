@@ -10,11 +10,12 @@ from urllib.parse import urlparse
 from urllib.request import url2pathname
 
 import numpy as np
-from sqlalchemy import Connection, select
+from sqlalchemy import Connection, select, true
 from sqlalchemy.dialects.sqlite import insert
 
 from socialdna import __version__
 from socialdna.analytics.cohorts import in_population, match_pairs
+from socialdna.analytics.features import FeatureMaterializer, captured_entities, field_revision
 from socialdna.analytics.metrics import outcome, select_snapshot
 from socialdna.analytics.statistics import analyze_rows
 from socialdna.application.bootstrap import Application
@@ -28,7 +29,11 @@ from socialdna.core.hashing import canonical_json, hash_config
 from socialdna.core.ids import new_id, stable_id
 from socialdna.core.time import utc_now
 from socialdna.domain.media import AnalysisOptions
-from socialdna.domain.research import PerformanceSpec
+from socialdna.domain.research import (
+    CorrectedPerformanceSpec,
+    PerformanceSpec,
+    parse_performance_spec,
+)
 from socialdna.storage.schema import metadata
 
 FEATURE_REGISTRY = {
@@ -90,6 +95,11 @@ def build_population(
     post_ids: list[str] | None = None,
     roles: dict[str, str] | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    if isinstance(spec, CorrectedPerformanceSpec):
+        rows, definitions, _ = build_design_population(
+            application, spec, account_ids=account_ids, post_ids=post_ids, roles=roles
+        )
+        return rows, definitions
     with application.database.transaction() as connection:
         definitions = _validate_definitions(connection, spec)
         accounts = {row["id"]: row for row in _rows(connection, "accounts")}
@@ -215,7 +225,263 @@ def build_population(
     return sorted(result, key=lambda row: row["post_id"]), definitions
 
 
-def _media_features(connection: Connection, media_ids: set[str]) -> dict[str, dict[str, Any]]:
+def build_design_population(
+    application: Application,
+    spec: CorrectedPerformanceSpec,
+    *,
+    account_ids: list[str] | None = None,
+    post_ids: list[str] | None = None,
+    roles: dict[str, str] | None = None,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+    """As-of SQL joins over canonical history, independent of the requested groups."""
+    from socialdna.storage.evidence_repository import EvidenceRepository
+
+    if spec.knowledge_cutoff > utc_now():
+        raise ConfigurationError("knowledge_cutoff cannot be in the future")
+    with application.database.transaction() as connection:
+        definitions = _validate_definitions(connection, spec)
+        histories = captured_entities(connection, "post", spec.knowledge_cutoff)
+        accounts = captured_entities(connection, "account", spec.knowledge_cutoff)
+        if len(histories) > 5000:
+            raise ConfigurationError("Versioned local history is bounded to 5000 posts")
+        if account_ids and set(account_ids) - accounts.keys():
+            raise ConfigurationError("Unknown account ID at the knowledge cutoff")
+        if post_ids and set(post_ids) - histories.keys():
+            raise ConfigurationError("Unknown post ID at the knowledge cutoff")
+
+        def creator_for(post: dict[str, Any]) -> str:
+            versions = accounts.get(post["account_id"], [])
+            return str(
+                (versions[-1]["payload"].get("creator_id") if versions else None)
+                or post["account_id"]
+                or post["id"]
+            )
+
+        requested_creators = {
+            creator_for(history[-1]["payload"])
+            for identity, history in histories.items()
+            if (not account_ids or history[-1]["payload"]["account_id"] in account_ids)
+            and (not post_ids or identity in post_ids)
+        }
+        # A baseline uses ALL declared history of the requested creators, not
+        # just selected posts; unrelated creators' withdrawn data is not an input.
+        histories = {
+            identity: history
+            for identity, history in histories.items()
+            if creator_for(history[-1]["payload"]) in requested_creators
+        }
+        repository = EvidenceRepository(connection)
+        captured_definitions = captured_entities(
+            connection, "metric_definition", spec.knowledge_cutoff
+        )
+        if any(definition["key"] not in captured_definitions for definition in definitions):
+            raise ConfigurationError(
+                "Metric definition availability is unknown at the knowledge cutoff"
+            )
+        materializer = FeatureMaterializer(connection)
+        observations = metadata.tables["metric_observations"]
+        candidates: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
+        for record in connection.execute(
+            select(observations).where(
+                observations.c.imported_at <= spec.knowledge_cutoff,
+                observations.c.observed_at <= spec.knowledge_cutoff,
+                observations.c.metric_key.in_([r["key"] for r in definitions]),
+                observations.c.post_id.in_(histories),
+            )
+        ).mappings():
+            snapshot = dict(record)
+            provenance = repository.get("provenance_records", snapshot["provenance_id"])
+            source = repository.get("source_records", provenance["source_record_id"])
+            snapshot.update(
+                source_id=source["id"],
+                source_uri=source["source_uri"],
+                permission_basis=source["permission_basis"],
+                raw_artifact_id=source["raw_artifact_id"],
+            )
+            candidates[(snapshot["post_id"], snapshot["metric_key"])].append(snapshot)
+        # Associations made after the cutoff cannot be silently applied to old posts.
+        versions = metadata.tables["post_media_versions"]
+        primary = {}
+        for record in connection.execute(
+            select(versions)
+            .where(versions.c.position == 0, versions.c.available_at <= spec.knowledge_cutoff)
+            .order_by(versions.c.available_at, versions.c.id)
+        ).mappings():
+            primary[record["post_id"]] = dict(record)
+        content = _media_features(
+            connection,
+            {
+                r["media_id"]
+                for post_id, r in primary.items()
+                if r["media_id"] and post_id in histories
+            },
+            as_of=spec.knowledge_cutoff,
+        )
+        history_rows = []
+        for identity, history in sorted(histories.items()):
+            captured, post = history[-1], history[-1]["payload"]
+            if post["platform"] != definitions[0]["platform"] or (
+                post["published_at"] and post["published_at"] > spec.publication_cutoff
+            ):
+                continue
+            context_history = accounts.get(post["account_id"], [])
+            account = context_history[-1]["payload"] if context_history else {}
+            source_ids = {captured["source_id"]} if captured["source_id"] else set()
+            for field in ("caption", "published_at", "content_type", "platform", "topics"):
+                if origin_source := field_revision(history, field)["source_id"]:
+                    source_ids.add(origin_source)
+            if context_history and context_history[-1]["source_id"]:
+                source_ids.add(context_history[-1]["source_id"])
+            for key in ("creator_id", "niche"):
+                if context_history and (
+                    origin_source := field_revision(context_history, key)["source_id"]
+                ):
+                    source_ids.add(origin_source)
+            media, association = {}, primary.get(identity)
+            if association and association["media_id"]:
+                if association["source_id"]:
+                    source_ids.add(association["source_id"])
+                asset = repository.get("media_assets", association["media_id"])
+                locations, sources = (
+                    metadata.tables[name] for name in ("media_locations", "source_records")
+                )
+                media_sources: list[str] = list(
+                    connection.scalars(
+                        select(sources.c.id)
+                        .join(locations, locations.c.source_record_id == sources.c.id)
+                        .where(
+                            locations.c.media_asset_id == asset["id"],
+                            sources.c.retrieved_at <= spec.knowledge_cutoff,
+                        )
+                    )
+                )
+                # Link time conservatively bounds both bytes and post/media association.
+                media = {
+                    **asset,
+                    "available_at": association["available_at"],
+                    "association_available_at": association["available_at"],
+                    "source_ids": media_sources,
+                    "association_revision_id": association["id"],
+                }
+                source_ids.update(media_sources)
+            media_run = content.get(media.get("id", ""), {})
+            features: dict[str, float | None] = {
+                "duration_seconds": media["duration_ms"] / 1000
+                if media.get("duration_ms") is not None
+                else None,
+                "caption_length": float(len(post["caption"]))
+                if post["caption"] is not None
+                else None,
+                "publishing_hour_utc": float(datetime.fromisoformat(post["published_at"]).hour)
+                if post["published_at"]
+                else None,
+                **media_run.get("features", {}),
+            }
+            feature_values = materializer.materialize(
+                history, features, media=media, media_run=media_run, spec=spec
+            )
+            for feature in feature_values.values():
+                source_ids.update(feature["lineage"]["source_ids"])
+            selected, states = {}, {}
+            snapshot_candidates = {}
+            for definition in definitions:
+                key = definition["key"]
+                possible = candidates.get((identity, key), [])
+                if spec.maturity_policy == "explicit_window":
+                    possible = [r for r in possible if r["window_end"] is not None]
+                snapshot_candidates[key] = possible
+                selected[key], states[key] = select_snapshot(possible, spec)
+            value, state = outcome(selected, spec)
+            main = selected[spec.metric_key]
+            if main is None:
+                state = (
+                    "unknown_measurement_freshness"
+                    if spec.maturity_policy == "explicit_window"
+                    and candidates.get((identity, spec.metric_key))
+                    else states[spec.metric_key]
+                )
+            snapshots = sorted([r for r in selected.values() if r], key=lambda r: r["metric_key"])
+            for snapshot in snapshots:
+                source_ids.add(snapshot["source_id"])
+            # Historical selection may use an earlier revision than evaluation.
+            # Later corrections cannot hide those dependency withdrawals.
+            dependency_snapshots = [
+                item for possible in snapshot_candidates.values() for item in possible
+            ]
+            source_ids.update(item["source_id"] for item in dependency_snapshots)
+            assert_active_inputs(
+                connection,
+                source_ids=tuple(source_ids),
+                evidence_ids=tuple(stable_id("metric-evidence", r["id"]) for r in snapshots),
+            )
+            row = {
+                "post_id": identity,
+                "post_ref": repository.ref(captured).model_dump(),
+                "account_id": post["account_id"],
+                "creator_id": account.get("creator_id") or post["account_id"] or identity,
+                "creator_identity": "supplied" if account.get("creator_id") else "account_proxy",
+                "platform": post["platform"],
+                "niche": account.get("niche"),
+                "account_context_ref": repository.ref(context_history[-1]).model_dump()
+                if context_history
+                else None,
+                "context_available_at": {
+                    key: field_revision(context_history, key)["available_at"]
+                    for key in ("niche", "creator_id")
+                }
+                if context_history
+                else {},
+                "content_type": post["content_type"],
+                "published_at": post["published_at"],
+                "topics": post.get("topics"),
+                "features": features,
+                "feature_values": feature_values,
+                "feature_available_at": {
+                    key: val["available_at"] for key, val in feature_values.items()
+                },
+                "outcome": value,
+                "availability": state,
+                "metric_states": states,
+                "outcome_available_at": max(
+                    (max(r["imported_at"], r["observed_at"]) for r in snapshots), default=None
+                ),
+                "age_seconds": main["post_age_seconds"] if main else None,
+                "window_seconds": spec.window_seconds,
+                "snapshot_ids": sorted(r["id"] for r in snapshots),
+                "dependency_snapshot_ids": sorted(r["id"] for r in dependency_snapshots),
+                "snapshots": snapshots,
+                "snapshot_candidates": snapshot_candidates,
+                "source_ids": sorted(source_ids),
+                "media_run_id": media_run.get("run_id"),
+                "feature_evidence_ids": media_run.get("evidence_ids", []),
+                "duplicate_group": media.get("sha256"),
+                "role": (roles or {}).get(
+                    identity, (roles or {}).get(post["account_id"], "population")
+                ),
+            }
+            # Missing topic context remains unknown, never an invented empty label set.
+            if in_population({**row, "topics": row["topics"] or []}, spec.population):
+                history_rows.append(row)
+        rows = [
+            r
+            for r in history_rows
+            if (not account_ids or r["account_id"] in account_ids)
+            and (not post_ids or r["post_id"] in post_ids)
+        ]
+        if len(rows) > 500:
+            raise ConfigurationError(
+                "Versioned analyses are bounded to 500 target posts / 5000 historical posts; "
+                "narrow the declared population or compare explicit post groups"
+            )
+        return rows, definitions, history_rows
+
+
+def _media_features(
+    connection: Connection,
+    media_ids: set[str],
+    *,
+    as_of: str | None = None,
+) -> dict[str, dict[str, Any]]:
     """Use the latest successful media run, resolving cached producer task IDs."""
     runs, tasks, observations, evidence = (
         metadata.tables[name]
@@ -226,6 +492,7 @@ def _media_features(connection: Connection, media_ids: set[str]) -> dict[str, di
         run_id = connection.scalar(
             select(runs.c.id)
             .where(runs.c.target_id == media_id, runs.c.status == "succeeded")
+            .where(runs.c.finished_at <= as_of if as_of else true())
             .order_by(runs.c.created_at.desc(), runs.c.id.desc())
             .limit(1)
         )
@@ -268,6 +535,16 @@ def _media_features(connection: Connection, media_ids: set[str]) -> dict[str, di
         for evidence_id in evidence_ids:
             EvidenceResolver(connection).resolve(evidence_id, purpose="new_claim")
         result[media_id] = {"run_id": run_id, "features": values, "evidence_ids": evidence_ids}
+        if as_of:
+            result[media_id].update(
+                available_at=connection.scalar(
+                    select(runs.c.finished_at).where(runs.c.id == run_id)
+                ),
+                evidence_refs=[
+                    EvidenceResolver(connection).resolve(item).ref.model_dump()
+                    for item in evidence_ids
+                ],
+            )
     return result
 
 
@@ -296,6 +573,20 @@ def analyze_account(
         if analyze_media
         else []
     )
+    if isinstance(spec, CorrectedPerformanceSpec):
+        rows, definitions, history = build_design_population(
+            application, spec, account_ids=[account_id]
+        )
+        return _persist_analysis(
+            application,
+            rows,
+            definitions,
+            spec,
+            "account",
+            account_id,
+            batch=batch,
+            history=history,
+        )
     rows, definitions = build_population(application, spec, account_ids=[account_id])
     return _persist_analysis(
         application, rows, definitions, spec, "account", account_id, batch=batch
@@ -312,13 +603,23 @@ def compare(
     if not left or not right or set(left).intersection(right):
         raise ConfigurationError("Comparison requires two nonempty, disjoint ID groups")
     roles = {**{item: "left" for item in left}, **{item: "right" for item in right}}
-    rows, definitions = build_population(
-        application,
-        spec,
-        roles=roles,
-        account_ids=left + right if kind == "accounts" else None,
-        post_ids=left + right if kind == "posts" else None,
-    )
+    history = None
+    if isinstance(spec, CorrectedPerformanceSpec):
+        rows, definitions, history = build_design_population(
+            application,
+            spec,
+            roles=roles,
+            account_ids=left + right if kind == "accounts" else None,
+            post_ids=left + right if kind == "posts" else None,
+        )
+    else:
+        rows, definitions = build_population(
+            application,
+            spec,
+            roles=roles,
+            account_ids=left + right if kind == "accounts" else None,
+            post_ids=left + right if kind == "posts" else None,
+        )
     if not any(row["role"] == "left" for row in rows) or not any(
         row["role"] == "right" for row in rows
     ):
@@ -333,6 +634,7 @@ def compare(
         "comparison",
         stable_id("comparison", kind, canonical_json(roles)),
         comparing=True,
+        history=history,
     )
 
 
@@ -417,6 +719,27 @@ def _batch_media(
                     )
             else:
                 media_id = row["media_id"]
+            with application.database.transaction() as connection:
+                versions = metadata.tables["post_media_versions"]
+                previous = connection.scalar(
+                    select(versions.c.media_id)
+                    .where(
+                        versions.c.post_id == row["post_id"], versions.c.position == row["position"]
+                    )
+                    .order_by(versions.c.available_at.desc(), versions.c.id.desc())
+                    .limit(1)
+                )
+                if previous != media_id:
+                    connection.execute(
+                        versions.insert().values(
+                            id=new_id(),
+                            post_id=row["post_id"],
+                            position=row["position"],
+                            media_id=media_id,
+                            source_id=row.get("source_id"),
+                            available_at=utc_now(),
+                        )
+                    )
             result = analyze_video(application, media_id, options=options)
             entry.update(media_run_id=result["run_id"], status=result["status"])
         except SocialDNAError as exc:
@@ -436,7 +759,25 @@ def _persist_analysis(
     comparing: bool = False,
     batch: list[dict[str, Any]] | None = None,
     reproduced_from: str | None = None,
+    history: list[dict[str, Any]] | None = None,
+    expected_results: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    if isinstance(spec, CorrectedPerformanceSpec):
+        from socialdna.application.statistical_service import persist_designed_analysis
+
+        return persist_designed_analysis(
+            application,
+            rows,
+            definitions,
+            spec,
+            target_type,
+            target_id,
+            comparing=comparing,
+            batch=batch,
+            history=history or [],
+            reproduced_from=reproduced_from,
+            expected_results=expected_results,
+        )
     with application.database.transaction() as connection:
         assert_context_active(
             connection,
@@ -461,6 +802,7 @@ def _persist_analysis(
         for name in ("numpy", "scipy", "pandas", "statsmodels", "scikit-learn")
     }
     configuration = {
+        "method_version": "performance-1",
         "spec": spec.model_dump(mode="json"),
         "input_hash": hash_config({"rows": rows, "definitions": definitions}),
         "engine_version": __version__,
@@ -478,6 +820,8 @@ def _persist_analysis(
         results["limitations"].append(
             "Media batch has failed/skipped entries; missing content features remain missing."
         )
+    if expected_results is not None and hash_config(results) != hash_config(expected_results):
+        raise StorageIntegrityError("Recomputed legacy results differ from the frozen results")
     report: dict[str, Any] = {
         "schema_version": "1.0",
         "report_type": "performance",
@@ -610,20 +954,37 @@ def reproduce(
     ):
         raise StorageIntegrityError("Frozen performance inputs do not match their stored hash")
     versions = report["analysis_configuration"]["libraries"]
-    if report["analysis_configuration"]["engine_version"] != __version__ or any(
+    configuration = report["analysis_configuration"]
+    method = configuration.get("method_version", "performance-1")
+    if method not in ("performance-1", "performance-2"):
+        raise ConfigurationError("Unknown frozen statistical method version")
+    if (
+        method == "performance-2"
+        and hash_config({"rows": report["reference_population"]}) != configuration["reference_hash"]
+    ):
+        raise StorageIntegrityError("Frozen reference inputs do not match their stored hash")
+    compatible_engine = configuration["engine_version"] == __version__ or (
+        method == "performance-1" and configuration["engine_version"] in ("0.0.4", "0.0.5")
+    )
+    if not compatible_engine or any(
         importlib.metadata.version(name) != version for name, version in versions.items()
     ):
         raise ConfigurationError("Exact reproduction requires the original engine/library versions")
+    spec = parse_performance_spec(report["analysis_configuration"]["spec"])
+    if (method == "performance-2") != isinstance(spec, CorrectedPerformanceSpec):
+        raise StorageIntegrityError("Frozen specification and method version disagree")
     return _persist_analysis(
         application,
         report["posts"],
         report["metric_definitions"],
-        PerformanceSpec.model_validate(report["analysis_configuration"]["spec"]),
+        spec,
         report["target_type"],
         report["target_id"],
         comparing=report["target_type"] == "comparison",
         batch=report["batch"],
         reproduced_from=run_id,
+        history=report.get("reference_population"),
+        expected_results=report["results"],
     )
 
 

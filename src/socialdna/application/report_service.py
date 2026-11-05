@@ -177,13 +177,24 @@ def generate_report(
     if performance is not None:
         # Never replace archived bytes with a new current claim using revoked inputs.
         with application.database.transaction() as connection:
-            assert_context_active(
-                connection,
-                tuple(
-                    {post["post_id"] for post in performance["posts"]}
-                    | {post["account_id"] for post in performance["posts"] if post["account_id"]}
-                ),
-            )
+            if performance["schema_version"] == "2.0":
+                from socialdna.application.statistical_service import assert_design_inputs
+
+                assert_design_inputs(
+                    connection, performance["posts"] + performance["reference_population"]
+                )
+            else:
+                assert_context_active(
+                    connection,
+                    tuple(
+                        {post["post_id"] for post in performance["posts"]}
+                        | {
+                            post["account_id"]
+                            for post in performance["posts"]
+                            if post["account_id"]
+                        }
+                    ),
+                )
             for post in performance["posts"]:
                 assert_active_inputs(
                     connection,
@@ -267,7 +278,7 @@ def _save_performance_report(
             run_id=report["run_id"],
             format=report_format,
             artifact_id=artifact_id,
-            schema_version="1.0",
+            schema_version=report["schema_version"],
             created_at=utc_now(),
         )
         connection.execute(

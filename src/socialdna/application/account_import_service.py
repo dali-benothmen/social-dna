@@ -17,7 +17,7 @@ from socialdna.config.paths import DataPaths
 from socialdna.config.settings import Settings
 from socialdna.core.exceptions import ConfigurationError
 from socialdna.core.hashing import canonical_json
-from socialdna.core.ids import stable_id
+from socialdna.core.ids import new_id, stable_id
 from socialdna.core.time import utc_now
 from socialdna.ingestion.tabular import (
     Account,
@@ -409,6 +409,18 @@ def _persist(
                         links.c.post_id == post_id, links.c.position == record.position
                     )
                 )
+                connection.execute(
+                    metadata.tables["post_media_versions"]
+                    .insert()
+                    .values(
+                        id=new_id(),
+                        post_id=post_id,
+                        position=record.position,
+                        media_id=None,
+                        source_id=source_id,
+                        available_at=now,
+                    )
+                )
             _upsert(
                 connection,
                 "media_references",
@@ -422,6 +434,7 @@ def _persist(
             )
             entity_id = stable_id("media-reference", post_id, str(record.position))
         elif isinstance(record, Tag):
+            captures.append(("post", _identity("post", record.platform, record.post_external_id)))
             normalized = record.value.lstrip("#").strip().casefold()
             entity_id = stable_id("tag", record.kind, normalized)
             connection.execute(

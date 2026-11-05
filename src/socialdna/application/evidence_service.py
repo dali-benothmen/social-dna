@@ -19,6 +19,7 @@ from socialdna.domain.evidence import (
     MediaLocator,
     MetricLocator,
     ResolvedEvidence,
+    StatisticalLocator,
 )
 from socialdna.ingestion.tabular import timestamp
 from socialdna.storage.evidence_repository import EvidenceRepository
@@ -97,7 +98,7 @@ class EvidenceResolver:
             related.append(locator.media)
         elif isinstance(locator, CommentLocator):
             related.append(locator.post)
-        else:
+        elif isinstance(locator, MetricLocator):
             related.extend((locator.measured_subject, locator.definition))
         entities = [self.repository.entity(item) for item in related]
         if row["provenance_id"] != entities[0]["provenance_id"]:
@@ -115,13 +116,15 @@ class EvidenceResolver:
                 actual_post = (
                     locator.measured_subject.id if locator.measured_subject.kind == "post" else None
                 )
-            else:
+            elif isinstance(locator, MediaLocator):
                 links = metadata.tables["post_media"]
                 actual_post = self.connection.scalar(
                     select(links.c.post_id).where(
                         links.c.post_id == post_id, links.c.media_asset_id == locator.media.id
                     )
                 )
+            else:
+                actual_post = None
             if actual_post != post_id:
                 raise ConfigurationError("Evidence does not belong to the expected post")
         if run_id:
@@ -176,6 +179,17 @@ class EvidenceResolver:
                 limitations.append("Source does not permit comment reuse")
         if isinstance(locator, MetricLocator) and locator.availability != "available":
             limitations.append(f"Metric is {locator.availability}: {locator.reason}")
+        if isinstance(locator, StatisticalLocator):
+            from socialdna.application.statistical_service import assert_design_inputs
+
+            analysis = self.repository.get("statistical_analyses", locator.analysis_id)
+            report = json.loads(analysis["result_json"])
+            try:
+                assert_design_inputs(
+                    self.connection, report["posts"] + report["reference_population"]
+                )
+            except ConfigurationError as exc:
+                limitations.append("Derived analysis input is ineligible: " + str(exc))
         if as_of:
             try:
                 cutoff = timestamp(as_of)
@@ -210,13 +224,14 @@ class EvidenceResolver:
     def _validate_binding(
         self,
         row: dict[str, Any],
-        locator: MediaLocator | CommentLocator | MetricLocator,
+        locator: MediaLocator | CommentLocator | MetricLocator | StatisticalLocator,
     ) -> None:
         counts = {}
         for name in (
             "legacy_media_evidence_bindings",
             "comment_evidence_bindings",
             "metric_evidence_bindings",
+            "statistical_evidence_bindings",
         ):
             table = metadata.tables[name]
             counts[name] = (
@@ -229,7 +244,55 @@ class EvidenceResolver:
         if sum(value is not None for value in counts.values()) != 1:
             raise StorageIntegrityError("Evidence requires exactly one typed locator binding")
         subject = json.loads(self.repository.entity(locator.subject)["payload_json"])
-        if isinstance(locator, CommentLocator):
+        if isinstance(locator, StatisticalLocator):
+            binding = counts["statistical_evidence_bindings"]
+            analysis = self.repository.get("statistical_analyses", locator.analysis_id)
+            report = json.loads(analysis["result_json"])
+            if (
+                not binding
+                or locator.subject.kind != "statistical_analysis"
+                or (
+                    locator.subject.id != locator.analysis_id
+                    or binding["analysis_id"] != locator.analysis_id
+                    or binding["result_id"] != locator.result_id
+                    or binding["diagnostic"] != locator.diagnostic
+                    or row["producer_run_id"] != analysis["run_id"]
+                )
+            ):
+                raise StorageIntegrityError("Statistical locator has a mismatched analysis binding")
+            if locator.result_id:
+                result = self.repository.get("statistical_results", locator.result_id)
+                term = next(
+                    (
+                        item
+                        for item in report["results"]["regression"]["terms"]
+                        if item["term"] == locator.term
+                    ),
+                    None,
+                )
+                if (
+                    result["analysis_id"] != locator.analysis_id
+                    or result["term"] != locator.term
+                    or not term
+                    or any(
+                        result[key] != term.get(key)
+                        for key in (
+                            "estimate",
+                            "standard_error",
+                            "ci_low",
+                            "ci_high",
+                            "p_value",
+                            "adjusted_p_value",
+                        )
+                    )
+                ):
+                    raise StorageIntegrityError("Statistical term does not match its frozen result")
+            elif (
+                locator.diagnostic not in report["results"]
+                or report["results"][locator.diagnostic] is None
+            ):
+                raise StorageIntegrityError("Statistical diagnostic does not exist")
+        elif isinstance(locator, CommentLocator):
             binding = counts["comment_evidence_bindings"]
             if (
                 not binding

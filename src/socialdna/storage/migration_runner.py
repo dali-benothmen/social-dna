@@ -53,7 +53,7 @@ def migrate(database: Database, *, location: Path = MIGRATIONS) -> None:
     if len(scripts.get_heads()) != 1:
         raise StorageIntegrityError("Installed migrations must have one complete revision head.")
     # A real BEGIN (Database's engine event) makes SQLite DDL atomic here.
-    with database.transaction() as connection:
+    with database.migration_transaction() as connection:
         validate_history(connection, scripts)
         config.attributes["connection"] = connection
         command.upgrade(config, "head")

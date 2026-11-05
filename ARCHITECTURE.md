@@ -1,6 +1,6 @@
 # SocialDNA architecture
 
-Revised: 2026-11-05. Implementation: **0.0.5**, database head **0005_evidence**. R1's evidence/registration foundation is implemented; **R2–R10 and U1/U2 remain planned**. The architecture incorporates the approved [intelligence audit](docs/architecture-audit.md); R1 was subsequently authorized for implementation. See [R1's operational guide](docs/research-foundation.md) for its exact available surface and limitations.
+Revised: 2026-11-05. Implementation: **0.0.6**, database head **0006_designs**. R1's evidence/registration foundation and R2's bounded statistical corrections are implemented; **R3–R10 and U1/U2 remain planned**. The architecture incorporates the approved [intelligence audit](docs/architecture-audit.md). See [R1 operations](docs/research-foundation.md) and [versioned analytics](docs/versioned-analytics.md) for the exact available surface and limitations.
 
 The [implementation plan](PLAN.md) defines delivery and acceptance gates. Detailed contracts live in [research contracts](docs/research-contracts.md), [statistical design](docs/statistical-design.md), [migration strategy](docs/migration-strategy.md), and the [twelve-step cooking use case](docs/research-use-case.md). The [previous architecture](docs/history/ARCHITECTURE.pre-research-revision.md) is a historical record, not a competing specification. Architecture/plan line references inside the unchanged audit refer to those pre-revision documents.
 
@@ -28,7 +28,7 @@ Scientific boundaries are architectural invariants: missing data is not zero; ex
 
 The current repository delivers deterministic local video processing, supplied subtitles, optional prepared local-model enrichment, strict account/post/comment/tag/metric imports, account media batches, descriptive/model-based comparisons and immutable analysis/report artifacts. R1 additionally supplies universal revisioned citations for existing media, comment spans and scalar metrics, draft registration and withdrawal-aware citation reports. Legacy media evidence remains interval-bound; imported metrics remain scalar snapshots. Current vector support initializes/checks Qdrant, but semantic retrieval and graph research memory are not implemented.
 
-Important current limitations remain until R milestones land: retrospective rather than historically prior baselines; same-creator matching only; niche/creator design aliasing; missing production availability lineage; auxiliary Ridge validation rather than validation of the requested interaction/model; comments not integrated into reaction analysis; no retention-series contracts or hypothesis revision engine. Existing optional reasoners cannot already make the future mechanism/performance claims.
+The unversioned legacy path retains retrospective baselines, same-creator matching and auxiliary Ridge checks for exact reproduction. The explicit version 2 path corrects time-aware references, matching, lineage and selected OLS/Poisson validation; it withholds unidentifiable niche/between-creator effects and unseen-creator predictions. Comments still lack reaction analysis; retention-series contracts, semantic/graph memory and hypothesis evaluation/revision remain future work. Existing optional reasoners cannot already make those mechanism/performance claims.
 
 ### 2.2 Components to preserve, adapt and add
 
@@ -348,7 +348,7 @@ The [migration strategy](docs/migration-strategy.md) preserves existing tables/I
 
 Delivery follows [PLAN.md](PLAN.md): R1 universal evidence/minimal registration; R2 correctness; R3 events; R4 reactions; R5 behavioral metrics; R6 memory; R7 first full mechanism investigation; R8 reevaluation; R9 bounded broader discovery; R10 experiments. U1/U2 preserve image and portable-skill usability. R4/R5 are deliberately separated; memory follows working canonical producers rather than encoding an inadequate evidence model.
 
-R1's implemented proof is an upgraded old media citation plus real imported comment and metric citations, minimal question/spec registration, restart resolution and withdrawal-aware reporting. R2 is the next implementation scope; it is not included in the R1 delivery.
+R1's implemented proof is an upgraded old media citation plus real imported comment and metric citations, minimal question/spec registration, restart resolution and withdrawal-aware reporting. R2 adds the separately versioned correctness path described in §18; it does not reinterpret the R1/legacy delivery.
 
 ## 14. Architectural support for the six audited capabilities
 
@@ -442,3 +442,41 @@ Implementation choices clarify the earlier conceptual interfaces:
   fail closed when contributing source history is withdrawn; R2 can refine this
   conservatism with explicit feature lineage. Other legacy statistical limitations
   remain visible and unchanged.
+
+## 18. Statistical correctness implementation decisions
+
+This is a bounded, explicit version-2 implementation of the approved statistical
+contract, not an alternative engine or an implementation of R3/R9. See
+[operations and limits](docs/versioned-analytics.md).
+
+| Decision | Implementation / justification |
+|---|---|
+| Explicit method and spec dispatch | `CorrectedPerformanceSpec` requires design/estimand, cutoffs, timing and family declarations. `performance-1` retains old algorithms; `performance-2` uses corrected helpers. Historical `0.0.4`/`0.0.5` method-1 reports can recompute with unchanged numerical libraries; source-history comparison confirmed those algorithms were identical. Recomputed results must match the frozen hash before saving. Unknown method/engine versions fail closed. |
+| Full creator history, not selected groups | As-of SQL joins use captured revisions and measurements known by the cutoff; baseline selection separately enforces prior publication and publication/evaluation knowledge policy. Exact reference rows/IDs/exclusions are frozen and hashed. No semantic selection or fallback pool is used. |
+| One actual model pipeline | `analytics/designs.py` owns raw interactions, training-only creator centering/scaling, identifiable context/fixed effects and selected OLS/Poisson family/target transform/covariance. Final fits and validation call the same fitter. A creator-constant niche is explicitly absorbed, not estimated alongside creator intercepts. |
+| Withhold unsupported estimands | Cross-creator matching really permits distinct creators but reports descriptive effects and measured support only. Unknown confounding and shared-creator dependence preclude fabricated pair-independent uncertainty. Between/niche effects and unseen fixed-effect intercept prediction are unsupported; there is no hidden Ridge substitute or automatic hierarchical-model selection. |
+| Primitive recipe lineage first | `analytics/features.py` materializes actual supplying revisions, source/evidence inputs, recipe, clocks and missingness. The first local recipe registration conservatively bounds deployability; late export capture is not publication-time knowledge. Deterministic retrospective annotation is distinct from forecasting. Semantic/categorical recipes remain R3. |
+| Historical media associations | `post_media_versions` preserves decoded associations and NULL invalidations after changed supplied URIs; old cutoffs keep their old association. Existing unversioned link semantics are unchanged. Captured post revisions include topic context, including tag-only updates. |
+| Exact duplicates and split intent | SHA groups purge duplicates across and within chronological/creator/joint splits. Availability purges use actual imported/observed clocks. Unknown near-duplicate coverage remains explicit. Joint requests are one joint split, not two scores presented as joint evidence. |
+| Minimal durable test accounting | A fixed-family manifest and pre-fit attempt record precede computation. Final null/failed/refused outcomes persist; reserved test use is durable before scoring, including on interruption. `holdout_members` prevents renaming or overlapping posts/media from resetting a holdout. Reproduction is marked and is not independent confirmation. R9 extends this bounded ledger, rather than adding a competing one. |
+| Cohesive persistence service | `application/statistical_service.py` owns corrected report/ledger/citation transactions while existing performance service owns population selection and legacy dispatch. Numeric logic remains in the shared analytics package; CLI adapters contain no statistics. |
+| First-use relational projections | New feature, reference, attempt and holdout tables have working writers/readers. Existing cohort/statistical result tables are reused. Statistical analysis entities and exact term/diagnostic locators have real FKs and universal resolver validation with transitive withdrawal. No dummy media/timestamps are introduced. |
+| Bounded local work | 500 selected targets and 5000 captured historical posts bound reference materialization. Creator grouping avoids repeatedly scanning unrelated creators. No dependency, server, embedding job or distributed infrastructure is added. |
+
+The evidence locator CHECK must accept a new statistical subtype without changing
+released `0005_evidence`. `0006_designs` performs a data-preserving parent-table
+rebuild using [SQLite's documented procedure](https://www.sqlite.org/lang_altertable.html#otheralter):
+foreign-key enforcement is disabled **before** BEGIN on a dedicated unpooled
+migration connection, all schema/data changes and checksum updates are atomic,
+`foreign_key_check` runs before commit, and enforcement is restored afterwards.
+The application verifies a pre-upgrade backup first. Tests inject failure after
+the rebuild on a populated old database and assert exact rollback, binding/ID
+preservation and enforcement restoration. Populated-history downgrade is refused
+in favor of verified separate-directory restore. Released migrations 0001–0005
+are never edited.
+
+These decisions deliberately retain scientific limits: post-level niche labels,
+audience/paid/traffic covariates, near-duplicate discovery, new-creator marginal
+prediction, broader nonlinear search, independent niche confirmation and causal
+identification are not manufactured from the current exports. Missing source
+freshness can support a labeled collection-proxy summary, not strict model evidence.

@@ -1,6 +1,8 @@
 from typing import Any
 
-from socialdna.domain.research import PerformanceSpec, Population
+import numpy as np
+
+from socialdna.domain.research import CorrectedPerformanceSpec, PerformanceSpec, Population
 
 
 def in_population(row: dict[str, Any], population: Population) -> bool:
@@ -70,3 +72,125 @@ def match_pairs(rows: list[dict[str, Any]], spec: PerformanceSpec) -> list[tuple
             pairs.append((row["post_id"], other_id))
             right.pop(other_id)
     return pairs
+
+
+def designed_pairs(
+    rows: list[dict[str, Any]],
+    spec: CorrectedPerformanceSpec,
+    *,
+    multiplier: float = 1,
+) -> list[tuple[str, str]]:
+    """Outcome-blind, deterministic, no replacement; different named estimands."""
+    usable = [
+        row
+        for row in rows
+        if row["outcome"] is not None
+        and all(
+            row["feature_values"].get(key, {}).get("eligible", False) for key in spec.covariates
+        )
+    ]
+    scales = {key: float(np.std([r["features"][key] for r in usable])) for key in spec.covariates}
+    right = {row["post_id"]: row for row in usable if row["role"] == "right"}
+    pairs: list[tuple[str, str]] = []
+    from datetime import datetime
+
+    for row in sorted((r for r in usable if r["role"] == "left"), key=lambda r: r["post_id"]):
+        candidates = []
+        for other in right.values():
+            same_creator = row["creator_id"] == other["creator_id"]
+            if (spec.design == "within_creator") != same_creator:
+                continue
+            if (
+                not row["published_at"]
+                or not other["published_at"]
+                or any(
+                    row.get(key) is None or other.get(key) is None or row[key] != other[key]
+                    for key in spec.context
+                )
+            ):
+                continue
+            if row.get("duplicate_group") and row["duplicate_group"] == other.get(
+                "duplicate_group"
+            ):
+                continue
+            if (
+                row["age_seconds"] is None
+                or other["age_seconds"] is None
+                or abs(row["age_seconds"] - other["age_seconds"]) > spec.age_tolerance_days * 86400
+                or row["window_seconds"] != other["window_seconds"]
+            ):
+                continue
+            if (
+                abs(
+                    (
+                        datetime.fromisoformat(row["published_at"])
+                        - datetime.fromisoformat(other["published_at"])
+                    ).total_seconds()
+                )
+                > spec.publication_caliper_days * 86400
+            ):
+                continue
+            distance = 0.0
+            valid = True
+            for key, scale in scales.items():
+                delta = abs(row["features"][key] - other["features"][key])
+                if key == "duration_seconds" and delta > spec.duration_caliper_seconds * multiplier:
+                    valid = False
+                if scale == 0 and delta != 0:
+                    valid = False
+                distance += (delta / scale) ** 2 if scale else 0
+            if valid and distance**0.5 <= spec.standardized_caliper * multiplier:
+                candidates.append((distance, other["post_id"]))
+        if candidates:
+            _, identity = min(candidates)
+            pairs.append((row["post_id"], identity))
+            del right[identity]
+    return pairs
+
+
+def balance_diagnostics(
+    rows: list[dict[str, Any]],
+    pairs: list[tuple[str, str]],
+    spec: CorrectedPerformanceSpec,
+) -> dict[str, Any]:
+    retained = {identity for pair in pairs for identity in pair}
+
+    def distribution(items: list[dict[str, Any]], key: str) -> dict[str, Any]:
+        values = [r["features"].get(key) for r in items]
+        from socialdna.analytics.baselines import robust_summary
+
+        return {
+            **robust_summary([v for v in values if v is not None]),
+            "missing_n": sum(v is None for v in values),
+        }
+
+    result: dict[str, Any] = {}
+    for key in spec.covariates:
+        stages = {}
+        for stage, sample in (
+            ("before", rows),
+            ("after", [r for r in rows if r["post_id"] in retained]),
+        ):
+            left = distribution([r for r in sample if r["role"] == "left"], key)
+            right = distribution([r for r in sample if r["role"] == "right"], key)
+            lv = [
+                r["features"][key]
+                for r in sample
+                if r["role"] == "left" and r["features"].get(key) is not None
+            ]
+            rv = [
+                r["features"][key]
+                for r in sample
+                if r["role"] == "right" and r["features"].get(key) is not None
+            ]
+            scale = float(np.sqrt((np.var(lv) + np.var(rv)) / 2)) if lv and rv else None
+            delta = float(np.mean(lv) - np.mean(rv)) if lv and rv else None
+            stages[stage] = {
+                "left": left,
+                "right": right,
+                "smd": delta / scale
+                if scale and delta is not None
+                else (0.0 if delta == 0 else None),
+            }
+        result[key] = stages
+    return result

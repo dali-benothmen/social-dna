@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from socialdna.core.enums import ClaimLevel
 from socialdna.domain.evidence import EvidenceRef, EvidenceReference
@@ -120,3 +120,84 @@ class PerformanceSpec(BaseModel):
         if self.age_tolerance_days > max(self.age_days, 1):
             raise ValueError("Age tolerance is wider than the declared target age")
         return self
+
+
+class CorrectedPerformanceSpec(PerformanceSpec):
+    """Explicit opt-in contract. Unversioned specifications retain v1 semantics."""
+
+    schema_version: Literal["2.0"] = "2.0"
+    estimand: Literal["descriptive", "within_creator_association", "cross_creator_comparison"]
+    design: Literal["descriptive", "within_creator", "cross_creator"]
+    knowledge_cutoff: str
+    publication_cutoff: str
+    baseline_policy: Literal["historical_as_of", "retrospective_cohort"] = "historical_as_of"
+    baseline_cutoff: Literal["publication", "evaluation"] = "publication"
+    baseline_min_posts: int = Field(default=3, ge=3)
+    baseline_lookback_days: int = Field(default=365, ge=1, le=3650)
+    feature_policy: Literal["retrospective_content", "historical_prediction"]
+    maturity_policy: Literal["explicit_window", "collection_proxy"] = "explicit_window"
+    sampling_frame: str = Field(min_length=1, max_length=1000)
+    covariates: tuple[Literal["duration_seconds", "caption_length"], ...] = ("duration_seconds",)
+    # Context is exact-matched; numeric covariates use standardized Euclidean distance.
+    context: tuple[Literal["platform", "content_type", "topics", "niche"], ...] = (
+        "platform",
+        "content_type",
+        "topics",
+    )
+    standardized_caliper: float = Field(default=1, gt=0, le=10)
+    publication_caliper_days: float = Field(default=90, gt=0, le=3650)
+    max_abs_smd: float = Field(default=0.25, gt=0, le=2)
+    target_transform: Literal["identity", "log1p"] = "identity"
+    split_policy: Literal["none", "chronological", "creator", "joint"] = "none"
+    test_fraction: float = Field(default=0.2, ge=0.1, le=0.4)
+    family_id: str = Field(min_length=1, max_length=200)
+    family_terms: tuple[str, ...] = Field(min_length=1, max_length=100)
+    holdout_id: str | None = Field(default=None, min_length=1, max_length=200)
+
+    @field_validator("knowledge_cutoff", "publication_cutoff")
+    @classmethod
+    def normalize_time(cls, value: str) -> str:
+        from socialdna.ingestion.tabular import timestamp
+
+        return timestamp(value)
+
+    @model_validator(mode="after")
+    def coherent_design(self) -> "CorrectedPerformanceSpec":
+        estimands = {
+            "descriptive": "descriptive",
+            "within_creator": "within_creator_association",
+            "cross_creator": "cross_creator_comparison",
+        }
+        if self.estimand != estimands[self.design]:
+            raise ValueError("Estimand does not match the declared design")
+        if self.model not in ("none", "ols", "poisson"):
+            raise ValueError("Version 2 supports OLS/Poisson; legacy GEE/mixed remain version 1")
+        if self.model != "none" and self.design != "within_creator":
+            raise ValueError("Adjusted models require the identifiable within-creator design")
+        if self.model != "none" and not set(self.covariates).issubset(self.features):
+            raise ValueError("Model covariates must be included in the declared feature matrix")
+        if self.model == "poisson" and self.target_transform != "identity":
+            raise ValueError("Poisson models the raw count, not a transformed count")
+        if len(set(self.covariates)) != len(self.covariates) or not self.covariates:
+            raise ValueError("Matching covariates must be nonempty and unique")
+        if len(set(self.context)) != len(self.context) or "platform" not in self.context:
+            raise ValueError("Context fields must be unique and include platform")
+        if not self.matched and self.design != "descriptive":
+            raise ValueError("Within/cross comparisons require declared matching")
+        if self.split_policy != "none" and (self.model == "none" or not self.holdout_id):
+            raise ValueError("Validation requires a selected model and a reserved holdout_id")
+        expected = {*self.features, *(f"{a}*{b}" for a, b in self.interactions)}
+        if len(set(self.family_terms)) != len(self.family_terms) or not expected.issubset(
+            self.family_terms
+        ):
+            raise ValueError("Declare every tested feature/interaction in a unique test family")
+        return self
+
+
+AnalysisSpec = PerformanceSpec | CorrectedPerformanceSpec
+
+
+def parse_performance_spec(values: dict[str, object]) -> AnalysisSpec:
+    if values.get("schema_version") == "2.0":
+        return CorrectedPerformanceSpec.model_validate(values)
+    return PerformanceSpec.model_validate(values)

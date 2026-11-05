@@ -13,7 +13,7 @@ from socialdna.cli.common import ConfigFile, DataDir, Format, execute
 from socialdna.config.settings import Settings
 from socialdna.core.exceptions import ConfigurationError
 from socialdna.domain.media import AnalysisOptions
-from socialdna.domain.research import PerformanceSpec
+from socialdna.domain.research import PerformanceSpec, parse_performance_spec
 
 
 def _spec(
@@ -35,7 +35,7 @@ def _spec(
             values["model"] = model
         if unmatched:
             values["matched"] = False
-        return PerformanceSpec.model_validate(values)
+        return parse_performance_spec(values)
     except (OSError, ValueError, ValidationError) as exc:
         raise ConfigurationError(f"Invalid performance specification: {exc}") from exc
 

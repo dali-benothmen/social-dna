@@ -12,6 +12,7 @@ import subprocess
 import sys
 import tempfile
 import tomllib
+from datetime import UTC, datetime
 from pathlib import Path
 
 
@@ -110,6 +111,53 @@ def main() -> None:
                 raise RuntimeError("Installed account report lost imported observations")
             if analyzed["run_id"] != account_report["data"]["content"]["run_id"]:
                 raise RuntimeError("Installed account report did not reopen the saved analysis")
+            corrected_spec = isolated / "corrected.json"
+            corrected_spec.write_text(
+                json.dumps(
+                    {
+                        "schema_version": "2.0",
+                        "metric_key": "demo.views.v1",
+                        "features": ["caption_length"],
+                        "covariates": ["caption_length"],
+                        "design": "within_creator",
+                        "estimand": "within_creator_association",
+                        "feature_policy": "retrospective_content",
+                        "maturity_policy": "collection_proxy",
+                        "knowledge_cutoff": datetime.now(UTC).isoformat(),
+                        "publication_cutoff": datetime.now(UTC).isoformat(),
+                        "sampling_frame": "authorized installed-package acceptance fixture",
+                        "family_id": "installed-corrected",
+                        "family_terms": ["caption_length"],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            corrected = json.loads(
+                run(
+                    [*base, "analyze", "account", account_id, "--spec", str(corrected_spec)],
+                    cwd=isolated,
+                )
+            )["data"]
+            if corrected["schema_version"] != "2.0" or corrected["results"]["available_n"] != 2:
+                raise RuntimeError("Installed versioned population did not preserve observations")
+            statistical_ref = corrected["statistical_evidence"][0]["ref"]
+            statistical_citation = json.loads(
+                run([*base, "evidence", "resolve", statistical_ref["id"]], cwd=isolated)
+            )["data"]
+            reproduced = json.loads(
+                run([*base, "compare", "reproduce", corrected["run_id"]], cwd=isolated)
+            )["data"]
+            if (
+                not statistical_citation["eligible"]
+                or reproduced["results"] != corrected["results"]
+            ):
+                raise RuntimeError(
+                    "Installed statistical citation/reproduction did not survive restart"
+                )
+            print(
+                f"PASS: {distribution.name} installed versioned analysis, "
+                "statistical citation and reproduction"
+            )
             snapshot_id = account_report["data"]["content"]["posts"][0]["snapshot_ids"][0]
             citation = json.loads(
                 run([*base, "evidence", "cite-metric", snapshot_id], cwd=isolated)

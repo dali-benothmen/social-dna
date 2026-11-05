@@ -195,6 +195,7 @@ def restore_library(
                     "0003_enrichment",
                     "0004_analytics",
                     "0005_evidence",
+                    "0006_designs",
                 ):
                     raise StorageIntegrityError("Withdrawal authority has an unsupported schema")
                 obligations = (
@@ -285,8 +286,10 @@ def prepare_upgrade(paths: DataPaths, database: Any) -> None:
         validate_history,
     )
 
+    scripts = ScriptDirectory.from_config(migration_config())
     with database.transaction() as connection:
-        validate_history(connection, ScriptDirectory.from_config(migration_config()))
+        validate_history(connection, scripts)
         revision = current_revision(connection)
-    if revision and revision != "0005_evidence":
-        create_backup(paths, paths.root / "backups" / ("pre-0005-" + new_id()))
+    head = scripts.get_current_head()
+    if revision and revision != head:
+        create_backup(paths, paths.root / "backups" / (f"pre-{head}-" + new_id()))

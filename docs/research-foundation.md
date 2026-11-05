@@ -2,7 +2,8 @@
 
 Implemented in `0.0.5`, SQLite revision `0005_evidence`. R1 is an offline citation
 and registration foundation, **not** a psychological or statistical evaluation engine.
-R2–R10 and U1/U2 remain planned. Existing video/account analysis stays available.
+This foundation is preserved in `0.0.6`, which adds [R2 versioned analytics](versioned-analytics.md).
+R3–R10 and U1/U2 remain planned. Existing video/account analysis stays available.
 
 ## What works
 
@@ -20,7 +21,7 @@ R2–R10 and U1/U2 remain planned. Existing video/account analysis stays availab
   into a separate directory with withdrawal reconciliation or restricted recovery.
 
 No model, platform API, server or embedding is needed. Statistical-result citations
-arrive in R2; mechanism operationalizations/evaluation arrive in R7; reevaluation
+are now available in R2; mechanism operationalizations/evaluation arrive in R7; reevaluation
 arrives in R8. Registration never makes a hypothesis evaluation-ready.
 
 ## CLI workflow
