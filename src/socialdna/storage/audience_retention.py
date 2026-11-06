@@ -128,6 +128,10 @@ def preview(
                 "account_manifest",
                 "account_dispatch",
                 "account_study",
+                "comparison_manifest",
+                "comparison_run",
+                "url_comparison",
+                "evidence_audit",
             )
             for r in entities
         )

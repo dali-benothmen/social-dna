@@ -11,7 +11,9 @@ from socialdna.core.exceptions import ConfigurationError, StoragePermissionError
 from socialdna.domain.account_study import AccountStudy
 from socialdna.domain.acquisition import CaptureManifest
 from socialdna.domain.capabilities import CapabilityManifest
+from socialdna.domain.comparison_workflow import URLComparison
 from socialdna.domain.content import ContentReport
+from socialdna.domain.evidence_audit import EvidenceAudit
 from socialdna.domain.investigation import EvaluationSpec, LiteratureCorpus, ResearchProtocol
 from socialdna.domain.profile_audit import ProfileAuditProposal
 from socialdna.domain.reconstruction import VideoReconstruction
@@ -19,6 +21,7 @@ from socialdna.domain.research import CorrectedPerformanceSpec, ResearchRegistra
 from socialdna.domain.results import ResultEnvelope
 from socialdna.domain.workflows import WorkflowPlan, WorkflowReport, WorkflowRequest
 from socialdna.research.experiments import ExperimentSpec
+from socialdna.research.recommendations import RecommendationSpec
 
 SCHEMAS: dict[str, type[BaseModel]] = {
     "result": ResultEnvelope,
@@ -37,6 +40,9 @@ SCHEMAS: dict[str, type[BaseModel]] = {
     "video_reconstruction": VideoReconstruction,
     "profile_audit": ProfileAuditProposal,
     "account_study": AccountStudy,
+    "url_comparison": URLComparison,
+    "evidence_audit": EvidenceAudit,
+    "recommendation": RecommendationSpec,
 }
 
 BUNDLES = (
@@ -47,6 +53,8 @@ BUNDLES = (
     "social-dna-reconstruct",
     "social-dna-account",
     "social-dna-research",
+    "social-dna-compare",
+    "social-dna-evidence",
 )
 
 

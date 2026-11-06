@@ -1,5 +1,6 @@
 """Host-neutral source-only tasks, with explicit maintenance setup and no hidden fetches."""
 
+import json
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -37,6 +38,20 @@ def register(app: typer.Typer) -> None:
         analyze_media: bool = False,
         refresh_from: str | None = None,
         context_revision: Annotated[list[str] | None, typer.Option("--context-revision")] = None,
+        left_url: Annotated[list[str] | None, typer.Option("--left-url")] = None,
+        against: Annotated[list[str] | None, typer.Option("--against")] = None,
+        comparison_spec: Path | None = None,
+        support_revision: Annotated[list[str] | None, typer.Option("--support-revision")] = None,
+        contrary_revision: Annotated[list[str] | None, typer.Option("--contrary-revision")] = None,
+        recommendation_spec: Path | None = None,
+        entity_revision: str | None = None,
+        evidence_id: str | None = None,
+        evidence_revision: str | None = None,
+        audit_depth: int = 2,
+        audit_max_nodes: int = 50,
+        audit_max_edges: int = 100,
+        include_graph: bool = False,
+        include_history: bool = True,
         media: Annotated[list[Path] | None, typer.Option("--media")] = None,
         permission_basis: str | None = None,
         copy_media: bool = False,
@@ -60,6 +75,25 @@ def register(app: typer.Typer) -> None:
     ) -> None:
         """Persist a bounded plan without network access; --dry-run also avoids library writes."""
         try:
+
+            def specification(path: Path | None) -> Any:
+                if path is None:
+                    return None
+                try:
+                    with path.open("rb") as stream:
+                        raw = stream.read(1_000_001)
+                    if len(raw) > 1_000_000:
+                        raise ConfigurationError("Workflow specification exceeds 1 MB")
+                    return json.loads(raw)
+                except (OSError, ValueError):
+                    raise ConfigurationError(
+                        "Cannot read a bounded JSON workflow specification"
+                    ) from None
+
+            if bool(evidence_id) != bool(evidence_revision):
+                raise ConfigurationError(
+                    "Evidence selection needs both --evidence-id and --evidence-revision"
+                )
             request = WorkflowRequest.model_validate(
                 {
                     "mode": mode,
@@ -76,6 +110,25 @@ def register(app: typer.Typer) -> None:
                     "analyze_media": analyze_media,
                     "refresh_from": refresh_from,
                     "context_revisions": tuple(context_revision or []),
+                    "left_urls": tuple(left_url or []),
+                    "against": tuple(against or []),
+                    "comparison": {
+                        "design": specification(comparison_spec),
+                        "support_revisions": tuple(support_revision or []),
+                        "contrary_revisions": tuple(contrary_revision or []),
+                        "recommendation": specification(recommendation_spec),
+                    },
+                    "entity_revision": entity_revision,
+                    "evidence_reference": {"id": evidence_id, "revision_id": evidence_revision}
+                    if evidence_id
+                    else None,
+                    "audit": {
+                        "depth": audit_depth,
+                        "max_nodes": audit_max_nodes,
+                        "max_edges": audit_max_edges,
+                        "include_graph": include_graph,
+                        "include_history": include_history,
+                    },
                     "media": tuple(str(path) for path in (media or [])),
                     "permission_basis": permission_basis,
                     "copy_media": copy_media,
@@ -107,6 +160,8 @@ def register(app: typer.Typer) -> None:
                 "Invalid workflow request: ingest needs --url; report needs --from. "
                 "Analyze needs a post URL and declared permission for supplied originals. "
                 "Reconstruct accepts --from or --url plus an authorized video. "
+                "Compare requires --url and --against; evidence selects --from, "
+                "--entity-revision or an exact evidence pair. "
                 "See skill schema workflow_request."
             ) from None
         execute(

@@ -16,6 +16,8 @@ from socialdna.core.exceptions import ConfigurationError
         "social-dna-reconstruct",
         "social-dna-account",
         "social-dna-research",
+        "social-dna-compare",
+        "social-dna-evidence",
     ],
 )
 @pytest.mark.parametrize("host", [".agents", ".claude", ".opencode"])

@@ -69,6 +69,27 @@ def capabilities(settings: Settings, *, no_ai: bool = False) -> dict[str, Any]:
         )
 
     video_tools = all(shutil.which(name) for name in ("ffmpeg", "ffprobe"))
+    available(
+        "library_url_comparisons",
+        "Exact multi-URL library samples, registered R2 comparisons and qualified synthesis.",
+        ["workflow", "plan"],
+        ["workflow", "run"],
+        ["workflow", "report"],
+        limitations=[
+            "No cold URL acquisition; compatible independently permitted observations "
+            "and an explicit design are required for quantitative output."
+        ],
+    )
+    available(
+        "canonical_evidence_audits",
+        "Exact SQL evidence lineage with optional bounded R6 graph and R8 history.",
+        ["workflow", "plan"],
+        ["workflow", "report"],
+        limitations=[
+            "No collection/refit; graph connectivity is not proof; "
+            "withdrawn inputs withhold protected reports."
+        ],
+    )
     entries.append(
         CapabilityEntry(
             id="local_video",

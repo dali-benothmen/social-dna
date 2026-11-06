@@ -4,7 +4,9 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from socialdna.domain.comparison_workflow import ComparisonOptions, ComparisonSubject
 from socialdna.domain.evidence import EntityRef, EvidenceRef
+from socialdna.domain.evidence_audit import AuditOptions
 from socialdna.domain.media import AnalysisOptions
 
 TASK_NAMES = (
@@ -23,7 +25,16 @@ TASK_NAMES = (
     "report",
     "evidence",
 )
-IMPLEMENTED_TASKS = ("ingest", "report", "analyze", "reconstruct", "account", "research")
+IMPLEMENTED_TASKS = (
+    "ingest",
+    "report",
+    "analyze",
+    "reconstruct",
+    "account",
+    "research",
+    "compare",
+    "evidence",
+)
 
 
 class ReconstructionOptions(BaseModel):
@@ -63,13 +74,21 @@ class WorkflowRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     schema_version: Literal["1.0"] = "1.0"
-    mode: Literal["ingest", "report", "analyze", "reconstruct", "account", "research"] = "ingest"
+    mode: Literal[
+        "ingest", "report", "analyze", "reconstruct", "account", "research", "compare", "evidence"
+    ] = "ingest"
     url: str | None = Field(default=None, max_length=2048)
     from_workflow: str | None = Field(default=None, min_length=1, max_length=36)
     goal: str = Field(
         default="Capture the source's native public metadata.", min_length=1, max_length=2000
     )
-    question_scope: Literal["native_metadata", "content_measurements", "unassessed"] = "unassessed"
+    question_scope: Literal[
+        "native_metadata",
+        "content_measurements",
+        "comparison_descriptive",
+        "evidence_lineage",
+        "unassessed",
+    ] = "unassessed"
     max_attempts: int = Field(default=3, ge=1, le=3, strict=True)
     scope: Literal["content", "profile"] = "content"
     profile_revision: str | None = Field(default=None, min_length=1, max_length=36)
@@ -86,9 +105,38 @@ class WorkflowRequest(BaseModel):
     subtitles: str | None = None
     analysis_options: AnalysisOptions = Field(default_factory=lambda: AnalysisOptions(no_ai=True))
     reconstruction: ReconstructionOptions = Field(default_factory=ReconstructionOptions)
+    left_urls: tuple[str, ...] = Field(default=(), max_length=4)
+    against: tuple[str, ...] = Field(default=(), max_length=5)
+    comparison: ComparisonOptions = Field(default_factory=ComparisonOptions)
+    audit: AuditOptions = Field(default_factory=AuditOptions)
+    entity_revision: str | None = Field(default=None, min_length=1, max_length=36)
+    evidence_reference: EvidenceRef | None = None
 
     @model_validator(mode="after")
     def appropriate_input(self) -> "WorkflowRequest":
+        if self.mode in ("compare", "evidence") and self.scope != "content":
+            raise ValueError("The profile scope option applies only to analyze mode")
+        if self.mode == "compare" and (not self.url or not self.against or self.from_workflow):
+            raise ValueError("Compare requires --url plus --against and no --from")
+        if self.mode != "compare" and (
+            self.left_urls or self.against or self.comparison != ComparisonOptions()
+        ):
+            raise ValueError("Comparison options apply only to compare")
+        if self.mode == "evidence" and (
+            self.url
+            or sum(
+                bool(v) for v in (self.from_workflow, self.entity_revision, self.evidence_reference)
+            )
+            != 1
+        ):
+            raise ValueError(
+                "Evidence needs exactly one saved workflow, entity revision "
+                "or exact evidence reference"
+            )
+        if self.mode != "evidence" and (
+            self.entity_revision or self.evidence_reference or self.audit != AuditOptions()
+        ):
+            raise ValueError("Audit options apply only to evidence")
         if self.profile_revision and (self.mode != "analyze" or self.scope != "profile"):
             raise ValueError("Profile revisions require analyze profile scope")
         if (
@@ -121,7 +169,7 @@ class WorkflowRequest(BaseModel):
             self.mode not in ("account", "research") or not self.permission_basis
         ):
             raise ValueError("Account media analysis requires an explicit permission declaration")
-        if self.mode not in ("account", "research") and (
+        if self.mode not in ("account", "research", "compare") and (
             self.account_external_id
             or self.max_posts != 10
             or self.analyze_media
@@ -129,6 +177,24 @@ class WorkflowRequest(BaseModel):
             or self.context_revisions
         ):
             raise ValueError("Account options require account/research mode")
+        if self.mode == "compare" and (
+            self.account_external_id
+            or self.analyze_media
+            or self.refresh_from
+            or self.context_revisions
+        ):
+            raise ValueError(
+                "Comparison pins subjects; media work and account imports "
+                "must be explicit prior operations"
+            )
+        if self.mode in ("compare", "evidence") and (
+            self.copy_media
+            or self.replace_media
+            or self.analysis_options.transcribe
+            or self.analysis_options.ocr
+            or self.analysis_options.align
+        ):
+            raise ValueError("Saved comparison/audit tasks do not acquire or analyze new media")
         if (
             self.mode == "reconstruct"
             and self.from_workflow
@@ -149,8 +215,8 @@ class WorkflowPlan(BaseModel):
 
     schema_version: Literal["1.0"] = "1.0"
     request: WorkflowRequest
-    platform: Literal["youtube", "instagram", "tiktok"]
-    target_kind: Literal["post", "account"]
+    platform: Literal["youtube", "instagram", "tiktok"] | None
+    target_kind: Literal["post", "account", "record"]
     canonical_url: str
     external_id: str
     operations: tuple[str, ...]
@@ -168,6 +234,10 @@ class WorkflowPlan(BaseModel):
     known_posts_count: int = Field(default=0, ge=0)
     context_inputs: tuple[EntityRef, ...] = ()
     source_inputs: tuple[EntityRef, ...] = ()
+    comparison_subjects: tuple[ComparisonSubject, ...] = ()
+    prepared_inputs: tuple[EntityRef, ...] = ()
+    audit_root: EntityRef | None = None
+    audit_evidence: EvidenceRef | None = None
 
 
 class RequiredAction(BaseModel):

@@ -4,7 +4,7 @@ import json
 import os
 import sqlite3
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import httpx
 from sqlalchemy import select
@@ -54,7 +54,29 @@ def _reference_plan(settings: Settings, identity: str) -> WorkflowPlan:
 
 
 def plan(settings: Settings, request: WorkflowRequest, *, dry_run: bool = False) -> dict[str, Any]:
-    if request.mode in ("ingest", "analyze", "account", "research") or (
+    if request.mode == "evidence":
+        from socialdna.application.evidence_audit_service import pin as pin_audit
+
+        audit_pins = pin_audit(settings, request)
+        specification = WorkflowPlan(
+            request=request,
+            platform=None,
+            target_kind="record",
+            canonical_url="",
+            external_id=audit_pins["audit_root"].revision_id,
+            operations=("resolve_canonical_lineage", "compose_exact_evidence_audit"),
+            supported=True,
+            policy_version="canonical-evidence-audit-v1",
+            response_byte_limit=settings.workflow_response_byte_limit,
+            request_timeout_seconds=settings.workflow_request_timeout_seconds,
+            retention_days=None,
+            limitations=("No collection, refit or inference from graph connectivity.",),
+            **audit_pins,
+        )
+        return _save_plan(settings, specification, dry_run)
+    platform: Literal["youtube", "instagram", "tiktok"] | None
+    kind: Literal["account", "post", "record"]
+    if request.mode in ("ingest", "analyze", "account", "research", "compare") or (
         request.mode == "reconstruct" and request.url
     ):
         assert request.url is not None
@@ -202,6 +224,31 @@ def plan(settings: Settings, request: WorkflowRequest, *, dry_run: bool = False)
                 ),
             }
         )
+    if request.mode == "compare":
+        from socialdna.application.comparison_workflow_service import pin as pin_comparison
+
+        specification = specification.model_copy(
+            update={
+                **pin_comparison(settings, request),
+                "retention_days": None,
+                "operations": (
+                    "pin_exact_subjects",
+                    "execute_registered_comparison_if_eligible",
+                    "compose_qualified_synthesis",
+                ),
+                "policy_version": "library-comparison-v1",
+                "limitations": (
+                    "Eligible independent library inputs only; no native acquisition "
+                    "or metric pooling across platforms.",
+                    "A registered statistical design is required for numerical comparisons; "
+                    "arbitrary research goals remain unassessed.",
+                ),
+            }
+        )
+    return _save_plan(settings, specification, dry_run)
+
+
+def _save_plan(settings: Settings, specification: WorkflowPlan, dry_run: bool) -> dict[str, Any]:
     if dry_run:
         return {"dry_run": True, "written": False, "plan": specification.model_dump(mode="json")}
     with open_application(settings) as application:
@@ -261,6 +308,22 @@ def run(settings: Settings, identity: str, *, client: httpx.Client | None = None
         with application.database.transaction() as connection:
             _, specification = repository.get(connection, identity)
             bound = repository.bindings(connection, identity)
+        if specification.request.mode in ("compare", "evidence"):
+            from socialdna.application import comparison_workflow_service, evidence_audit_service
+
+            with application.database.transaction() as connection:
+                repository.state(connection, identity, "running")
+            try:
+                operation = (
+                    comparison_workflow_service.run
+                    if specification.request.mode == "compare"
+                    else evidence_audit_service.run
+                )
+                return operation(application, identity, specification)
+            except BaseException:
+                with application.database.transaction() as connection:
+                    repository.state(connection, identity, "partial", "local_workflow_interrupted")
+                raise
         if specification.request.mode in ("account", "research"):
             if not specification.supported:
                 with application.database.transaction() as connection:
@@ -394,7 +457,14 @@ def run(settings: Settings, identity: str, *, client: httpx.Client | None = None
                     for item in previous
                     if item["role"] == "report"
                     and repo.get("entity_revisions", item["revision_id"])["kind"]
-                    in ("content_report", "video_reconstruction", "profile_audit", "account_study")
+                    in (
+                        "content_report",
+                        "video_reconstruction",
+                        "profile_audit",
+                        "account_study",
+                        "url_comparison",
+                        "evidence_audit",
+                    )
                 ]
                 if parent_records:
                     selected += parent_records

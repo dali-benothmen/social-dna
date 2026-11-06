@@ -362,7 +362,9 @@ def reevaluate(
     }
 
 
-def history(application: Application, identity: str) -> dict[str, Any]:
+def history(application: Application, identity: str, *, limit: int | None = None) -> dict[str, Any]:
+    if limit is not None and not 1 <= limit <= 100:
+        raise ConfigurationError("History limit must be 1–100")
     with application.database.transaction() as connection:
         repo = EvidenceRepository(connection)
         entities, assessments = (
@@ -373,6 +375,7 @@ def history(application: Application, identity: str) -> dict[str, Any]:
                 select(entities)
                 .where(entities.c.entity_id == identity)
                 .order_by(entities.c.revision_no.desc())
+                .limit(1)
             ).mappings()
         )
         if not rows:
@@ -399,9 +402,12 @@ def history(application: Application, identity: str) -> dict[str, Any]:
             connection.scalars(
                 select(assessments.c.revision_id)
                 .where(assessments.c.question_revision_id.in_(question_revisions))
-                .order_by(assessments.c.created_at, assessments.c.revision_id)
+                .order_by(assessments.c.created_at.desc(), assessments.c.revision_id.desc())
+                .limit(limit + 1 if limit is not None else None)
             )
         )
+        truncated = limit is not None and len(revisions) > limit
+        revisions = list(reversed(revisions[:limit] if limit is not None else revisions))
         refs = [repo.ref(repo.get("entity_revisions", r)) for r in revisions]
         requests = metadata.tables["reevaluation_requests"]
         attempts = [
@@ -416,6 +422,7 @@ def history(application: Application, identity: str) -> dict[str, Any]:
                 )
                 .where(requests.c.previous_revision_id.in_(revisions))
                 .order_by(requests.c.created_at, requests.c.id)
+                .limit(limit + 1 if limit is not None else None)
             ).mappings()
         ]
         transitions = metadata.tables["assessment_transitions"]
@@ -425,6 +432,7 @@ def history(application: Application, identity: str) -> dict[str, Any]:
                 select(transitions)
                 .where(transitions.c.previous_revision_id.in_(revisions))
                 .order_by(transitions.c.created_at, transitions.c.request_id)
+                .limit(limit + 1 if limit is not None else None)
             ).mappings()
         ]
         from socialdna.storage import experiment_repository
@@ -433,9 +441,10 @@ def history(application: Application, identity: str) -> dict[str, Any]:
         experiment_feedback = []
         revision: str
         for revision in connection.scalars(
-            select(experiment_table.c.revision_id).where(
-                experiment_table.c.question_revision_id.in_(question_revisions)
-            )
+            select(experiment_table.c.revision_id)
+            .where(experiment_table.c.question_revision_id.in_(question_revisions))
+            .order_by(experiment_table.c.revision_id)
+            .limit(limit + 1 if limit is not None else None)
         ):
             experiment_ref = repo.ref(repo.get("entity_revisions", revision))
             try:
@@ -469,6 +478,13 @@ def history(application: Application, identity: str) -> dict[str, Any]:
         )
         record["comparison"] = content.get("reevaluation") if content else None
         records.append(record)
+    if limit is not None:
+        truncated = truncated or any(
+            len(items) > limit for items in (attempts, links, experiment_feedback)
+        )
+        attempts, links, experiment_feedback = (
+            items[:limit] for items in (attempts, links, experiment_feedback)
+        )
     return {
         "status": "success",
         "question_revision_id": question_revision,
@@ -477,6 +493,7 @@ def history(application: Application, identity: str) -> dict[str, Any]:
         "transitions": links,
         "requests": attempts,
         "experiment_assessments": experiment_feedback,
+        "truncated": truncated,
     }
 
 

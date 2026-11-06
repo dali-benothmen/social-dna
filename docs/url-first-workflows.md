@@ -1,8 +1,9 @@
 # URL-first workflows and task skills
 
-Status: **DX1 native reporting, DX2-A/B assisted media/reconstruction and assisted
-DX3 profile-field/account-library foundations implemented; full DX3/native collection,
-semantic audit/synthesis and live source/host gates remain open**. Reviewed 2026-11-06
+Status: **DX1 native reporting, DX2-A/B assisted media/reconstruction, assisted
+DX3 profile/account foundations and DX4 library comparisons/evidence audits implemented;
+full native collection, semantic profile/strategy analysis and live source/host gates
+remain open**. Reviewed 2026-11-06
 against database `0019_content`. Later DX deliveries remain proposed.
 [Native source operations](source-workflows.md), [assisted media](media-workflows.md)
 and [reconstruction](video-reconstruction.md) describe current commands; the broader
@@ -10,6 +11,8 @@ design below remains the target.
 Implemented assisted contracts: [profile proposals](profile-audit-workflows.md) and
 [account/research studies](account-study-workflows.md). Partial lanes do not close
 the original URL-only DX3 acceptance criteria.
+The [comparison/audit lane](comparison-workflows.md) adds real registered statistics
+and exact evidence/history over permitted library inputs, not native multi-URL acquisition.
 The delivery sequence and milestone-specific acceptance tests are in
 [PLAN.md §20](../PLAN.md#20-url-first-dx-and-task-skills--proposed).
 
@@ -43,8 +46,9 @@ record. No route may be called complete merely because a URL shape is recognized
 
 ### Target catalog and agent discovery
 
-These are **14 target task skills**; only bounded ingest/report implementations
-ship in DX1. The descriptions
+These are **14 target task skills**. Eight task bundles now ship within their documented
+bounds: ingest/report, analyze/reconstruct, account/research and compare/evidence.
+The six specialists remain proposed. The descriptions
 below define distinct discovery intent; detailed procedures belong in each bundle's
 focused references. Existing `socialdna` remains the supported umbrella/local/export
 skill, not a fifteenth new task. No duplicate `reverse-engineer`, `track` or `brief`

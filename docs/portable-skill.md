@@ -9,15 +9,18 @@ host SDKs, new servers, credentials, automatic downloads or duplicated statistic
 The original bundle accepts local inputs and permitted supplied exports; it does not
 collect arbitrary account/post URLs. Release `0.0.21` adds separately exported
 `social-dna-ingest` and `social-dna-report` for the [native-only first URL slice](source-workflows.md),
-with live source/host acceptance still open. Database head is now `0018_workflows`.
+with live source/host acceptance still open. Database head is now `0019_content`.
 The agreed **14 target task skills** share
 one durable workflow layer before the existing engine. Research owns end-to-end
 investigations; analyze covers owned/influencer profile audits and individual content;
 reconstruct produces finished-video scripts; report assembles saved results. The
 [complete catalog and discovery boundaries](url-first-workflows.md#target-catalog-and-agent-discovery)
 also cover ingest, account, psychology, audience, compare, discover, platform,
-strategy, experiment and evidence audit. Only bounded ingest/report bundles are
-implemented; none is automatically installed. See the [workflow architecture](url-first-workflows.md) and
+strategy, experiment and evidence audit. Eight task bundles are implemented within
+their documented bounds: ingest/report, analyze/reconstruct, account/research and
+[compare/evidence](comparison-workflows.md). Media, profile, account and comparison
+lanes need actual independently permitted local/library inputs; they are not native
+URL collection adapters. None is automatically installed. See the [workflow architecture](url-first-workflows.md) and
 [DX milestones and acceptance tests](../PLAN.md#20-url-first-dx-and-task-skills--proposed).
 The existing `socialdna` bundle/export contract remains supported. A real URL-first
 delivery needs permitted collection and observed end-to-end behavior, not new names alone.

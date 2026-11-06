@@ -1049,9 +1049,11 @@ discovery sources, installation, permissions and separate verification gates.
 
 ## 34. URL-first DX and task skills — proposed
 
-Status: **DX1 implemented, live acceptance pending; later DX deliveries planned**.
-The first implementation adds native-only capture/reporting and migration0018,
-not account enumeration or audiovisual URL analysis. The detailed contracts,
+Status: **DX1 native reporting, DX2 assisted media/reconstruction, DX3 assisted
+profile/account foundations and DX4 library comparisons/audits delivered; native
+collection and live source/host gates remain open**. Current head is0019_content;
+DX4 reuses it without a migration. These assisted lanes are not account enumeration
+or cold audiovisual URL acquisition. The detailed contracts,
 source-policy findings and security/retention model are in
 [URL-first workflows](docs/url-first-workflows.md); implementation and concrete tests
 are in [PLAN.md §20](PLAN.md#20-url-first-dx-and-task-skills--proposed).
@@ -1177,6 +1179,34 @@ draft writer; prepared R8 reevaluation is an explicit separate operation, not a 
 or import side effect. Prior studies provide optional explicit deltas and eligible
 media reuse without replacing history. Native acquisition, substantive synthesis and
 live gates remain open; see [the implemented contract](docs/account-study-workflows.md).
+
+DX4 adds a bounded library comparison coordinator rather than an alternative analytics
+engine. Each URL resolves to exact canonical subject/sample revisions before execution;
+the existing R2 v2 service receives pinned post groups, while its full required
+historical baseline remains intact. A callback in the existing statistical save
+transaction records the workflow checkpoint atomically, preventing duplicate fitting
+on resume. Incompatible or missing inputs produce narrative/partial output; matched
+descriptions never become causal or independent-confirmation claims. Prepared R7–R10
+records retain separate evidence lanes; optional proposals go through the actual
+qualified R10 writer, not an unvalidated report-only recommendation path.
+The R2 twenty-cluster inferential engineering gate remains intact (not a power
+guarantee); small cross-creator URL comparisons retain descriptive results but stay
+partial with inference withheld. Larger declared-corpus research remains an explicit
+existing engine workflow, not an implicit expansion of a URL sample.
+
+Exact audits traverse canonical SQL references and typed evidence independently of
+FTS/Qdrant/graph maintenance. Optional bounded R6 NetworkX views are read-only,
+explicitly stale/structural context; bounded R8 history is separately displayed,
+never a hidden refit. Non-URL audit plans have no invented platform target.
+Statistical lineage follows the actual frozen producer projection behind its hash-only
+canonical envelope, including as-of metric snapshots and feature inputs. Optional
+graph snapshots pin endpoint, edge-owner and citation authority as dependencies, so
+they cannot outlive a withdrawn source outside the canonical traversal frontier.
+New comparison/audit compositions reuse 0019 projections, ContentLocator, frozen
+artifacts and existing transitive erasure/restore guards. No migration or new
+infrastructure is warranted. Corrections affect separate freshness views; withdrawals
+withhold protected descendant bodies without rewriting historical conclusions.
+Native collection/live acceptance remains open; see [comparison workflows](docs/comparison-workflows.md).
 
 ### 34.2 Profile analysis is a first-class analyze scope
 

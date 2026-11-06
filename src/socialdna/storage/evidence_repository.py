@@ -44,6 +44,10 @@ LEGACY_KINDS = {
     "ocr_box": ("ocr_boxes", "id"),
 }
 AUTHORED_KINDS = {
+    "comparison_manifest",
+    "comparison_run",
+    "url_comparison",
+    "evidence_audit",
     "content_binding",
     "content_run",
     "content_report",

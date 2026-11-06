@@ -13,8 +13,10 @@ from socialdna.core.hashing import canonical_json
 from socialdna.core.ids import stable_id
 from socialdna.core.time import utc_now
 from socialdna.domain.account_study import AccountStudy
+from socialdna.domain.comparison_workflow import URLComparison
 from socialdna.domain.content import ContentReport
 from socialdna.domain.evidence import ContentLocator, EntityRef, EvidenceRef
+from socialdna.domain.evidence_audit import EvidenceAudit
 from socialdna.domain.profile_audit import ProfileAuditProposal
 from socialdna.domain.reconstruction import VideoReconstruction
 from socialdna.storage.evidence_repository import EvidenceRepository
@@ -29,6 +31,10 @@ KINDS = {
     "account_manifest",
     "account_dispatch",
     "account_study",
+    "comparison_manifest",
+    "comparison_run",
+    "url_comparison",
+    "evidence_audit",
 }
 
 
@@ -98,6 +104,20 @@ def validate_projection(repo: EvidenceRepository, ref: EntityRef, payload: dict[
         run = repo.get("analysis_runs", row["run_id"])
         if run["target_id"] != payload["target_id"]:
             raise StorageIntegrityError("Content run targets different media/post")
+    if ref.kind == "url_comparison":
+        comparison = URLComparison.model_validate(payload["result"])
+        if (
+            comparison.workflow_id != row["workflow_id"]
+            or comparison.manifest.model_dump() not in payload["entity_inputs"]
+        ):
+            raise StorageIntegrityError("Comparison disagrees with its workflow/manifest")
+    if ref.kind == "evidence_audit":
+        lineage = EvidenceAudit.model_validate(payload["result"])
+        if (
+            lineage.workflow_id != row["workflow_id"]
+            or lineage.root.model_dump() not in payload["entity_inputs"]
+        ):
+            raise StorageIntegrityError("Audit disagrees with its workflow/root")
 
 
 def records(connection: Connection, workflow: str, kind: str) -> list[EntityRef]:

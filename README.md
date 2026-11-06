@@ -1,6 +1,11 @@
 # SocialDNA
 
-SocialDNA is a local-first social-media research engine. The implemented release is
+SocialDNA is a local-first social-media research engine. Release `0.0.25` includes
+[multi-URL library comparisons and exact evidence audits](docs/comparison-workflows.md),
+actual registered statistics, frozen cited synthesis and independently exportable
+`social-dna-compare`/`social-dna-evidence` bundles. This is an assisted existing-library
+lane, not cold URL acquisition; native collection and live host checks remain open.
+The preceding release is
 `0.0.24`: [assisted profile field-check proposals](docs/profile-audit-workflows.md),
 [bounded account/research library workflows](docs/account-study-workflows.md), and
 [finished-video transcript and audiovisual-script reconstruction](docs/video-reconstruction.md),

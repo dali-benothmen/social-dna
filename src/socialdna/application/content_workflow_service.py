@@ -172,6 +172,7 @@ def _binding(app: Application, identity: str, plan: WorkflowPlan) -> EntityRef:
         if not post_id:
             from socialdna.application.account_import_service import _identity
 
+            assert plan.platform is not None
             post_id = _identity("post", plan.platform, plan.external_id)
             connection.execute(
                 posts.insert().values(

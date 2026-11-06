@@ -52,6 +52,9 @@ def create(connection: Connection, plan: WorkflowPlan) -> str:
             updated_at=now,
         )
     )
+    if plan.platform is None:
+        # Non-URL evidence operations have no invented platform target.
+        return identity
     connection.execute(
         metadata.tables["workflow_targets"]
         .insert()

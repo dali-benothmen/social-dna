@@ -90,6 +90,8 @@ def portable_smoke(base: list[str], python: Path, isolated: Path, bundle_source:
             "social-dna-reconstruct",
             "social-dna-account",
             "social-dna-research",
+            "social-dna-compare",
+            "social-dna-evidence",
         ):
             target = parent / task
             manifest = json.loads(
@@ -590,6 +592,16 @@ def main() -> None:
                         str(python),
                         str(root / "scripts/account_workflow_smoke.py"),
                         str(isolated / "assisted-account-data"),
+                    ],
+                    cwd=isolated,
+                ).strip()
+            )
+            print(
+                run(
+                    [
+                        str(python),
+                        str(root / "scripts/comparison_workflow_smoke.py"),
+                        str(isolated / "comparison-data"),
                     ],
                     cwd=isolated,
                 ).strip()

@@ -3,6 +3,7 @@
 import importlib.metadata
 import json
 from collections import defaultdict
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
@@ -642,7 +643,11 @@ def compare(
     left: list[str],
     right: list[str],
     spec: PerformanceSpec,
+    *,
+    on_saved: Callable[[Connection, dict[str, Any]], None] | None = None,
 ) -> dict[str, Any]:
+    if on_saved is not None and not isinstance(spec, CorrectedPerformanceSpec):
+        raise ConfigurationError("Atomic workflow checkpoints require the registered v2 pipeline")
     if not left or not right or set(left).intersection(right):
         raise ConfigurationError("Comparison requires two nonempty, disjoint ID groups")
     roles = {**{item: "left" for item in left}, **{item: "right" for item in right}}
@@ -683,6 +688,7 @@ def compare(
             "post_ids": left + right if kind == "posts" else None,
             "roles": roles,
         },
+        on_saved=on_saved,
     )
 
 
@@ -869,6 +875,7 @@ def _persist_analysis(
     history: list[dict[str, Any]] | None = None,
     expected_results: dict[str, Any] | None = None,
     population_selector: dict[str, Any] | None = None,
+    on_saved: Callable[[Connection, dict[str, Any]], None] | None = None,
 ) -> dict[str, Any]:
     if isinstance(spec, CorrectedPerformanceSpec):
         from socialdna.application.statistical_service import persist_designed_analysis
@@ -886,6 +893,7 @@ def _persist_analysis(
             reproduced_from=reproduced_from,
             expected_results=expected_results,
             population_selector=population_selector,
+            on_saved=on_saved,
         )
     with application.database.transaction() as connection:
         assert_context_active(
@@ -1098,6 +1106,7 @@ def reproduce(
                 "0.0.21",
                 "0.0.22",
                 "0.0.23",
+                "0.0.24",
             )
         )
         or (
@@ -1122,6 +1131,7 @@ def reproduce(
                 "0.0.21",
                 "0.0.22",
                 "0.0.23",
+                "0.0.24",
             )
         )
     )

@@ -51,6 +51,18 @@ retains complete structured evidence. No HTML renderer or browser service is shi
 For research results, `research report` has its own envelope containing a cited
 research report rather than the media report format; preserve its returned revision.
 
+The bounded `workflow` layer also supports URL comparisons and exact evidence audits
+over independently permitted library observations. `workflow plan --mode compare
+--url LEFT --against RIGHT` pins exact subjects; without `--comparison-spec` its
+inventory is partial and numeric inference is withheld. `workflow plan --mode evidence
+--from WORKFLOW` (or `--entity-revision`, or exact `--evidence-id`/`--evidence-revision`)
+audits canonical records, with optional bounded graph/history context and no refit.
+These modes do not acquire cold URL sources. `workflow report ID --format markdown`
+always returns an envelope with the frozen Markdown in `data.content`; it differs
+from the legacy raw-Markdown report command above. Source permissions and current
+eligibility gate all reuse. New schemas: `url_comparison`, `evidence_audit` and
+`recommendation`; the eight task bundles export independently.
+
 ## Inspect exact schemas
 
 ```text

@@ -19,6 +19,22 @@ Implemented commands:
 - `workflow maintain`
 - `skill schema workflow_request|workflow_plan|capture|workflow_report|content_report|video_reconstruction|profile_audit`
 - `workflow observe-profile URL --external-id STABLE_ID --captured-at ISO_TIME --permission-basis BASIS --source-description TEXT`
+- `workflow plan --mode compare --url LEFT --against RIGHT [--left-url URL] [--against URL] [--max-posts 10] [--comparison-spec PATH]`
+- `workflow plan --mode evidence --from WORKFLOW | --entity-revision REVISION | --evidence-id ID --evidence-revision REVISION`
+- `skill schema url_comparison|evidence_audit|recommendation`
+
+Comparison/evidence modes read independently permitted library data; they do not
+acquire URL sources. Native-only API captures cannot be relabeled for analytics.
+Comparison plans pin every subject/sample revision. Numeric outputs require an
+explicit real R2 v2 design; missing, cross-platform or incompatible observations
+remain narrative/partial. `--support-revision`/`--contrary-revision` attach qualified
+existing findings; `--recommendation-spec` calls the existing R10 proposal writer.
+Review attestations must be genuine. Reproduction is `compare reproduce RUN_ID`.
+Evidence audits use exact canonical SQL even with stale/missing FTS/Qdrant/graph
+projections; optional `--include-graph` adds structural context, not proof. Depth,
+node/edge and history limits remain visible. No audit collects data or refits a model.
+Report freshness is separate from immutable prior conclusions; withdrawal/erasure
+withholds descendant protected bodies rather than silently promoting old exports.
 
 Global `--data-dir PATH` selects the persistent library. `--offline --no-ai` is safe
 for planning, saved-result reporting and cleanup. Dry-run planning does not create

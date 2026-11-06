@@ -1155,7 +1155,7 @@ tool actions, citations and outcome; do not force other specialists into basic t
 | DX2-B | Finished-video transcript and audiovisual-script reconstruction | DX2-A; actual text/media tracks and optional prepared providers | Assisted lane implemented `0.0.23`; real-model/live host gates open |
 | DX3-A | Owned/influencer profile URL → cited strengths/weaknesses audit; analyze profile scope | DX1; C1-D/U1; actual snapshot/photo access | Assisted field-check lane delivered; native/semantic/live gates open |
 | DX3-B | Bounded account/question study and explicit incremental follow-up; account/research skills | DX1, DX3-A; DX2-A/B for media/script claims; existing account/C1/memory producers | Assisted library foundation; native collection/live gates open |
-| DX4 | Multi-URL comparison, exact evidence audit and cited synthesis; compare/evidence skills | DX3-B, existing R2/R6–R10; source-use permissions | Proposed |
+| DX4 | Multi-URL comparison, exact evidence audit and cited synthesis; compare/evidence skills | DX3-B, existing R2/R6–R10; source-use permissions | Library comparison/audit lane delivered; native acquisition/live gates open |
 | DX5 | First-use setup guidance, portable release hardening and live host acceptance | DX1–DX4; source/model access for applicable smoke tests | Proposed |
 | DX6-A | Independently delivered Instagram routes | DX1–DX5 shared contracts; actual Meta app/access approval | Proposed |
 | DX6-B | Independently delivered TikTok routes | DX1–DX5 shared contracts; actual eligible TikTok app/access approval | Proposed |
@@ -1611,6 +1611,41 @@ bindings where supported and an unsupported-fields branch, not fabricated fixtur
 claiming API availability. Record a consented live account acquisition smoke.
 
 ### DX4 — URL comparisons and evidence-qualified synthesis
+
+**Delivery note (2026-11-06):** the assisted library lane adds exact multi-URL
+account/post subjects, outcome-independent bounded samples, actual R2 v2 execution
+with atomic statistical checkpoints, frozen cited comparisons/counterexamples,
+separately qualified prepared R7–R10 sources and optional actual R10 proposals.
+Exact canonical evidence audits include typed source/producer locators, duplicate
+locator detection, bounded prior versions, actual R8 history and optional read-only
+R6 NetworkX context. Both new task bundles export independently. Existing 0019
+composition/evidence/erasure machinery is reused; no migration or dependency.
+See [the delivered contract](docs/comparison-workflows.md).
+
+**Executed source verification (`0.0.25` / `0019_content`):** 546 unique tests passed
+across unit/contract/end-to-end (408), URL comparison/audit/native/profile/account
+workflows (51), and selected analytics/memory/reevaluation/backup/recommendation
+integrations (87). The 17 new comparison/audit cases are included in those 51,
+not an additional count. They execute real R2 statistics/reproduction, R6 graph
+views and R8 history, qualified R10 proposals, checkpoint resume, exact sources,
+duplicate citations, correction/withdrawal and confirmed composition erasure.
+Graph-authority/report-alias and citation-budget boundary follow-ups also passed.
+These are targeted regression suites, not a new whole-project certification.
+Six NumPy warnings occurred on intentionally empty/immature outcome cohorts;
+those branches withheld inference. Ruff lint/format and strict mypy (226 modules)
+passed; offline lock verification and wheel/sdist builds passed. All nine independently
+exported bundles passed structural validation. Installed wheel and sdist passed
+`check_distribution.py --source-workflows-only` (including the existing source,
+media, reconstruction and account workflows); final rebuilt artifacts also passed
+isolated real-comparison/reproduction/audit smoke checks after the boundary fix.
+No live platform acquisition, actual
+host conversation, model download or prepared-model accuracy check was performed.
+
+**Preserved open gates:** this does not close DX3's native acquisition dependency.
+No cold multi-URL account/post collection, pagination, new platform permissions,
+automatic literature/protocol preparation or live host/source verification ships.
+The original acceptance below remains applicable to that complete URL-only lane;
+independent-library fixtures do not claim platform API availability.
 
 **Implement:** `social-dna-compare` and `social-dna-evidence`; multi-subject scope
 negotiation; exact canonical sample/output bindings; validated R2 comparison plans
