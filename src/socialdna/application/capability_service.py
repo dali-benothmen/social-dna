@@ -81,6 +81,18 @@ def capabilities(settings: Settings, *, no_ai: bool = False) -> dict[str, Any]:
         )
     )
     available(
+        "video_reconstruction",
+        "Saved actual video/text tracks or assisted URL-plus-original reconstruction.",
+        ["workflow", "plan"],
+        ["workflow", "run"],
+        ["workflow", "report"],
+        prerequisites=["Actual analyzed video; explicit permission for verbatim reproduction."],
+        limitations=[
+            "No original writing document, cold media access, speaker ID or translation; "
+            "ASR/OCR are estimates and supplied subtitles are not verified speech."
+        ],
+    )
+    available(
         "static_media",
         "Bounded offline raster and ordered static carousel analysis.",
         ["analyze", "image"],
@@ -249,7 +261,10 @@ def capabilities(settings: Settings, *, no_ai: bool = False) -> dict[str, Any]:
         ["workflow", "report"],
         ["workflow", "maintenance"],
         ["workflow", "maintain"],
-        limitations=["Only ingest/report task modes are implemented."],
+        limitations=[
+            "Native-source lane supports ingest/report; assisted media and "
+            "reconstruction are separate capabilities."
+        ],
     )
     available(
         "assisted_content_workflows",

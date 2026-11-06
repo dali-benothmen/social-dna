@@ -12,6 +12,7 @@ from socialdna.domain.acquisition import CaptureManifest
 from socialdna.domain.capabilities import CapabilityManifest
 from socialdna.domain.content import ContentReport
 from socialdna.domain.investigation import EvaluationSpec, LiteratureCorpus, ResearchProtocol
+from socialdna.domain.reconstruction import VideoReconstruction
 from socialdna.domain.research import CorrectedPerformanceSpec, ResearchRegistration
 from socialdna.domain.results import ResultEnvelope
 from socialdna.domain.workflows import WorkflowPlan, WorkflowReport, WorkflowRequest
@@ -31,9 +32,16 @@ SCHEMAS: dict[str, type[BaseModel]] = {
     "capture": CaptureManifest,
     "workflow_report": WorkflowReport,
     "content_report": ContentReport,
+    "video_reconstruction": VideoReconstruction,
 }
 
-BUNDLES = ("socialdna", "social-dna-ingest", "social-dna-report", "social-dna-analyze")
+BUNDLES = (
+    "socialdna",
+    "social-dna-ingest",
+    "social-dna-report",
+    "social-dna-analyze",
+    "social-dna-reconstruct",
+)
 
 
 def schema(name: str) -> dict[str, Any]:

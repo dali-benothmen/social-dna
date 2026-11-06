@@ -4,13 +4,13 @@ Revised: 2026-11-06. Scope: R1–R10, all four C1 deliveries and U1 remain compl
 
 New product work: **DX1 is implemented within its source-only bounds; live source
 and real host acceptance remain open** in §20 and [operations](docs/source-workflows.md).
-The target remains 14 task skills. This release adds independently exportable ingest
-and saved-report skills to the existing `socialdna` bundle, not full creator research,
-profile auditing or cold audiovisual URL acquisition. **DX2-A is implemented in the
-assisted URL-plus-authorized-original lane**; its cold URL-only media gate remains
-open. DX2-B is the next separately delivered change authorized by the current request.
+The target remains 14 task skills. Independently exportable ingest, report, analyze
+(content scope) and reconstruct now ship alongside `socialdna`, not full creator
+research, profile auditing or cold audiovisual URL acquisition. **DX2-A and DX2-B
+are implemented in the assisted original-media lane**; cold URL-only media, real
+host selection and prepared-real-model accuracy remain separate open gates.
 
-Runtime: package `0.0.22`, SQLite head `0019_content`. Released migrations `0001_foundation`–`0018_workflows` remain unchanged; U2 required no database migration. Legacy Milestones 0, 1, 3 and 4 are completed deliveries; their limitations remain visible. Legacy Milestones 2, 5 and 6 are **superseded, not completed**.
+Runtime: package `0.0.23`, SQLite head `0019_content`. Released migrations `0001_foundation`–`0019_content` remain unchanged after the assisted-media commit; reconstruction requires no new migration. Legacy Milestones 0, 1, 3 and 4 are completed deliveries; their limitations remain visible. Legacy Milestones 2, 5 and 6 are **superseded, not completed**.
 
 Authoritative design: [ARCHITECTURE.md](ARCHITECTURE.md), [research contracts](docs/research-contracts.md), [statistical design](docs/statistical-design.md), [migration strategy](docs/migration-strategy.md), and [reference use case](docs/research-use-case.md). The [audit](docs/architecture-audit.md) records the reasons for this revision; the [previous roadmap](docs/history/PLAN.pre-research-revision.md) is historical, not an alternative active plan.
 
@@ -1152,7 +1152,7 @@ tool actions, citations and outcome; do not force other specialists into basic t
 |---|---|---|---|
 | DX1 | One real post URL → permitted capture/import → source-qualified saved report; ingest/report skills | Existing U2/R1; source-policy feasibility gate | Implemented `0.0.21`; live source/host gates open |
 | DX2-A | Permitted media-enriched post analysis; analyze content scope | DX1; existing video/U1/provider services | Assisted lane implemented `0.0.22`; cold media/live host gates open |
-| DX2-B | Finished-video transcript and audiovisual-script reconstruction | DX2-A; actual text/media tracks and optional prepared providers | Proposed |
+| DX2-B | Finished-video transcript and audiovisual-script reconstruction | DX2-A; actual text/media tracks and optional prepared providers | Assisted lane implemented `0.0.23`; real-model/live host gates open |
 | DX3-A | Owned/influencer profile URL → cited strengths/weaknesses audit; analyze profile scope | DX1; C1-D/U1; actual snapshot/photo access | Proposed |
 | DX3-B | Bounded account/question study and explicit incremental follow-up; account/research skills | DX1, DX3-A; DX2-A/B for media/script claims; existing account/C1/memory producers | Proposed |
 | DX4 | Multi-URL comparison, exact evidence audit and cited synthesis; compare/evidence skills | DX3-B, existing R2/R6–R10; source-use permissions | Proposed |
@@ -1240,6 +1240,9 @@ No live API capture is certified without locally configured credentials and veri
 retention maintenance. No real Codex/Claude Code/OpenCode conversation is certified
 by export/layout or synthetic transport tests. Keep DX1 open for these live gates;
 do not proceed to DX2 automatically. See [setup and limitations](docs/source-workflows.md).
+
+The later explicit DX2-A/B implementation request authorizes the assisted deliveries
+below without representing these remaining live DX1 gates as completed.
 
 **Implement:** offline typed URL intake; one actual permitted YouTube post-metadata
 route; bounded request client and access policy; durable workflow/target/attempt/
@@ -1368,6 +1371,70 @@ permitted media route is a separate gate for advertising URL-only media analysis
 if unavailable, ship only the accurately labeled assisted capability.
 
 ### DX2-B — Finished-video transcript and audiovisual script
+
+**Delivered scope (`0.0.23`):** [reconstruction operations](docs/video-reconstruction.md).
+`social-dna-reconstruct` accepts an exact saved assisted-content workflow or a
+recognized post URL plus one declared authorized original. Direct input executes
+DX2-A's existing services first. Transcript, audiovisual-script and combined outputs
+compose actual selected ASR/aligned-ASR, supplied subtitle, OCR/region, shot, frame,
+visual/audio measurement and explicitly selected reviewed creative evidence.
+No downloader, translation, speaker identification or original screenplay recovery.
+
+Added `domain/reconstruction.py`, `application/reconstruction_service.py`,
+`reporting/reconstruction.py`, the independently exportable reconstruct bundle and
+typed workflow options. Existing immutable content projections and `ContentLocator`
+support the `video_reconstruction` writer/resolver/artifact/erasure reader; no new
+migration, graph backend or Qdrant collection. Selected tracks pin actual task,
+segment and word snapshots; exact native segment/region citations stay separate
+from uncertain model word timing. Source-word reproduction requires the explicit
+`--allow-verbatim` declaration; absent authority returns structural partial output.
+This is a user declaration, not license/ownership verification.
+
+Plans pin the selected saved report; changing output/tracks/window produces a new
+composition without rerunning media/model tasks. Overlapping original spans are
+retained whole, never word-trimmed with invented timestamps. No-audio facts differ
+from unknown speech or instrumental audio. Candidate track disagreement screening
+is bounded (100 differences/10,000 overlapping candidate pairs), not an
+adjudicated alignment. Frozen reports revalidate source eligibility and checksums.
+Interrupted reconstruction cannot masquerade as a finished script by returning
+the intermediate content-analysis report. Existing conservative parent-source
+withdrawal/erasure propagates to dependent scripts, memory and restore.
+Final hardening bounds hash reads for changed/growing originals and subtitles,
+without changing legacy hash values. Model-backed visual/audio cues use actual
+provider provenance for qualification, not a feature-name heuristic.
+
+Automated acceptance: `test_video_reconstruction_workflows.py` and
+`test_reconstruction.py`, including actual decoded video/captions, distinct controlled
+ASR/OCR, unknown word timing, bounded differences, track/window selection, multilingual
+and untrusted text, no-audio/non-speech tone, missing providers, reviewed-only cues,
+new-process export, interruption/reuse and withdrawal/erasure/backup recovery.
+Controlled provider/review fixtures do not certify real model/reviewer accuracy.
+Installed wheel/sdist checks exercise actual video/caption reconstruction and all
+four independently exported task bundles. Final executed verification is recorded below.
+
+**Executed verification (Linux/Python 3.11): 697 distinct tests passed, three optional
+prepared-model checks skipped; all 700 collected cases covered across partitions
+and focused reruns.** Unit/contract/end-to-end coverage: 391 cases. Native/assisted
+workflow integration: 28 cases. Storage/media/audience/context/reconstruction:
+186 passes and three skips. Analytics/research: 92 passes. The 10 reconstruction
+integration cases and 11 reconstruction contract/unit cases are included, not added
+again to these totals.
+
+The capability-command contract caught an option embedded in a command path; it was
+corrected and rerun successfully. One long-lived worker retained the older hashing
+helper while lazily loading the updated media module: its 10 affected cases passed
+in the final clean-process 11-case rerun. A fresh final 46-case media/hash/contract
+run and an 85-case affected-interface run also passed. No remaining test failure is
+being treated as a successful result.
+
+Ruff lint/format, strict mypy over 217 source modules, `git diff --check`, offline
+lock validation and wheel/sdist builds passed. Both final-runtime distributions
+passed isolated offline source/media/reconstruction/schema/export acceptance with
+all four task bundles in three host directory layouts. Analyze/reconstruct/updated
+report bundles passed skill-creator structural validation. No added dependency,
+model download, live platform capture or real host conversation was required or run.
+The skipped embedding/ASR-OCR/MediaPipe native checks and real source/host gates
+remain explicitly open; controlled providers/review fixtures are not accuracy proof.
 
 **Implement:** `social-dna-reconstruct` over actual available media/text/creative
 tracks. Support transcript-only, audiovisual-script and combined output with exact

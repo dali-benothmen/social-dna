@@ -17,7 +17,7 @@ Implemented commands:
 - `workflow report WORKFLOW_ID --format json|markdown [--output NEW_FILE]`
 - `workflow maintenance [--output-dir NEW_DIRECTORY]`
 - `workflow maintain`
-- `skill schema workflow_request|workflow_plan|capture|workflow_report|content_report`
+- `skill schema workflow_request|workflow_plan|capture|workflow_report|content_report|video_reconstruction`
 
 Global `--data-dir PATH` selects the persistent library. `--offline --no-ai` is safe
 for planning, saved-result reporting and cleanup. Dry-run planning does not create
@@ -73,6 +73,26 @@ URL/media bindings require explicit `--replace-media`. Do not infer owner or pub
 time. Default deterministic analysis has no model dependency. Optional prepared local
 `--transcribe`, `--ocr`, `--align` remain separately requested; missing models yield
 partial output. Profiles and cold URL media acquisition remain planned.
+
+## Finished-video reconstruction
+
+`workflow plan --mode reconstruct --from SAVED_VIDEO_WORKFLOW_ID` pins an existing
+content report. Alternatively `--url URL --media VIDEO --permission-basis BASIS`
+performs assisted analysis first. No cold media/caption request occurs. Default
+`--reconstruction-output combined` also accepts `transcript` or `audiovisual-script`.
+`--track ID` is repeatable; IDs must belong to the actual pinned run. `--start-ms` and
+`--end-ms` select overlapping native spans, not invented word clipping. Optional
+`--creative-revision REVISION_ID` includes only already reviewed creative events.
+
+Include source words only after explicit `--allow-verbatim` permission declaration.
+Otherwise return structural partial output; never leak withheld text through another
+report. A declaration is not verification of a license. Supplied captions, ASR/aligned
+speech and OCR remain distinct. Unknown word timing stays unknown; overlapping text
+differences are candidate disagreements, not errors established by word alignment.
+ASR unavailable/empty does not prove silence. No-audio-stream evidence is distinct
+from instrumental, music-only or unknown audio. Sparse measurements are not exhaustive
+semantic video description, original screenplay, intention, speaker ID or translation.
+Source eligibility, erasure and frozen checksum gates apply on every saved read.
 
 Source withdrawal/confirmed erasure withholds content reports, clears bound video
 text/caches and removes registered managed derivatives; external originals/exports

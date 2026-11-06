@@ -66,6 +66,11 @@ def test_hashes(tmp_path: Path) -> None:
     source = tmp_path / "source"
     source.write_bytes(b"example")
     assert hash_file(source) == hashlib.sha256(b"example").hexdigest()
+    assert hash_file(source, byte_limit=7) == hashlib.sha256(b"example").hexdigest()
+    with pytest.raises(ValueError, match="limit"):
+        hash_file(source, byte_limit=6)
+    with pytest.raises(ValueError, match="non-negative"):
+        hash_file(source, byte_limit=-1)
     assert hash_config({"b": 2, "a": 1}) == hash_config({"a": 1, "b": 2})
     with pytest.raises(ValueError):
         hash_config(float("nan"))

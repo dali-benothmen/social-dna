@@ -47,6 +47,7 @@ AUTHORED_KINDS = {
     "content_binding",
     "content_run",
     "content_report",
+    "video_reconstruction",
     "acquisition_capture",
     "workflow_report",
     "image_analysis",
@@ -200,7 +201,7 @@ class EvidenceRepository:
             )
 
             validate_behavioral(self, ref, json.loads(row["payload_json"]))
-        if ref.kind in ("content_binding", "content_run", "content_report"):
+        if ref.kind in ("content_binding", "content_run", "content_report", "video_reconstruction"):
             from socialdna.storage.content_repository import validate_projection as content_check
 
             content_check(self, ref, json.loads(row["payload_json"]))

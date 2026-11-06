@@ -41,12 +41,20 @@ def generate(
         raise ConfigurationError("Workflow report format must be json or markdown")
     content_ref = None
     with application.database.transaction() as connection:
+        _, workflow_plan = repository.get(connection, identity)
         for item in repository.bindings(connection, identity):
             if item["role"] == "report":
                 repo = EvidenceRepository(connection)
                 ref = repo.ref(repo.get("entity_revisions", item["revision_id"]))
+                if ref.kind == "video_reconstruction":
+                    content_ref = ref
+                    break
                 if ref.kind == "content_report":
                     content_ref = ref
+    if workflow_plan.request.mode == "reconstruct" and (
+        content_ref is None or content_ref.kind != "video_reconstruction"
+    ):
+        raise ConfigurationError("No frozen reconstruction script yet; run/resume this workflow")
     if content_ref:
         from socialdna.storage.content_repository import load
 

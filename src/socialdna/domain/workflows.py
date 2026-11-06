@@ -4,7 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from socialdna.domain.evidence import EvidenceRef
+from socialdna.domain.evidence import EntityRef, EvidenceRef
 from socialdna.domain.media import AnalysisOptions
 
 TASK_NAMES = (
@@ -23,7 +23,25 @@ TASK_NAMES = (
     "report",
     "evidence",
 )
-IMPLEMENTED_TASKS = ("ingest", "report", "analyze")
+IMPLEMENTED_TASKS = ("ingest", "report", "analyze", "reconstruct")
+
+
+class ReconstructionOptions(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    output: Literal["transcript", "audiovisual-script", "combined"] = "combined"
+    track_ids: tuple[str, ...] = Field(default=(), max_length=100)
+    start_ms: int = Field(default=0, strict=True, ge=0)
+    end_ms: int | None = Field(default=None, strict=True, gt=0)
+    allow_verbatim: bool = False
+    creative_revision: str | None = Field(default=None, min_length=1, max_length=36)
+
+    @model_validator(mode="after")
+    def valid_selection(self) -> "ReconstructionOptions":
+        if self.end_ms is not None and self.end_ms <= self.start_ms:
+            raise ValueError("Reconstruction end must be after start")
+        if len(set(self.track_ids)) != len(self.track_ids):
+            raise ValueError("Select each track once")
+        return self
 
 
 class MediaInput(BaseModel):
@@ -37,7 +55,7 @@ class WorkflowRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     schema_version: Literal["1.0"] = "1.0"
-    mode: Literal["ingest", "report", "analyze"] = "ingest"
+    mode: Literal["ingest", "report", "analyze", "reconstruct"] = "ingest"
     url: str | None = Field(default=None, max_length=2048)
     from_workflow: str | None = Field(default=None, min_length=1, max_length=36)
     goal: str = Field(
@@ -52,6 +70,7 @@ class WorkflowRequest(BaseModel):
     replace_media: bool = False
     subtitles: str | None = None
     analysis_options: AnalysisOptions = Field(default_factory=lambda: AnalysisOptions(no_ai=True))
+    reconstruction: ReconstructionOptions = Field(default_factory=ReconstructionOptions)
 
     @model_validator(mode="after")
     def appropriate_input(self) -> "WorkflowRequest":
@@ -59,10 +78,22 @@ class WorkflowRequest(BaseModel):
             raise ValueError("Ingest requires one URL and no saved-workflow reference")
         if self.mode == "report" and (not self.from_workflow or self.url):
             raise ValueError("Report requires --from and never fetches a supplied URL")
+        if self.mode == "reconstruct" and bool(self.url) == bool(self.from_workflow):
+            raise ValueError("Reconstruct requires either --url or --from, not both")
         if not self.goal.strip():
             raise ValueError("A goal must contain text")
-        if self.mode != "analyze" and (self.media or self.permission_basis or self.subtitles):
+        if self.mode not in ("analyze", "reconstruct") and (
+            self.media or self.permission_basis or self.subtitles
+        ):
             raise ValueError("Only content analysis accepts supplied media")
+        if (
+            self.mode == "reconstruct"
+            and self.from_workflow
+            and (self.media or self.permission_basis or self.subtitles)
+        ):
+            raise ValueError("Saved reconstruction selects existing tracks, not replacement media")
+        if self.mode != "reconstruct" and self.reconstruction != ReconstructionOptions():
+            raise ValueError("Reconstruction options apply only to reconstruct mode")
         if self.media and self.permission_basis is None:
             raise ValueError("Declare permission for supplied originals")
         if self.analysis_options.reason or self.analysis_options.creative_profile:
@@ -88,6 +119,7 @@ class WorkflowPlan(BaseModel):
     limitations: tuple[str, ...]
     media_inputs: tuple[MediaInput, ...] = ()
     subtitles_sha256: str | None = None
+    parent_report: EntityRef | None = None
 
 
 class RequiredAction(BaseModel):

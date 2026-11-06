@@ -123,6 +123,7 @@ def preview(
                 "content_binding",
                 "content_run",
                 "content_report",
+                "video_reconstruction",
             )
             for r in entities
         )

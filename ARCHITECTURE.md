@@ -1,13 +1,14 @@
 # SocialDNA architecture
 
-Revised: 2026-11-06. Implementation: **0.0.22**, database head **0019_content**. R1–R10, C1 and U1 remain completed within their documented bounds. U2 adds the [portable skill and report delivery](docs/portable-skill.md); live host behavioral checks remain a separate unexecuted gate. DX1 adds [source-only URL workflows](docs/source-workflows.md); DX2-A adds [assisted original-media analysis](docs/media-workflows.md), not cold URL-only media acquisition. Live source/host acceptance remains open. Verification is recorded in [PLAN.md](PLAN.md). The approved [intelligence audit](docs/architecture-audit.md), [capability audit](docs/intelligence-capability-audit.md), [experiment/strategy](docs/registered-experiments.md), [bounded discovery](docs/bounded-discovery.md), [research memory](docs/research-memory.md), [versioned analytics](docs/versioned-analytics.md) and [psychological research](docs/psychological-research.md) contracts retain their scope.
+Revised: 2026-11-06. Implementation: **0.0.23**, database head **0019_content**. R1–R10, C1 and U1 remain completed within their documented bounds. U2 adds the [portable skill and report delivery](docs/portable-skill.md); live host behavioral checks remain a separate unexecuted gate. DX1 adds [source-only URL workflows](docs/source-workflows.md); DX2-A/B add [assisted original-media analysis](docs/media-workflows.md) and [finished-video reconstruction](docs/video-reconstruction.md), not cold URL-only media acquisition. Live source/host acceptance remains open. Verification is recorded in [PLAN.md](PLAN.md). The approved [intelligence audit](docs/architecture-audit.md), [capability audit](docs/intelligence-capability-audit.md), [experiment/strategy](docs/registered-experiments.md), [bounded discovery](docs/bounded-discovery.md), [research memory](docs/research-memory.md), [versioned analytics](docs/versioned-analytics.md) and [psychological research](docs/psychological-research.md) contracts retain their scope.
 
 The [implementation plan](PLAN.md) defines delivery and acceptance gates. Detailed contracts live in [research contracts](docs/research-contracts.md), [statistical design](docs/statistical-design.md), [migration strategy](docs/migration-strategy.md), and the [twelve-step cooking use case](docs/research-use-case.md). The [previous architecture](docs/history/ARCHITECTURE.pre-research-revision.md) is a historical record, not a competing specification. Architecture/plan line references inside the unchanged audit refer to those pre-revision documents.
 
 The [URL-first workflow design](docs/url-first-workflows.md) and §34 propose the
 missing intake/orchestration and **14-task-skill** experience, including profile
 audits and finished-video script reconstruction. Only the bounded DX1 ingest/report
-path and assisted analyze/content are implemented; other task bundles/scopes remain planned. Completed
+path, assisted analyze/content and finished-video reconstruct are implemented;
+other task bundles/scopes remain planned. Completed
 delivery records above retain their original verification/version boundaries.
 
 ## 1. Product and non-negotiable boundaries
@@ -1259,14 +1260,14 @@ to Linux/systemd; offline/core and bundle formats remain portable. Other schedul
 need separate adapters/acceptance. Offline machines and external backups retain
 explicit operational limits; this is not a compliance certification.
 
-The 14-skill catalog is a target, not 14 implemented commands. Only ingest/report
-bundles ship alongside legacy `socialdna`. A single maintained shared reference is
+At DX1 delivery, the 14-skill catalog was a target, not 14 implemented commands.
+Only ingest/report bundles shipped alongside legacy `socialdna`. A single maintained shared reference is
 assembled into each export and packaged wheel/sdist resource. The existing default
 export contract and ResultEnvelope 1.0 remain intact. The new `workflow report`
 returns JSON even for Markdown content; legacy report behavior is unchanged.
 Live API and real host behavior are separate open acceptance gates, not implied by
 synthetic HTTP, directory-layout or packaging tests. [Operations](docs/source-workflows.md)
-documents actual setup/limits; later milestones remain unstarted.
+documents that delivery's setup/limits; subsequent assisted deliveries are recorded below.
 
 ### 34.6 Assisted original-media decisions (`0.0.22`)
 
@@ -1298,3 +1299,42 @@ hash verification preserves old plans when additive defaults are introduced.
 is implemented, profile scope is not. Installed distribution tests and fresh-process
 CLI tests are automated acceptance, not proof of actual host task selection or cold
 platform access. See [assisted media operations](docs/media-workflows.md).
+
+### 34.7 Finished-video reconstruction decisions (`0.0.23`)
+
+DX2-B adds one typed canonical `video_reconstruction` composition using the released
+content projections/locator, not a new database or evidence registry. Inputs are a
+pinned saved content-report revision or an explicitly supplied authorized video plus
+recognized post URL. The latter runs the existing assisted analysis as declared
+intermediate operations. A frozen script is the final output; an interrupted script
+must not be reported as complete by returning its intermediate content report.
+
+`ReconstructionOptions` selects output, actual text track IDs, original-presentation
+window, reproduction declaration and optional reviewed creative-set revision.
+`VideoReconstruction` preserves exact media/run/checkpoint revisions, track/task/
+segment/word snapshot hashes, native segment/region citations, original clock/probe
+facts and uncertainties. It is an evidence composition, not a generative screenplay.
+Word timings remain null when absent. Whole overlapping native segments are retained;
+no false word-level clipping or alignment is performed. Supplied captions, model
+speech and sampled OCR are separate lanes. Reviewed cues retain uncertainty anchors
+and reviewer provenance; proposed/disputed annotations are not promoted.
+
+No explicit reproduction declaration means structural partial output with words
+withheld, not a media-access bypass. Missing/empty ASR never establishes silence;
+the no-audio fact must agree with the captured asset's actual stream metadata.
+Track disagreement screening is bounded and non-adjudicative. Measured shot/color/
+motion/audio proxies and sparse frames are not semantic scene understanding, camera
+settings, intent, speaker ID, music identity, translation or proprietary strategy.
+
+New selections compose new frozen outputs without rerunning primitive tasks. The
+existing conservative parent dependency is deliberate: source withdrawal/erasure
+withholds descendant scripts and memory, even when a narrower export might otherwise
+be recoverable. No index/graph is required for basic reconstruction; existing eligible
+citation representations and retention machinery handle explicit memory projection.
+Old saved-plan fingerprints and frozen statistical reproduction remain compatible.
+Runtime media/subtitle hashing now has explicit read ceilings, including files that
+grow after planning; the default hash output used by legacy readers is unchanged.
+Visual/audio observation qualification follows actual provider provenance rather
+than guessing from a feature-name prefix, so model outputs remain labeled estimates.
+Both task bundles remain self-contained; real host behavior and prepared-model
+accuracy require separate observations. See [operations](docs/video-reconstruction.md).

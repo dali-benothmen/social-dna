@@ -4,10 +4,18 @@ from pathlib import Path
 from typing import Any
 
 
-def hash_file(path: Path) -> str:
+def hash_file(path: Path, *, byte_limit: int | None = None) -> str:
+    if byte_limit is not None and byte_limit < 0:
+        raise ValueError("Hash byte limit must be non-negative")
     digest = hashlib.sha256()
+    consumed = 0
     with path.open("rb") as stream:
-        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+        while chunk := stream.read(
+            1024 * 1024 if byte_limit is None else min(1024 * 1024, byte_limit - consumed + 1)
+        ):
+            consumed += len(chunk)
+            if byte_limit is not None and consumed > byte_limit:
+                raise ValueError("File exceeds hash byte limit")
             digest.update(chunk)
     return digest.hexdigest()
 

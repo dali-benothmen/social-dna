@@ -136,4 +136,5 @@ maintained shared reference in `skills/shared` is assembled into each exported
 bundle, including wheel/sdist installations; export rather than copying the source
 fragment alone. Existing `socialdna` export remains backward-compatible. Available
 schemas add `workflow_request`, `workflow_plan`, `capture` and `workflow_report`.
-The remaining 12 task skills are planned, not directories advertised as working tools.
+That release shipped two task skills. Later assisted analyze/content and reconstruct
+deliveries are documented separately; the other 10 task bundles remain planned.

@@ -1,9 +1,11 @@
 # URL-first workflows and task skills
 
-Status: **DX1 implemented within native-report bounds; live acceptance pending**.
-Reviewed 2026-11-06 against package `0.0.21` / database `0018_workflows`. Other DX
-deliveries remain proposed. [Implemented operations and limits](source-workflows.md)
-are authoritative for current commands; the broader design below remains the target.
+Status: **DX1 native reporting and DX2-A/B assisted media/reconstruction implemented;
+live source/host and cold-media gates remain open**. Reviewed 2026-11-06 against
+package `0.0.23` / database `0019_content`. Later DX deliveries remain proposed.
+[Native source operations](source-workflows.md), [assisted media](media-workflows.md)
+and [reconstruction](video-reconstruction.md) describe current commands; the broader
+design below remains the target.
 The delivery sequence and milestone-specific acceptance tests are in
 [PLAN.md §20](../PLAN.md#20-url-first-dx-and-task-skills--proposed).
 

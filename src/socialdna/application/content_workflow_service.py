@@ -36,6 +36,13 @@ LIMITATIONS = [
 ]
 
 
+def _bounded_hash(path: Path, limit: int) -> str:
+    try:
+        return hash_file(path, byte_limit=limit)
+    except ValueError:
+        raise ConfigurationError("Supplied bytes changed or exceed the configured limit") from None
+
+
 def inputs(
     settings: Settings, request: WorkflowRequest
 ) -> tuple[tuple[MediaInput, ...], str | None]:
@@ -53,7 +60,9 @@ def inputs(
             raise ConfigurationError("Supplied image exceeds max_image_bytes")
         result.append(
             MediaInput(
-                path=str(path), sha256=hash_file(path), media_type="image" if image else "video"
+                path=str(path),
+                sha256=_bounded_hash(path, settings.max_media_bytes),
+                media_type="image" if image else "video",
             )
         )
     subtitle_hash = None
@@ -68,21 +77,32 @@ def inputs(
             or (path.stat().st_size > 5_000_000)
         ):
             raise ConfigurationError("Supply a bounded local SRT/VTT track")
-        subtitle_hash = hash_file(path)
+        subtitle_hash = _bounded_hash(path, 5_000_000)
         if len(result) != 1 or result[0].media_type != "video":
             raise ConfigurationError("Supplied subtitles require one video")
     return tuple(result), subtitle_hash
 
 
-def _verify(plan: WorkflowPlan) -> None:
+def _verify(plan: WorkflowPlan, settings: Settings) -> None:
+    total = 0
     for item in plan.media_inputs:
         path = Path(item.path)
-        if not path.is_file() or hash_file(path) != item.sha256:
+        if not path.is_file():
+            raise ConfigurationError("A supplied original changed; make a new explicit plan")
+        total += path.stat().st_size
+        limit = (
+            min(settings.max_media_bytes, settings.max_image_bytes)
+            if item.media_type == "image"
+            else settings.max_media_bytes
+        )
+        if total > settings.max_media_bytes or path.stat().st_size > limit:
+            raise ConfigurationError("Supplied bytes changed or exceed the configured limit")
+        if _bounded_hash(path, limit) != item.sha256:
             raise ConfigurationError("A supplied original changed; make a new explicit plan")
     if plan.subtitles_sha256 and (
         not plan.request.subtitles
         or not Path(plan.request.subtitles).is_file()
-        or hash_file(Path(plan.request.subtitles)) != plan.subtitles_sha256
+        or _bounded_hash(Path(plan.request.subtitles), 5_000_000) != plan.subtitles_sha256
     ):
         raise ConfigurationError("The selected subtitle bytes changed; make a new plan")
 
@@ -238,7 +258,7 @@ def render(document: dict[str, Any]) -> str:
 
 
 def run(app: Application, identity: str, plan: WorkflowPlan) -> dict[str, Any]:
-    _verify(plan)
+    _verify(plan, app.settings)
     with app.database.transaction() as connection:
         saved = records.records(connection, identity, "content_report")
     if saved:

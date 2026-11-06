@@ -14,10 +14,11 @@ from socialdna.core.ids import stable_id
 from socialdna.core.time import utc_now
 from socialdna.domain.content import ContentReport
 from socialdna.domain.evidence import ContentLocator, EntityRef, EvidenceRef
+from socialdna.domain.reconstruction import VideoReconstruction
 from socialdna.storage.evidence_repository import EvidenceRepository
 from socialdna.storage.schema import metadata
 
-KINDS = {"content_binding", "content_run", "content_report"}
+KINDS = {"content_binding", "content_run", "content_report", "video_reconstruction"}
 
 
 def save(
@@ -64,6 +65,10 @@ def validate_projection(repo: EvidenceRepository, ref: EntityRef, payload: dict[
         raise StorageIntegrityError("Content projection mismatch")
     if ref.kind == "content_report":
         ContentReport.model_validate(payload["result"])
+    if ref.kind == "video_reconstruction":
+        result = VideoReconstruction.model_validate(payload["result"])
+        if result.run_id != row["run_id"] or result.media.id != payload["target_id"]:
+            raise StorageIntegrityError("Reconstruction projection disagrees with its actual run")
     if row["run_id"]:
         run = repo.get("analysis_runs", row["run_id"])
         if run["target_id"] != payload["target_id"]:
@@ -132,7 +137,7 @@ def load(app: Application, ref: EntityRef, report_format: str) -> dict[str, Any]
     return {
         "workflow_id": payload["workflow_id"],
         "status": payload["result"]["status"],
-        "coverage": "media-enriched-assisted",
+        "coverage": payload["result"]["coverage"],
         "format": report_format,
         "content": document,
         "report": ref.model_dump(),

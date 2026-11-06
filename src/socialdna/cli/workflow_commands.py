@@ -40,6 +40,12 @@ def register(app: typer.Typer) -> None:
         transcribe: bool = False,
         ocr: bool = False,
         align: bool = False,
+        reconstruction_output: str = "combined",
+        track: Annotated[list[str] | None, typer.Option("--track")] = None,
+        start_ms: int = 0,
+        end_ms: int | None = None,
+        allow_verbatim: bool = False,
+        creative_revision: str | None = None,
         dry_run: bool = False,
         data_dir: DataDir = None,
         config: ConfigFile = None,
@@ -61,6 +67,14 @@ def register(app: typer.Typer) -> None:
                     "copy_media": copy_media,
                     "replace_media": replace_media,
                     "subtitles": str(subtitles) if subtitles else None,
+                    "reconstruction": {
+                        "output": reconstruction_output,
+                        "track_ids": tuple(track or []),
+                        "start_ms": start_ms,
+                        "end_ms": end_ms,
+                        "allow_verbatim": allow_verbatim,
+                        "creative_revision": creative_revision,
+                    },
                     "analysis_options": AnalysisOptions.model_validate(
                         {
                             "no_ai": bool((ctx.find_root().obj or {}).get("no_ai"))
@@ -78,6 +92,7 @@ def register(app: typer.Typer) -> None:
             raise ConfigurationError(
                 "Invalid workflow request: ingest needs --url; report needs --from. "
                 "Analyze needs a post URL and declared permission for supplied originals. "
+                "Reconstruct accepts --from or --url plus an authorized video. "
                 "See skill schema workflow_request."
             ) from None
         execute(

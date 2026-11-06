@@ -1,7 +1,10 @@
 # SocialDNA
 
 SocialDNA is a local-first social-media research engine. The implemented release is
-`0.0.22`: [assisted post-media analysis](docs/media-workflows.md), independently
+`0.0.23`: [finished-video transcript and audiovisual-script reconstruction](docs/video-reconstruction.md),
+independently exportable `social-dna-reconstruct`, actual-track citations, explicit
+verbatim permission and frozen script exports. It extends `0.0.22`'s
+[assisted post-media analysis](docs/media-workflows.md), independently
 exportable `social-dna-analyze` (content scope), URL-plus-authorized-original video,
 photo and carousel workflows, and source-gated saved reports. No cold URL-only
 media downloader or profile audit ships. It extends `0.0.21`'s
@@ -135,10 +138,13 @@ evidence (C1), and R7/R8 assessment/reevaluation are implemented. Host directory
 CLI and packaging checks are automated; live agent conversations remain separately
 unverified. The Python CLI works independently of an agent.
 
-**The first source-only URL slice is implemented; full account research remains planned.**
+**Native URL reporting and assisted media/script workflows ship; full account research remains planned.**
 Explicit ingestion can capture one YouTube post's native metadata after API/retention
 setup; saved reports never fetch implicitly. Instagram/TikTok/profile URLs are
-recognized but not collectable. See [current commands and setup](docs/source-workflows.md).
+recognized but not collectable. Independent supplied originals can be analyzed and
+reconstructed against recognized post URLs without a key; see [assisted media](docs/media-workflows.md)
+and [script reconstruction](docs/video-reconstruction.md). This is not cold media acquisition.
+See [native API commands and setup](docs/source-workflows.md).
 The [URL-first workflow architecture](docs/url-first-workflows.md) and
 [DX roadmap](PLAN.md#20-url-first-dx-and-task-skills--proposed) define
 [14 task skills](docs/url-first-workflows.md#target-catalog-and-agent-discovery)
@@ -147,8 +153,9 @@ investigation front door; `social-dna-analyze` covers profile strengths/weakness
 and individual content; `social-dna-reconstruct` produces finished-video scripts;
 `social-dna-report` presents saved results. The remaining tasks cover import,
 account history, audience/psychology, comparison/discovery, platform research,
-strategy, experiments and evidence audit. Only `social-dna-ingest` and
-`social-dna-report` ship, with the narrow scopes above; the other 12 remain planned.
+strategy, experiments and evidence audit. `social-dna-ingest`, `social-dna-report`,
+`social-dna-analyze` (content only) and `social-dna-reconstruct` ship within the bounds
+above. Profile audit and the other 10 task bundles remain planned.
 
 ## Install from this checkout
 

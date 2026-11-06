@@ -1,5 +1,6 @@
 """Resumable source-report orchestration; no network under the writer lock."""
 
+import json
 import os
 import sqlite3
 from pathlib import Path
@@ -35,17 +36,25 @@ def _reference_plan(settings: Settings, identity: str) -> WorkflowPlan:
     try:
         with immutable_snapshot(path) as connection:
             row = connection.execute(
-                "SELECT plan_json FROM workflow_sessions WHERE id=?", (identity,)
+                "SELECT plan_json,request_json,plan_hash FROM workflow_sessions WHERE id=?",
+                (identity,),
             ).fetchone()
         if row is None:
             raise ConfigurationError("Unknown saved workflow reference")
-        return WorkflowPlan.model_validate_json(row[0])
+        from socialdna.core.hashing import hash_config
+
+        raw = json.loads(row[0])
+        if hash_config(raw) != row[2] or raw["request"] != json.loads(row[1]):
+            from socialdna.core.exceptions import StorageIntegrityError
+
+            raise StorageIntegrityError("Saved workflow request/plan fingerprint mismatch")
+        return WorkflowPlan.model_validate(raw)
     except sqlite3.Error:
         raise ConfigurationError("Cannot inspect the saved workflow in this library") from None
 
 
 def plan(settings: Settings, request: WorkflowRequest, *, dry_run: bool = False) -> dict[str, Any]:
-    if request.mode in ("ingest", "analyze"):
+    if request.mode in ("ingest", "analyze") or (request.mode == "reconstruct" and request.url):
         assert request.url is not None
         target = parse_url(request.url)
         request = request.model_copy(update={"url": target.canonical_url})
@@ -67,14 +76,15 @@ def plan(settings: Settings, request: WorkflowRequest, *, dry_run: bool = False)
     supported = platform == "youtube" and kind == "post"
     media_inputs: tuple[MediaInput, ...] = ()
     subtitle_hash: str | None = None
-    if request.mode == "analyze":
+    if request.mode == "analyze" or (request.mode == "reconstruct" and request.url):
         from socialdna.application.content_workflow_service import inputs
 
         media_inputs, subtitle_hash = inputs(settings, request)
         request = request.model_copy(
             update={
                 "goal": "Analyze the supplied content with measured evidence."
-                if request.goal == "Capture the source's native public metadata."
+                if request.mode == "analyze"
+                and request.goal == "Capture the source's native public metadata."
                 else request.goal,
                 "media": tuple(item.path for item in media_inputs),
                 "subtitles": str(Path(request.subtitles).expanduser().resolve())
@@ -119,6 +129,39 @@ def plan(settings: Settings, request: WorkflowRequest, *, dry_run: bool = False)
                 "limitations": (
                     "Assisted originals only; no URL media acquisition or profile auditing.",
                     "Association/permission is declared, not verified publisher ownership.",
+                ),
+            }
+        )
+    if request.mode == "reconstruct":
+        from socialdna.application.reconstruction_service import parent_report
+
+        pinned = parent_report(settings, request.from_workflow) if request.from_workflow else None
+        request = request.model_copy(
+            update={
+                "goal": "Reconstruct the finished video from available evidence."
+                if request.goal == "Capture the source's native public metadata."
+                else request.goal
+            }
+        )
+        specification = specification.model_copy(
+            update={
+                "request": request,
+                "parent_report": pinned,
+                "supported": kind == "post"
+                and request.scope == "content"
+                and (
+                    pinned is not None
+                    or (len(media_inputs) == 1 and media_inputs[0].media_type == "video")
+                ),
+                "operations": (
+                    ("bind_supplied_originals", "analyze_content") if media_inputs else ()
+                )
+                + ("select_actual_tracks", "compose_finished_video_reconstruction"),
+                "retention_days": None,
+                "policy_version": "supplied-original-reconstruction-v1",
+                "limitations": (
+                    "Assisted original-media evidence only; no cold media/caption access.",
+                    "Finished-clip reconstruction, not original intent or script recovery.",
                 ),
             }
         )
@@ -209,6 +252,17 @@ def run(settings: Settings, identity: str, *, client: httpx.Client | None = None
                 with application.database.transaction() as connection:
                     repository.state(connection, identity, "partial", "content_interrupted")
                 raise
+        if specification.request.mode == "reconstruct":
+            from socialdna.application.reconstruction_service import run as reconstruct
+
+            with application.database.transaction() as connection:
+                repository.state(connection, identity, "running")
+            try:
+                return reconstruct(application, identity, specification)
+            except BaseException:
+                with application.database.transaction() as connection:
+                    repository.state(connection, identity, "partial", "reconstruction_interrupted")
+                raise
         if any(item["role"] == "capture" for item in bound):
             result = generate(application, identity)
             with application.database.transaction() as connection:
@@ -227,8 +281,19 @@ def run(settings: Settings, identity: str, *, client: httpx.Client | None = None
             with application.database.transaction() as connection:
                 parent = specification.request.from_workflow
                 assert parent is not None
-                repository.get(connection, parent)
+                _, parent_plan = repository.get(connection, parent)
                 previous = repository.bindings(connection, parent)
+                if parent_plan.request.mode == "reconstruct" and not any(
+                    item["role"] == "report"
+                    and EvidenceRepository(connection).get("entity_revisions", item["revision_id"])[
+                        "kind"
+                    ]
+                    == "video_reconstruction"
+                    for item in previous
+                ):
+                    raise ConfigurationError(
+                        "The saved reconstruction has no finished script; resume it first"
+                    )
                 selected = [
                     item for item in previous if item["role"] in {"capture", "account", "post"}
                 ]
@@ -242,7 +307,7 @@ def run(settings: Settings, identity: str, *, client: httpx.Client | None = None
                     for item in previous
                     if item["role"] == "report"
                     and repo.get("entity_revisions", item["revision_id"])["kind"]
-                    == "content_report"
+                    in ("content_report", "video_reconstruction")
                 ]
                 if parent_records:
                     selected += parent_records
