@@ -76,7 +76,9 @@ def plan(settings: Settings, request: WorkflowRequest, *, dry_run: bool = False)
     supported = platform == "youtube" and kind == "post"
     media_inputs: tuple[MediaInput, ...] = ()
     subtitle_hash: str | None = None
-    if request.mode == "analyze" or (request.mode == "reconstruct" and request.url):
+    if (request.mode == "analyze" and request.scope == "content") or (
+        request.mode == "reconstruct" and request.url
+    ):
         from socialdna.application.content_workflow_service import inputs
 
         media_inputs, subtitle_hash = inputs(settings, request)
@@ -132,6 +134,17 @@ def plan(settings: Settings, request: WorkflowRequest, *, dry_run: bool = False)
                 ),
             }
         )
+        if request.scope == "profile":
+            specification = specification.model_copy(
+                update={
+                    "supported": kind == "account" and request.profile_revision is not None,
+                    "operations": ("validate_observed_profile", "compose_profile_proposal"),
+                    "policy_version": "assisted-profile-observation-v1",
+                    "limitations": (
+                        "Assisted snapshot only; no URL fetch/account crawl or human review.",
+                    ),
+                }
+            )
     if request.mode == "reconstruct":
         from socialdna.application.reconstruction_service import parent_report
 
@@ -225,6 +238,28 @@ def run(settings: Settings, identity: str, *, client: httpx.Client | None = None
             _, specification = repository.get(connection, identity)
             bound = repository.bindings(connection, identity)
         if specification.request.mode == "analyze":
+            if specification.request.scope == "profile":
+                if not specification.supported:
+                    with application.database.transaction() as connection:
+                        repository.state(
+                            connection, identity, "awaiting_action", "profile_observation_required"
+                        )
+                    return {
+                        "workflow_id": identity,
+                        "status": "partial",
+                        "network_attempted": False,
+                        "required_actions": [
+                            {
+                                "code": "profile_observation_required",
+                                "message": "Supply a permitted C1-D snapshot via workflow "
+                                "observe-profile and --profile-revision; "
+                                "URL-only profile collection is not delivered.",
+                            }
+                        ],
+                    }
+                from socialdna.application.profile_audit_service import run as audit_profile
+
+                return audit_profile(application, identity, specification)
             if not specification.supported:
                 with application.database.transaction() as connection:
                     repository.state(
@@ -307,7 +342,7 @@ def run(settings: Settings, identity: str, *, client: httpx.Client | None = None
                     for item in previous
                     if item["role"] == "report"
                     and repo.get("entity_revisions", item["revision_id"])["kind"]
-                    in ("content_report", "video_reconstruction")
+                    in ("content_report", "video_reconstruction", "profile_audit")
                 ]
                 if parent_records:
                     selected += parent_records

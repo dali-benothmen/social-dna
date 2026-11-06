@@ -1153,7 +1153,7 @@ tool actions, citations and outcome; do not force other specialists into basic t
 | DX1 | One real post URL → permitted capture/import → source-qualified saved report; ingest/report skills | Existing U2/R1; source-policy feasibility gate | Implemented `0.0.21`; live source/host gates open |
 | DX2-A | Permitted media-enriched post analysis; analyze content scope | DX1; existing video/U1/provider services | Assisted lane implemented `0.0.22`; cold media/live host gates open |
 | DX2-B | Finished-video transcript and audiovisual-script reconstruction | DX2-A; actual text/media tracks and optional prepared providers | Assisted lane implemented `0.0.23`; real-model/live host gates open |
-| DX3-A | Owned/influencer profile URL → cited strengths/weaknesses audit; analyze profile scope | DX1; C1-D/U1; actual snapshot/photo access | Proposed |
+| DX3-A | Owned/influencer profile URL → cited strengths/weaknesses audit; analyze profile scope | DX1; C1-D/U1; actual snapshot/photo access | Assisted field-check lane delivered; native/semantic/live gates open |
 | DX3-B | Bounded account/question study and explicit incremental follow-up; account/research skills | DX1, DX3-A; DX2-A/B for media/script claims; existing account/C1/memory producers | Proposed |
 | DX4 | Multi-URL comparison, exact evidence audit and cited synthesis; compare/evidence skills | DX3-B, existing R2/R6–R10; source-use permissions | Proposed |
 | DX5 | First-use setup guidance, portable release hardening and live host acceptance | DX1–DX4; source/model access for applicable smoke tests | Proposed |
@@ -1478,6 +1478,24 @@ partial visual coverage, safe exports, changed inputs and erasure. Extend existi
 accuracy is a separate owned/reviewed gold-sample gate, never inferred from fixtures.
 
 ### DX3-A — Profile strengths, weaknesses and improvements
+
+**Delivery note (2026-11-06):** implemented an assisted observation-to-proposal lane:
+`workflow observe-profile` accepts actual permitted fields/links/pins/photo with stable
+identity, time and provenance, without user-authored JSON; analyze/profile pins the exact
+C1-D snapshot. Typed unreviewed field checks, frozen cited reports, U1-safe photo
+dimensions, focused presentation, restart/reuse, explicit new snapshots and separate
+freshness hints are implemented. Reuses 0019 composition projection/resolver/erasure;
+no migration or dependency. See [profile audit workflows](docs/profile-audit-workflows.md).
+This does **not** satisfy URL-only collection or deep semantic/aesthetic judgments:
+those and consented live/host acceptance remain open. The assisted report is always
+partial and never impersonates a C1-D human review or measured conversion finding.
+Original acceptance below remains the completion gate, not weakened by this delivery.
+
+Verification: 39 profile workflow/skill contract cases passed; full source Ruff and
+mypy (219 modules) passed. Fixtures exercise exact citations, three focus modes,
+freshness/history, process restart, unsupported cold URL, wrong URL and confirmed
+source erasure including retained external-original boundaries. No live account
+collection or real host conversation was performed.
 
 **Implement:** `social-dna-analyze` profile scope for either owned or influencer
 profiles. Capture/import a real supported snapshot and available photo/pin context;

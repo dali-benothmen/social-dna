@@ -81,6 +81,14 @@ def capabilities(settings: Settings, *, no_ai: bool = False) -> dict[str, Any]:
         )
     )
     available(
+        "profile_audit_proposals",
+        "Assisted dated profile observations and cited unreviewed field-check proposals.",
+        ["workflow", "observe-profile"],
+        ["workflow", "plan"],
+        ["workflow", "report"],
+        limitations=["No URL-only acquisition, semantic quality review or measured conversion."],
+    )
+    available(
         "video_reconstruction",
         "Saved actual video/text tracks or assisted URL-plus-original reconstruction.",
         ["workflow", "plan"],

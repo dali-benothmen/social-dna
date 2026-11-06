@@ -1169,6 +1169,18 @@ proof that its promised workflow is implemented.
 
 ### 34.2 Profile analysis is a first-class analyze scope
 
+Implemented first lane: independently supplied observations through `workflow
+observe-profile`, exact C1-D snapshot selection via `--profile-revision`, and a
+`ProfileAuditProposal` producer with `profile-field-checks-1`. Reuses 0019's workflow
+composition projection, ContentLocator, recursive eligibility and managed artifacts.
+No new storage service/migration. This is deliberately always-partial, unreviewed
+field presence/absence checking; semantic/aesthetic interpretation and native URL-only
+collection are **not** delivered. It cannot create human reviews or conversion
+evidence. Profile fields are stored only in canonical source/snapshot/report records,
+not workflow request text; confirmed erasure uses existing dependency closure.
+New observations do not rewrite old reports; freshness is a separate read-only hint.
+See [the implemented contract](docs/profile-audit-workflows.md).
+
 Analyze either an owned or influencer profile for observable strengths, weaknesses,
 counterexamples and prioritized improvements. The goal/focus is explicit, not an
 assumption that the user's profile is weak or an influencer's is effective. Scope

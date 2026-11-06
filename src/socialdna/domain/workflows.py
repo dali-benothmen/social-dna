@@ -64,6 +64,8 @@ class WorkflowRequest(BaseModel):
     question_scope: Literal["native_metadata", "content_measurements", "unassessed"] = "unassessed"
     max_attempts: int = Field(default=3, ge=1, le=3, strict=True)
     scope: Literal["content", "profile"] = "content"
+    profile_revision: str | None = Field(default=None, min_length=1, max_length=36)
+    audit_focus: Literal["balanced", "strengths", "improvements"] = "balanced"
     media: tuple[str, ...] = Field(default=(), max_length=20)
     permission_basis: Literal["creator_owned_original", "authorized_analysis"] | None = None
     copy_media: bool = False
@@ -74,6 +76,16 @@ class WorkflowRequest(BaseModel):
 
     @model_validator(mode="after")
     def appropriate_input(self) -> "WorkflowRequest":
+        if self.profile_revision and (self.mode != "analyze" or self.scope != "profile"):
+            raise ValueError("Profile revisions require analyze profile scope")
+        if (
+            self.scope == "profile"
+            and self.mode == "analyze"
+            and (self.media or self.permission_basis or self.subtitles)
+        ):
+            raise ValueError("Profile inputs belong to an actual observed snapshot, not post media")
+        if self.audit_focus != "balanced" and (self.mode != "analyze" or self.scope != "profile"):
+            raise ValueError("Audit focus applies only to profile scope")
         if self.mode in ("ingest", "analyze") and (not self.url or self.from_workflow):
             raise ValueError("Ingest requires one URL and no saved-workflow reference")
         if self.mode == "report" and (not self.from_workflow or self.url):

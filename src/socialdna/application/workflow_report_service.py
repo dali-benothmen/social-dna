@@ -49,7 +49,7 @@ def generate(
                 if ref.kind == "video_reconstruction":
                     content_ref = ref
                     break
-                if ref.kind == "content_report":
+                if ref.kind in ("content_report", "profile_audit"):
                     content_ref = ref
     if workflow_plan.request.mode == "reconstruct" and (
         content_ref is None or content_ref.kind != "video_reconstruction"
@@ -58,7 +58,12 @@ def generate(
     if content_ref:
         from socialdna.storage.content_repository import load
 
-        return {**load(application, content_ref, report_format), "workflow_id": identity}
+        result = {**load(application, content_ref, report_format), "workflow_id": identity}
+        if content_ref.kind == "profile_audit":
+            from socialdna.application.profile_audit_service import freshness
+
+            result["freshness"] = freshness(application, content_ref)
+        return result
     with application.database.transaction() as connection:
         _, plan = repository.get(connection, identity)
         bound = repository.bindings(connection, identity)

@@ -17,7 +17,8 @@ Implemented commands:
 - `workflow report WORKFLOW_ID --format json|markdown [--output NEW_FILE]`
 - `workflow maintenance [--output-dir NEW_DIRECTORY]`
 - `workflow maintain`
-- `skill schema workflow_request|workflow_plan|capture|workflow_report|content_report|video_reconstruction`
+- `skill schema workflow_request|workflow_plan|capture|workflow_report|content_report|video_reconstruction|profile_audit`
+- `workflow observe-profile URL --external-id STABLE_ID --captured-at ISO_TIME --permission-basis BASIS --source-description TEXT`
 
 Global `--data-dir PATH` selects the persistent library. `--offline --no-ai` is safe
 for planning, saved-result reporting and cleanup. Dry-run planning does not create
@@ -72,7 +73,24 @@ Supplied file/subtitle hashes are pinned; changed inputs need a new plan. Confli
 URL/media bindings require explicit `--replace-media`. Do not infer owner or publication
 time. Default deterministic analysis has no model dependency. Optional prepared local
 `--transcribe`, `--ocr`, `--align` remain separately requested; missing models yield
-partial output. Profiles and cold URL media acquisition remain planned.
+partial output. Cold URL media acquisition remains planned.
+
+## Assisted profile scope
+
+Import independently permitted actual observations with `workflow observe-profile`.
+Pass observed `--username`, `--display-name`, `--bio`, `--category`, repeated
+`--link URL`/`--pin-revision ID` and optional `--photo PATH`. Omission is uncollected;
+explicit empty text, `--links-empty`, `--pins-empty` or `--photo-absent` is an observed
+empty/absent state. Stable identity and source/permission declarations are required;
+they are not platform verification. Never relabel restricted API data as independent.
+
+Use the returned snapshot revision in `workflow plan --mode analyze --scope profile
+--url URL --profile-revision REVISION --audit-focus strengths|improvements|balanced`.
+No fetch, account crawl, link traversal, inference/model or private analytics occurs.
+Outputs are partial field-presence checks with exact C1-D citations, not semantic
+quality, human review, conversion or causal claims. Photo dimensions use U1 safety
+gates, not aesthetic scoring. New observations/new plans explicitly refresh; saved
+reports preserve their exact snapshot and expose newer eligible snapshots separately.
 
 ## Finished-video reconstruction
 

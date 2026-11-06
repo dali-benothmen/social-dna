@@ -124,6 +124,7 @@ def preview(
                 "content_run",
                 "content_report",
                 "video_reconstruction",
+                "profile_audit",
             )
             for r in entities
         )

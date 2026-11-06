@@ -14,11 +14,18 @@ from socialdna.core.ids import stable_id
 from socialdna.core.time import utc_now
 from socialdna.domain.content import ContentReport
 from socialdna.domain.evidence import ContentLocator, EntityRef, EvidenceRef
+from socialdna.domain.profile_audit import ProfileAuditProposal
 from socialdna.domain.reconstruction import VideoReconstruction
 from socialdna.storage.evidence_repository import EvidenceRepository
 from socialdna.storage.schema import metadata
 
-KINDS = {"content_binding", "content_run", "content_report", "video_reconstruction"}
+KINDS = {
+    "content_binding",
+    "content_run",
+    "content_report",
+    "video_reconstruction",
+    "profile_audit",
+}
 
 
 def save(
@@ -69,6 +76,13 @@ def validate_projection(repo: EvidenceRepository, ref: EntityRef, payload: dict[
         result = VideoReconstruction.model_validate(payload["result"])
         if result.run_id != row["run_id"] or result.media.id != payload["target_id"]:
             raise StorageIntegrityError("Reconstruction projection disagrees with its actual run")
+    if ref.kind == "profile_audit":
+        audit = ProfileAuditProposal.model_validate(payload["result"])
+        if (
+            audit.workflow_id != row["workflow_id"]
+            or audit.snapshot.model_dump() not in payload["entity_inputs"]
+        ):
+            raise StorageIntegrityError("Profile audit disagrees with its snapshot/workflow")
     if row["run_id"]:
         run = repo.get("analysis_runs", row["run_id"])
         if run["target_id"] != payload["target_id"]:
