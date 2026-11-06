@@ -1,6 +1,6 @@
 ---
 name: social-dna-report
-description: Generate or re-export a source-qualified SocialDNA report from a saved workflow ID. Use when the user asks to read, summarize or export captured native metadata, assisted content analysis or a finished-video reconstruction. Reads eligible frozen outputs without fetching URLs, rerunning media/models or inventing findings.
+description: Generate or re-export a source-qualified SocialDNA report from a saved workflow ID. Use to read or export native metadata, assisted content analysis, finished-video reconstruction, unreviewed profile checks or bounded account/research studies. Reads eligible frozen outputs without fetching URLs, rerunning models or inventing findings.
 license: Apache-2.0
 ---
 

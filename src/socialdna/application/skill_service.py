@@ -8,6 +8,7 @@ from typing import Any
 from pydantic import BaseModel
 
 from socialdna.core.exceptions import ConfigurationError, StoragePermissionError
+from socialdna.domain.account_study import AccountStudy
 from socialdna.domain.acquisition import CaptureManifest
 from socialdna.domain.capabilities import CapabilityManifest
 from socialdna.domain.content import ContentReport
@@ -35,6 +36,7 @@ SCHEMAS: dict[str, type[BaseModel]] = {
     "content_report": ContentReport,
     "video_reconstruction": VideoReconstruction,
     "profile_audit": ProfileAuditProposal,
+    "account_study": AccountStudy,
 }
 
 BUNDLES = (
@@ -43,6 +45,8 @@ BUNDLES = (
     "social-dna-report",
     "social-dna-analyze",
     "social-dna-reconstruct",
+    "social-dna-account",
+    "social-dna-research",
 )
 
 

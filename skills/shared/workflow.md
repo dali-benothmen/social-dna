@@ -28,7 +28,7 @@ the library or make requests. Invalid URLs never become network destinations.
 
 For network acquisition, only a fixed official YouTube Data API videos.list request is implemented, for one
 YouTube video/Short URL. Account URLs and Instagram/TikTok shapes are recognized,
-not collectable. No enumeration, playback, media, captions or comments are fetched.
+not natively collectable. No platform enumeration, playback, media, captions or comments are fetched.
 An API key must be present in the configured secret environment variable (default
 `SOCIALDNA_YOUTUBE_API_KEY`); a host subscription is not an API credential.
 
@@ -118,3 +118,29 @@ are outside automatic erasure. Independently supplied originals do not inherit A
 counts or API permission. `social-dna-report` can re-export saved assisted reports
 without network or model work. Reports preserve sampled measurements, source text,
 model estimates and reviewed annotations as different evidence lanes.
+
+## Account studies and draft research
+
+`workflow plan --mode account|research --url PROFILE_URL --goal TEXT --max-posts 10`
+pins existing eligible library observations, default ten/max fifty recent posts,
+never top-performer selection. No native account collection ships. Missing observations
+return a required action; use actual permitted existing imports, not fabricated JSON
+or restricted API data copied into a different source. Historical aliases resolve
+from actual captures; ambiguous aliases need an observed `--account-external-id`.
+
+Explicit `--analyze-media --permission-basis authorized_analysis` (or legitimately
+owned originals) dispatches actual local references through DX2 with per-post child
+checkpoints. No downloader, models by default or silent replacement. Missing/remote
+inputs and failures stay visible. Repeated `--context-revision REVISION` binds actual
+same-account C1 records; preserve official guidance, inference, profile quality and
+measured conversion as separate evidence. Output remains partial, not a causal recipe.
+
+Research mode registers an actual cited R1 draft question, not a prepared psychological
+assessment. For explicit follow-up, create a new plan with `--refresh-from PRIOR_ID`:
+prior reports remain frozen; new/changed/reobserved/sample-removed units and eligible
+media reuse are reported. Source withdrawal propagates to dispatched children. Reads
+never refresh, train or refit. Existing prepared R7/R8 assessments can be explicitly
+inspected via `research status`/`research history ID`, then `research reevaluate ID`
+under their original actual protocol/population/budget; a draft is not reevaluable
+as an assessment. Reviewed specialist automation remains DX7. Neither a subscription
+nor portable bundle grants platform access or guarantees a host conversation works.

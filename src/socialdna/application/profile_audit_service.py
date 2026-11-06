@@ -355,14 +355,12 @@ def freshness(app: Application, ref: EntityRef) -> dict[str, Any]:
             .all()
         )
         # Only eligible newer snapshots justify a staleness indication.
-        from socialdna.core.exceptions import SocialDNAError
-
         newer = []
         for row in candidates:
             candidate = EvidenceRepository(connection).ref(dict(row))
             try:
                 context.read(connection, candidate)
-            except SocialDNAError:
+            except ConfigurationError:
                 continue
             newer.append(candidate.revision_id)
     return {"stale": bool(newer), "newer_snapshot_revisions": sorted(newer), "refreshed": False}

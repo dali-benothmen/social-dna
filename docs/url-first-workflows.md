@@ -1,11 +1,15 @@
 # URL-first workflows and task skills
 
-Status: **DX1 native reporting and DX2-A/B assisted media/reconstruction implemented;
-live source/host and cold-media gates remain open**. Reviewed 2026-11-06 against
-package `0.0.23` / database `0019_content`. Later DX deliveries remain proposed.
+Status: **DX1 native reporting, DX2-A/B assisted media/reconstruction and assisted
+DX3 profile-field/account-library foundations implemented; full DX3/native collection,
+semantic audit/synthesis and live source/host gates remain open**. Reviewed 2026-11-06
+against database `0019_content`. Later DX deliveries remain proposed.
 [Native source operations](source-workflows.md), [assisted media](media-workflows.md)
 and [reconstruction](video-reconstruction.md) describe current commands; the broader
 design below remains the target.
+Implemented assisted contracts: [profile proposals](profile-audit-workflows.md) and
+[account/research studies](account-study-workflows.md). Partial lanes do not close
+the original URL-only DX3 acceptance criteria.
 The delivery sequence and milestone-specific acceptance tests are in
 [PLAN.md §20](../PLAN.md#20-url-first-dx-and-task-skills--proposed).
 

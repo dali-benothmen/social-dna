@@ -12,6 +12,7 @@ from socialdna.core.exceptions import ConfigurationError, StorageIntegrityError
 from socialdna.core.hashing import canonical_json
 from socialdna.core.ids import stable_id
 from socialdna.core.time import utc_now
+from socialdna.domain.account_study import AccountStudy
 from socialdna.domain.content import ContentReport
 from socialdna.domain.evidence import ContentLocator, EntityRef, EvidenceRef
 from socialdna.domain.profile_audit import ProfileAuditProposal
@@ -25,6 +26,9 @@ KINDS = {
     "content_report",
     "video_reconstruction",
     "profile_audit",
+    "account_manifest",
+    "account_dispatch",
+    "account_study",
 }
 
 
@@ -83,6 +87,13 @@ def validate_projection(repo: EvidenceRepository, ref: EntityRef, payload: dict[
             or audit.snapshot.model_dump() not in payload["entity_inputs"]
         ):
             raise StorageIntegrityError("Profile audit disagrees with its snapshot/workflow")
+    if ref.kind == "account_study":
+        study = AccountStudy.model_validate(payload["result"])
+        if (
+            study.workflow_id != row["workflow_id"]
+            or study.manifest.model_dump() not in payload["entity_inputs"]
+        ):
+            raise StorageIntegrityError("Account study disagrees with its manifest/workflow")
     if row["run_id"]:
         run = repo.get("analysis_runs", row["run_id"])
         if run["target_id"] != payload["target_id"]:

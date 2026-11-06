@@ -1167,6 +1167,17 @@ reverse-engineer/track/brief task is required. Capability reporting distinguishe
 planned, delivered and input/provider-dependent modes; an exported file is not
 proof that its promised workflow is implemented.
 
+DX3-B's assisted account coordinator pins eligible library revisions before dispatch,
+not search top-K or mutable current text. Canonical manifests, child checkpoints and
+studies share 0019's existing composition projection, locators, artifacts and retention.
+Original media-source dependencies propagate into dispatched DX2 outputs. Explicit
+local permission/item/byte limits precede work; missing inputs remain visible.
+Local enumeration is not native platform pagination. Research calls R1's in-application
+draft writer; prepared R8 reevaluation is an explicit separate operation, not a report
+or import side effect. Prior studies provide optional explicit deltas and eligible
+media reuse without replacing history. Native acquisition, substantive synthesis and
+live gates remain open; see [the implemented contract](docs/account-study-workflows.md).
+
 ### 34.2 Profile analysis is a first-class analyze scope
 
 Implemented first lane: independently supplied observations through `workflow

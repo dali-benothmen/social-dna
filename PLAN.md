@@ -1154,7 +1154,7 @@ tool actions, citations and outcome; do not force other specialists into basic t
 | DX2-A | Permitted media-enriched post analysis; analyze content scope | DX1; existing video/U1/provider services | Assisted lane implemented `0.0.22`; cold media/live host gates open |
 | DX2-B | Finished-video transcript and audiovisual-script reconstruction | DX2-A; actual text/media tracks and optional prepared providers | Assisted lane implemented `0.0.23`; real-model/live host gates open |
 | DX3-A | Owned/influencer profile URL → cited strengths/weaknesses audit; analyze profile scope | DX1; C1-D/U1; actual snapshot/photo access | Assisted field-check lane delivered; native/semantic/live gates open |
-| DX3-B | Bounded account/question study and explicit incremental follow-up; account/research skills | DX1, DX3-A; DX2-A/B for media/script claims; existing account/C1/memory producers | Proposed |
+| DX3-B | Bounded account/question study and explicit incremental follow-up; account/research skills | DX1, DX3-A; DX2-A/B for media/script claims; existing account/C1/memory producers | Assisted library foundation; native collection/live gates open |
 | DX4 | Multi-URL comparison, exact evidence audit and cited synthesis; compare/evidence skills | DX3-B, existing R2/R6–R10; source-use permissions | Proposed |
 | DX5 | First-use setup guidance, portable release hardening and live host acceptance | DX1–DX4; source/model access for applicable smoke tests | Proposed |
 | DX6-A | Independently delivered Instagram routes | DX1–DX5 shared contracts; actual Meta app/access approval | Proposed |
@@ -1537,6 +1537,37 @@ rejection, source changes/withdrawal and no whole-account enumeration. Extend
 `test_profile_contracts.py`, `test_profile_conversion.py` and profile command contracts.
 
 ### DX3-B — Bounded account study and incremental research
+
+**Delivery scope (2026-11-06):** implemented the assisted existing-library lane, not
+the full URL-only/native-enumeration milestone. Account/research modes pin stable
+identities and recent canonical revisions, retain ordinary posts/limit omissions,
+dispatch explicitly authorized bounded local media via DX2 with child checkpoints,
+bind actual C1 revisions and compose frozen cited studies. Explicit `--refresh-from`
+preserves history/deltas and reuses eligible unchanged media. Research calls R1's
+actual draft writer without user-authored JSON; R8 status/history/explicit reevaluation
+remain separate prepared-assessment operations. Independent account/research skill
+bundles expose these bounded semantics. No new migration, vector collection, dependency
+or platform authorization. See [account study workflows](docs/account-study-workflows.md).
+Native pagination, no-export cold URL acceptance, quota/page/deleted-item checks,
+substantive strategy synthesis and consented live acceptance remain required below;
+partial library studies and exported bundles do not close those gates.
+
+**Executed verification (0.0.24 / 0019_content):** 724 cases collected; 721 passed
+and three explicitly prepared-real-model checks skipped, across four disjoint
+partitions: unit/contract/end-to-end 399; URL/content/reconstruction/profile/account
+workflows 54; analytics/research/history 92; storage/media/audience/context 176 plus
+three skips. Two affected account cases were additionally rerun successfully after
+the final report qualifier was clarified (unprovided private outcomes remain unknown,
+without denying actual supplied measured contexts). This is partitioned verification,
+not a claim of one uninterrupted full-suite command. Ruff lint/format, mypy over 221
+source modules, offline lock validation, wheel/sdist builds and isolated installed
+`check_distribution.py --source-workflows-only` acceptance passed. All seven exported
+bundles passed structural skill validation; independent task exports were exercised
+in three host directory layouts. Installed checks executed actual synthetic profile
+observations/proposals, image dispatch, draft registration, explicit media reuse and
+frozen reload, alongside prior native-source/media/reconstruction smokes. No real host
+conversation, live account collection or prepared-real-model accuracy gate was run.
+No application dependency, migration, external service or host configuration was added.
 
 **Implement:** account identity resolution and permitted paginated enumeration;
 scoped recent-post manifests including ordinary/failed/unavailable items; resumable

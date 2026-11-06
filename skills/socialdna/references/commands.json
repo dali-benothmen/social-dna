@@ -3,7 +3,7 @@
   "commands": [
     {"path": ["capabilities"], "options": ["--format", "--data-dir", "--config"]},
     {"path": ["skill", "export"], "options": ["--format", "--name"]},
-    {"path": ["workflow", "plan"], "options": ["--url", "--mode", "--from", "--goal", "--question-scope", "--max-attempts", "--dry-run", "--scope", "--media", "--permission-basis", "--subtitles", "--transcribe", "--ocr", "--align", "--replace-media", "--copy-media", "--reconstruction-output", "--track", "--start-ms", "--end-ms", "--allow-verbatim", "--creative-revision", "--profile-revision", "--audit-focus"]},
+    {"path": ["workflow", "plan"], "options": ["--url", "--mode", "--from", "--goal", "--question-scope", "--max-attempts", "--dry-run", "--scope", "--media", "--permission-basis", "--subtitles", "--transcribe", "--ocr", "--align", "--replace-media", "--copy-media", "--reconstruction-output", "--track", "--start-ms", "--end-ms", "--allow-verbatim", "--creative-revision", "--profile-revision", "--audit-focus", "--account-external-id", "--max-posts", "--analyze-media", "--refresh-from", "--context-revision"]},
     {"path": ["workflow", "observe-profile"], "options": ["--external-id", "--captured-at", "--permission-basis", "--source-description", "--username", "--display-name", "--bio", "--category", "--link", "--links-empty", "--pin-revision", "--pins-empty", "--photo", "--photo-absent"]},
     {"path": ["workflow", "run"], "options": []},
     {"path": ["workflow", "show"], "options": []},

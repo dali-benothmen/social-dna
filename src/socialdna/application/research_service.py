@@ -61,40 +61,50 @@ def register_research(settings: Settings, path: Path, *, dry_run: bool = False) 
                     engine.dispose()
         return {"valid": True, "written": False, "dry_run": True, "evaluation_ready": False}
     with open_application(settings) as application:
-        with application.database.transaction() as connection:
-            ClaimValidator(connection).validate("hypothesis", tuple(refs), draft=True)
-            repository = EvidenceRepository(connection)
-            provenance_id = _provenance(
-                connection, "research_registration", spec.model_dump(mode="json")
-            )
-            question_id = stable_id("research-question", spec.key)
-            question = repository.save_entity(
-                "research_question",
-                question_id,
-                spec.model_dump(mode="json", exclude={"hypotheses"}),
+        return register_into_application(application, spec)
+
+
+def register_into_application(
+    application: Application, spec: ResearchRegistration
+) -> dict[str, Any]:
+    """Use the same draft writer from orchestrators without files or nested writer locks."""
+    refs = [*spec.evidence, *(ref for item in spec.hypotheses for ref in item.evidence)]
+    if len(refs) > 100:
+        raise ConfigurationError("A draft registration supports at most 100 citation references")
+    with application.database.transaction() as connection:
+        ClaimValidator(connection).validate("hypothesis", tuple(refs), draft=True)
+        repository = EvidenceRepository(connection)
+        provenance_id = _provenance(
+            connection, "research_registration", spec.model_dump(mode="json")
+        )
+        question_id = stable_id("research-question", spec.key)
+        question = repository.save_entity(
+            "research_question",
+            question_id,
+            spec.model_dump(mode="json", exclude={"hypotheses"}),
+            provenance_id,
+            available_at=utc_now(),
+        )
+        _link(connection, question, question, spec.evidence)
+        hypotheses = []
+        for draft in spec.hypotheses:
+            hypothesis = repository.save_entity(
+                "hypothesis",
+                stable_id("hypothesis", question_id, draft.key),
+                {**draft.model_dump(mode="json"), "question": question.model_dump()},
                 provenance_id,
                 available_at=utc_now(),
             )
-            _link(connection, question, question, spec.evidence)
-            hypotheses = []
-            for draft in spec.hypotheses:
-                hypothesis = repository.save_entity(
-                    "hypothesis",
-                    stable_id("hypothesis", question_id, draft.key),
-                    {**draft.model_dump(mode="json"), "question": question.model_dump()},
-                    provenance_id,
-                    available_at=utc_now(),
-                )
-                _link(connection, hypothesis, question, draft.evidence)
-                hypotheses.append(hypothesis.model_dump())
-            return {
-                "written": True,
-                "dry_run": False,
-                "question": question.model_dump(),
-                "hypotheses": hypotheses,
-                "evaluation_ready": False,
-                "limitations": ["Draft registration only; no hypothesis has been evaluated."],
-            }
+            _link(connection, hypothesis, question, draft.evidence)
+            hypotheses.append(hypothesis.model_dump())
+        return {
+            "written": True,
+            "dry_run": False,
+            "question": question.model_dump(),
+            "hypotheses": hypotheses,
+            "evaluation_ready": False,
+            "limitations": ["Draft registration only; no hypothesis has been evaluated."],
+        }
 
 
 def _provenance(connection: Connection, method: str, payload: dict[str, Any]) -> str:

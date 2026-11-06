@@ -54,7 +54,9 @@ def _reference_plan(settings: Settings, identity: str) -> WorkflowPlan:
 
 
 def plan(settings: Settings, request: WorkflowRequest, *, dry_run: bool = False) -> dict[str, Any]:
-    if request.mode in ("ingest", "analyze") or (request.mode == "reconstruct" and request.url):
+    if request.mode in ("ingest", "analyze", "account", "research") or (
+        request.mode == "reconstruct" and request.url
+    ):
         assert request.url is not None
         target = parse_url(request.url)
         request = request.model_copy(update={"url": target.canonical_url})
@@ -178,6 +180,28 @@ def plan(settings: Settings, request: WorkflowRequest, *, dry_run: bool = False)
                 ),
             }
         )
+    if request.mode in ("account", "research"):
+        from socialdna.application.account_workflow_service import pin, previous_report
+
+        account_pins = pin(settings, request, parse_url(url))
+        parent = previous_report(settings, request.refresh_from) if request.refresh_from else None
+        specification = specification.model_copy(
+            update={
+                **account_pins,
+                "parent_report": parent,
+                "retention_days": None,
+                "operations": (
+                    "inspect_pinned_account_sample",
+                    "dispatch_permitted_local_media",
+                    "compose_account_study",
+                ),
+                "policy_version": "assisted-account-library-v1",
+                "limitations": (
+                    "Eligible library evidence only; native account enumeration is not delivered.",
+                    "Research remains a draft until reviewed specialist evidence is provided.",
+                ),
+            }
+        )
     if dry_run:
         return {"dry_run": True, "written": False, "plan": specification.model_dump(mode="json")}
     with open_application(settings) as application:
@@ -237,6 +261,34 @@ def run(settings: Settings, identity: str, *, client: httpx.Client | None = None
         with application.database.transaction() as connection:
             _, specification = repository.get(connection, identity)
             bound = repository.bindings(connection, identity)
+        if specification.request.mode in ("account", "research"):
+            if not specification.supported:
+                with application.database.transaction() as connection:
+                    repository.state(
+                        connection, identity, "awaiting_action", "account_observations_required"
+                    )
+                return {
+                    "workflow_id": identity,
+                    "status": "partial",
+                    "network_attempted": False,
+                    "required_actions": [
+                        {
+                            "code": "account_observations_required",
+                            "message": "This account needs permitted library observations "
+                            "and stable identity; native account collection is not delivered.",
+                        }
+                    ],
+                }
+            from socialdna.application.account_workflow_service import run as study_account
+
+            with application.database.transaction() as connection:
+                repository.state(connection, identity, "running")
+            try:
+                return study_account(application, identity, specification)
+            except BaseException:
+                with application.database.transaction() as connection:
+                    repository.state(connection, identity, "partial", "account_study_interrupted")
+                raise
         if specification.request.mode == "analyze":
             if specification.request.scope == "profile":
                 if not specification.supported:
@@ -342,7 +394,7 @@ def run(settings: Settings, identity: str, *, client: httpx.Client | None = None
                     for item in previous
                     if item["role"] == "report"
                     and repo.get("entity_revisions", item["revision_id"])["kind"]
-                    in ("content_report", "video_reconstruction", "profile_audit")
+                    in ("content_report", "video_reconstruction", "profile_audit", "account_study")
                 ]
                 if parent_records:
                     selected += parent_records

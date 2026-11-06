@@ -187,3 +187,59 @@ def test_uncollected_not_empty_wrong_subject_and_cold_profile(settings):
         workflow_service.run(settings, cold)["required_actions"][0]["code"]
         == "profile_observation_required"
     )
+
+
+def test_cli_imports_observations_without_user_authored_json(settings):
+    from typer.testing import CliRunner
+
+    from socialdna.cli.app import app
+
+    runner = CliRunner()
+    base = ["--data-dir", str(settings.data_dir), "--format", "json"]
+    imported = runner.invoke(
+        app,
+        [
+            *base,
+            "workflow",
+            "observe-profile",
+            URL,
+            "--external-id",
+            "observed-001",
+            "--captured-at",
+            "2025-01-01T00:00:00Z",
+            "--permission-basis",
+            "authorized_export",
+            "--source-description",
+            "Consented observation",
+            "--display-name",
+            "Actual observed name",
+            "--bio",
+            "",
+            "--pins-empty",
+        ],
+    )
+    assert imported.exit_code == 0, imported.stdout
+    snapshot = json.loads(imported.stdout)["data"]["snapshot"]["revision_id"]
+    planned = runner.invoke(
+        app,
+        [
+            *base,
+            "workflow",
+            "plan",
+            "--mode",
+            "analyze",
+            "--scope",
+            "profile",
+            "--url",
+            URL,
+            "--profile-revision",
+            snapshot,
+            "--audit-focus",
+            "strengths",
+        ],
+    )
+    assert planned.exit_code == 0, planned.stdout
+    identity = json.loads(planned.stdout)["data"]["workflow_id"]
+    result = runner.invoke(app, [*base, "workflow", "run", identity])
+    assert result.exit_code == 5, result.stdout
+    assert json.loads(result.stdout)["data"]["content"]["review_state"] == "unreviewed_proposal"

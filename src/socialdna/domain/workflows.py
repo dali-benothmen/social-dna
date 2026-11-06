@@ -23,7 +23,7 @@ TASK_NAMES = (
     "report",
     "evidence",
 )
-IMPLEMENTED_TASKS = ("ingest", "report", "analyze", "reconstruct")
+IMPLEMENTED_TASKS = ("ingest", "report", "analyze", "reconstruct", "account", "research")
 
 
 class ReconstructionOptions(BaseModel):
@@ -51,11 +51,19 @@ class MediaInput(BaseModel):
     media_type: Literal["image", "video"]
 
 
+class AccountPostInput(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    post: EntityRef
+    media: tuple[MediaInput, ...] = Field(default=(), max_length=20)
+    media_sources: tuple[EntityRef, ...] = Field(default=(), max_length=20)
+    media_reason: str | None = None
+
+
 class WorkflowRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     schema_version: Literal["1.0"] = "1.0"
-    mode: Literal["ingest", "report", "analyze", "reconstruct"] = "ingest"
+    mode: Literal["ingest", "report", "analyze", "reconstruct", "account", "research"] = "ingest"
     url: str | None = Field(default=None, max_length=2048)
     from_workflow: str | None = Field(default=None, min_length=1, max_length=36)
     goal: str = Field(
@@ -66,6 +74,11 @@ class WorkflowRequest(BaseModel):
     scope: Literal["content", "profile"] = "content"
     profile_revision: str | None = Field(default=None, min_length=1, max_length=36)
     audit_focus: Literal["balanced", "strengths", "improvements"] = "balanced"
+    account_external_id: str | None = Field(default=None, min_length=1, max_length=256)
+    max_posts: int = Field(default=10, ge=1, le=50, strict=True)
+    analyze_media: bool = False
+    refresh_from: str | None = Field(default=None, min_length=1, max_length=36)
+    context_revisions: tuple[str, ...] = Field(default=(), max_length=20)
     media: tuple[str, ...] = Field(default=(), max_length=20)
     permission_basis: Literal["creator_owned_original", "authorized_analysis"] | None = None
     copy_media: bool = False
@@ -86,7 +99,9 @@ class WorkflowRequest(BaseModel):
             raise ValueError("Profile inputs belong to an actual observed snapshot, not post media")
         if self.audit_focus != "balanced" and (self.mode != "analyze" or self.scope != "profile"):
             raise ValueError("Audit focus applies only to profile scope")
-        if self.mode in ("ingest", "analyze") and (not self.url or self.from_workflow):
+        if self.mode in ("ingest", "analyze", "account", "research") and (
+            not self.url or self.from_workflow
+        ):
             raise ValueError("Ingest requires one URL and no saved-workflow reference")
         if self.mode == "report" and (not self.from_workflow or self.url):
             raise ValueError("Report requires --from and never fetches a supplied URL")
@@ -94,10 +109,26 @@ class WorkflowRequest(BaseModel):
             raise ValueError("Reconstruct requires either --url or --from, not both")
         if not self.goal.strip():
             raise ValueError("A goal must contain text")
-        if self.mode not in ("analyze", "reconstruct") and (
+        if self.mode not in ("analyze", "reconstruct", "account", "research") and (
             self.media or self.permission_basis or self.subtitles
         ):
             raise ValueError("Only content analysis accepts supplied media")
+        if self.mode in ("account", "research") and (self.media or self.subtitles):
+            raise ValueError(
+                "Account media comes from explicitly selected local library references"
+            )
+        if self.analyze_media and (
+            self.mode not in ("account", "research") or not self.permission_basis
+        ):
+            raise ValueError("Account media analysis requires an explicit permission declaration")
+        if self.mode not in ("account", "research") and (
+            self.account_external_id
+            or self.max_posts != 10
+            or self.analyze_media
+            or self.refresh_from
+            or self.context_revisions
+        ):
+            raise ValueError("Account options require account/research mode")
         if (
             self.mode == "reconstruct"
             and self.from_workflow
@@ -132,6 +163,11 @@ class WorkflowPlan(BaseModel):
     media_inputs: tuple[MediaInput, ...] = ()
     subtitles_sha256: str | None = None
     parent_report: EntityRef | None = None
+    account: EntityRef | None = None
+    account_posts: tuple[AccountPostInput, ...] = ()
+    known_posts_count: int = Field(default=0, ge=0)
+    context_inputs: tuple[EntityRef, ...] = ()
+    source_inputs: tuple[EntityRef, ...] = ()
 
 
 class RequiredAction(BaseModel):

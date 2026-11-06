@@ -81,6 +81,16 @@ def capabilities(settings: Settings, *, no_ai: bool = False) -> dict[str, Any]:
         )
     )
     available(
+        "account_library_studies",
+        "Bounded library studies, local-media dispatch and draft research questions.",
+        ["workflow", "plan"],
+        ["workflow", "run"],
+        ["workflow", "report"],
+        limitations=[
+            "No native account pagination, certified mechanisms or automatic reevaluation."
+        ],
+    )
+    available(
         "profile_audit_proposals",
         "Assisted dated profile observations and cited unreviewed field-check proposals.",
         ["workflow", "observe-profile"],

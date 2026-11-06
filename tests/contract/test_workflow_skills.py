@@ -9,7 +9,14 @@ from socialdna.core.exceptions import ConfigurationError
 
 @pytest.mark.parametrize(
     "name",
-    ["social-dna-ingest", "social-dna-report", "social-dna-analyze", "social-dna-reconstruct"],
+    [
+        "social-dna-ingest",
+        "social-dna-report",
+        "social-dna-analyze",
+        "social-dna-reconstruct",
+        "social-dna-account",
+        "social-dna-research",
+    ],
 )
 @pytest.mark.parametrize("host", [".agents", ".claude", ".opencode"])
 def test_each_task_skill_exports_independently_with_shared_reference(tmp_path, name, host):
@@ -30,4 +37,4 @@ def test_each_task_skill_exports_independently_with_shared_reference(tmp_path, n
 
 def test_export_refuses_unimplemented_skills(tmp_path: Path):
     with pytest.raises(ConfigurationError, match="implemented"):
-        export_skill(tmp_path / "social-dna-research", "social-dna-research")
+        export_skill(tmp_path / "social-dna-discover", "social-dna-discover")

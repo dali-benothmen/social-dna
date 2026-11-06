@@ -108,7 +108,11 @@ def _verify(plan: WorkflowPlan, settings: Settings) -> None:
 
 
 def _binding(app: Application, identity: str, plan: WorkflowPlan) -> EntityRef:
+    from socialdna.memory.documents import entity_active
+
     with app.database.transaction() as connection:
+        for source_input in plan.source_inputs:
+            entity_active(connection, source_input)
         old = records.records(connection, identity, "content_binding")
         if old:
             records.active(connection, old[-1])
@@ -211,7 +215,7 @@ def _binding(app: Application, identity: str, plan: WorkflowPlan) -> EntityRef:
             "canonical_url": plan.canonical_url,
             "target_id": analysis_target,
             "media": [ref.model_dump() for ref in media],
-            "entity_inputs": [ref.model_dump() for ref in media],
+            "entity_inputs": [ref.model_dump() for ref in (*media, *plan.source_inputs)],
             "evidence_inputs": [],
         }
         ref = records.save(connection, "content_binding", identity, "binding", payload, provenance)
