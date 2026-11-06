@@ -2,6 +2,12 @@
 
 Revised: 2026-11-06. Scope: R1–R10, all four C1 deliveries and U1 remain completed within their documented bounds. U2's portable skill/report implementation is delivered; verification is recorded in §16. Live host behavioral checks and prepared-real-model acceptance remain separate opt-in gates; no weights were downloaded or inferred.
 
+New product work: **URL-first DX and task skills are proposed, not implemented**
+in §20 and [the workflow design](docs/url-first-workflows.md). The current engine
+and single `socialdna` skill do not yet provide account/post URL collection and
+end-to-end conversational orchestration. This planning request authorizes documentation
+only; no new implementation, dependency installation or source/host connection.
+
 Runtime: package `0.0.20`, SQLite head `0017_images`. Released migrations `0001_foundation`–`0017_images` remain unchanged; U2 requires no database migration. Legacy Milestones 0, 1, 3 and 4 are completed deliveries; their limitations remain visible. Legacy Milestones 2, 5 and 6 are **superseded, not completed**.
 
 Authoritative design: [ARCHITECTURE.md](ARCHITECTURE.md), [research contracts](docs/research-contracts.md), [statistical design](docs/statistical-design.md), [migration strategy](docs/migration-strategy.md), and [reference use case](docs/research-use-case.md). The [audit](docs/architecture-audit.md) records the reasons for this revision; the [previous roadmap](docs/history/PLAN.pre-research-revision.md) is historical, not an alternative active plan.
@@ -24,7 +30,7 @@ Delivery rules:
 - Keep basic media/account analysis fast: do not register a research question, load a graph, index embeddings or invoke a reasoner merely to describe a video.
 - Missing data is not zero; absent detection under sparse sampling is not demonstrated absence; expressed intention is not behavior; association is not causation.
 - Every research result declares its population, availability, estimand, evidence version, uncertainty, alternatives and limitations. `insufficient_data`, rejected and inconclusive results are successful research outcomes when honestly supported.
-- Implementation changes require unit/integration/contract/end-to-end verification, migration/compatibility checks, documentation updates and a scoped working commit when authorized. U1 is currently authorized; U2 requires separate authority. Commit messages describe the engineering change without type prefixes or milestone labels.
+- Implementation changes require unit/integration/contract/end-to-end verification, migration/compatibility checks, documentation updates and a scoped working commit when authorized. The previous U1/U2 implementation authorization is fulfilled; the new DX track is planning-only until separately approved. Commit messages describe the engineering change without type prefixes or milestone labels.
 
 ## 2. Preserved implementation and historical deliveries
 
@@ -61,7 +67,7 @@ Audience comments and behavioral metrics are split into R4/R5 because sampling/s
 
 R6 must work without prepared embeddings through SQL/FTS/graph retrieval; semantic acceptance additionally requires a verified prepared local embedding model. R7 must work with authorized local media, imported human annotations and curated research when no VLM is installed. Creator-owned retention is an optional richer evidence branch, never an invented prerequisite substitute.
 
-C1 is not a prerequisite for R7 or for the existing R8/R9 cooking branch. After R7, deliver C1-A/B/C/D as small tested slices alongside U1/R8 where appropriate; advanced domain branches consume only their delivered prerequisites. R7 must record production/distribution/publishing/profile alternatives or missing context, not implement four additional engines. Export-first offline paths are required; live platform adapters remain optional.
+C1 is not a prerequisite for R7 or for the existing R8/R9 cooking branch. After R7, deliver C1-A/B/C/D as small tested slices alongside U1/R8 where appropriate; advanced domain branches consume only their delivered prerequisites. R7 must record production/distribution/publishing/profile alternatives or missing context, not implement four additional engines. Export-first offline paths are required. Live platform adapters were optional for those completed milestones; supported acquisition routes become explicit requirements of the new, separately approved DX track (§20).
 
 ## 4. Cross-cutting interfaces and compatibility gates
 
@@ -915,6 +921,10 @@ A research-preview release requires R1–R8 plus the corresponding U2 workflow: 
 
 These existing release gates are preserved, not a claim that the full four-area target is covered. Advertising complete production/distribution/discoverability/profile intelligence additionally requires the respective C1/U1/R9/R10 branches, source-access coverage and empirical validation described in the [capability audit](docs/intelligence-capability-audit.md).
 
+Advertising the new URL-first task experience additionally requires §20's relevant
+acquisition/media/account/comparison gates and actual host checks. U2's delivered
+skill files, CLI tests and package checks alone do not satisfy that product promise.
+
 Common implementation verification:
 
 - Unit/property tests for contracts, time/availability semantics, numeric methods and invalid states.
@@ -926,7 +936,14 @@ Common implementation verification:
 
 ## 18. Optional post-release expansion and unresolved limits
 
-Official platform adapters are optional, permission-aware additions after export-first workflows. They require current API/terms verification, honest coverage/freshness manifests and normalized canonical imports; do not promise public competitor retention, conversions or private insights. A remote Qdrant adapter or worker/storage scaling is considered only after measured local bottlenecks; SQLite/Qdrant Local/NetworkX require no external services for the planned product.
+Official platform adapters were optional additions to the completed export-first engine.
+The proposed DX roadmap (§20) now makes a real permitted acquisition route necessary
+for each advertised URL-first capability; it does not make all platforms immediately
+available. Adapters require current API/terms/use-case review, honest coverage/freshness
+manifests and normalized canonical imports; public competitor retention, conversions
+or private insights are not promised. A remote Qdrant adapter or worker/storage scaling
+is considered only after measured local bottlenecks; SQLite/Qdrant Local/NetworkX
+require no external services for this design.
 
 Data-access, self-selected comments, small creator/niche counts, paid distribution, unavailable historical covariates, measurement error and hidden confounding can make a question unanswerable. More embeddings, larger reasoners or more posts from the same few creators do not remove these limits. A psychological mechanism remains a hypothesis unless a justified measurement/experimental identification supports it; randomized creative effects alone do not establish mediation.
 
@@ -1069,3 +1086,296 @@ R9 discovery, R10 recommendations or U1 image analysis.
 ### Explicitly deferred scope
 
 Broad nonlinear/cross-creator discovery belongs to R9; recommendations and creator experiment outcomes belong to R10; host workflows belong to U2. No automatic account edits, posting, experiments, scraping, new infrastructure, full professional detector suite or universal algorithm model is part of a C1 slice. Finish and verify each authorized C1 delivery before starting the next.
+
+## 20. URL-first DX and task skills — proposed
+
+Status: **architecture/planning only; all DX deliveries below are unimplemented**.
+The runtime remains `0.0.20` / `0017_images`. Completed milestone records above are
+preserved, not reclassified as URL-first acceptance. Implementation requires a
+separate instruction. Finish/test one delivery before starting the next.
+
+The missing product contract is **task skill + account/post URLs + prompt → automatic
+permitted collection/binding → existing engine → useful cited report**. The user
+does not routinely author normalized JSON or manually connect CLI IDs. Source setup
+and access limitations are explicit, not concealed behind invented results.
+Architecture, contracts, policy research and examples are in
+[URL-first workflows](docs/url-first-workflows.md) and
+[ARCHITECTURE.md §34](ARCHITECTURE.md#34-url-first-dx-and-task-skills--proposed).
+
+### Sequence and completion levels
+
+| Delivery | Working result | Dependencies | Status |
+|---|---|---|---|
+| DX1 | One real post URL → persisted source-qualified report, with `social-dna-report` | Existing U2/R1; source-policy feasibility gate | Proposed |
+| DX2 | Permitted media-enriched post analysis, with `social-dna-analyze` | DX1; existing video/U1/provider services | Proposed |
+| DX3 | Bounded account URL study, incremental capture and usable account report | DX1; DX2 for media claims; existing account/C1/memory producers | Proposed |
+| DX4 | Multiple URLs → eligible comparison and cited synthesis, with `social-dna-compare` | DX3, existing R2/R9/R10; source-use permissions | Proposed |
+| DX5 | First-use setup guidance, portable release hardening and live host acceptance | DX1–DX4; source/model access for applicable smoke tests | Proposed |
+| DX6-A | Independently delivered Instagram routes | DX1–DX5 shared contracts; actual Meta app/access approval | Proposed |
+| DX6-B | Independently delivered TikTok routes | DX1–DX5 shared contracts; actual eligible TikTok app/access approval | Proposed |
+
+YouTube is the **provisional** first connector, not an unrestricted data source.
+Confirm the platform/use case and applicable permissions before implementation.
+Source-only, media-enriched and research-qualified are distinct evidence levels.
+Supplied-original/export assistance is explicitly distinguished from cold URL-only
+acquisition. A partial report can be useful without satisfying a deeper requested
+question. All three task skills share one engine; existing `socialdna` is retained.
+
+**User-confirmed platform target: Instagram, TikTok and YouTube.** DX6-A and DX6-B
+are required to fulfill that target, not optional extras. Delivering YouTube first
+is an incremental engineering sequence. Each platform must have a real, permission-
+qualified usable path; broad support for arbitrary competitor URLs/private insights
+is not guaranteed by an official API. Access blockers remain open scope, not
+placeholder successes or a silent downgrade to recognizing URLs.
+
+### DX1 — One post URL to a real, durable report
+
+**Implement:** offline typed URL intake; one actual permitted YouTube post-metadata
+route; bounded request client and access policy; durable workflow/target/attempt/
+capture/output bindings; normalized canonical import; source-native report composition;
+`workflow plan|run|show|report`; one independently exported `social-dna-report` bundle.
+Ship the minimal first-use migration, capture citations, retention and safe export
+together. Do not build an account collector, downloader or research agent first.
+
+**Modules/files:** new `domain/{workflows,acquisition}.py`, `ingestion/{urls,access_policy}.py`,
+`ingestion/connectors/{base,youtube}.py`, `application/{workflow_service,workflow_report_service}.py`,
+`storage/workflow_repository.py`, `cli/workflow_commands.py`, `reporting/workflow.py`,
+first-use migration and `skills/social-dna-report/`. Extend existing CLI registration,
+capabilities, skill schema/export, packaging, evidence/retention/backup integration
+and `scripts/check_distribution.py` only where this first slice needs them.
+
+**Dependencies/integration:** retain ResultEnvelope 1.0, strict v1 import, existing
+account/media IDs and non-overwriting report exports. Use short locked transactions;
+network acquisition is outside `open_application()`'s lock. Prefer an existing HTTP
+dependency if suitable; any new dependency needs justification at implementation.
+Before enabling collection, record current permitted operations, credential references,
+retention obligations and whether the use case requires additional approval. Without
+a legitimate live route, this delivery is blocked—not complete by URL parsing alone.
+
+**Acceptance:**
+
+- In a fresh installed environment with explicitly configured access, a user selects
+  the skill, supplies one real post URL and a metadata-compatible question, and gets
+  a persisted Markdown/JSON report with actual source fields, exact citations and
+  missing-data coverage, without writing SocialDNA JSON. No prepared model required.
+- Reopen in another process; show/re-export the same eligible result. Interrupted
+  acquisition/import resumes without duplicate snapshots or half-completed outputs.
+- A request about editing, psychology or conversion with metadata only returns a
+  qualified partial result and a specific next action, not a claim of video analysis.
+- Denied/unavailable/private/deleted targets and missing credentials return stable
+  reasons. `--offline` never fetches; capabilities never initializes storage or probes
+  authentication. Secrets never reach artifacts, prompts, reports or errors.
+- Source expiry/withdrawal and confirmed erasure gate/scrub new captures and dependent
+  managed reports; old released migrations/IDs/reports remain intact while permitted.
+
+**Tests:** proposed `tests/unit/test_url_intake.py` (aliases, spoofed hosts, malformed
+IDs, redirects/SSRF), `tests/contract/test_workflow_contract.py` (real commands, schemas,
+states/envelopes), `tests/integration/test_url_workflows.py` (fixture HTTP → capture →
+atomic import → report → cross-process reload, interruption, duplicate attempts,
+quota/backoff, secret redaction, source changes before publication), and
+`tests/integration/test_workflow_retention.py` (expiry, withdrawal, erasure, restore).
+Extend migration, skill/export, capabilities and distribution tests. Run one consented
+live source smoke and one real host/skill conversation separately; their evidence
+cannot be substituted by recorded HTTP fixtures or directory-layout tests. If not
+run, report the remaining live gates explicitly; DX5 extends this to all claimed hosts.
+
+### DX2 — Real media-enriched URL analysis
+
+**Implement:** bind resolved post IDs to permitted acquired assets or independently
+supplied originals; dispatch video/image/ordered-carousel through existing services;
+reuse checksums, cache, modality coverage and optional prepared providers. Add
+`social-dna-analyze`, with shared references included inside its exported bundle.
+Never make the existing local analyzers unconditional URL downloaders.
+
+**Modules/files:** extend intake/coordinator/report contracts and first connector's
+explicit media capability; new media-binding helper only if shared; touch existing
+`import_service.py`, `analysis_service.py`, `image_service.py` only for necessary
+additive bindings. New `skills/social-dna-analyze/` and focused workflow tests.
+
+**Dependencies/integration:** DX1; existing FFmpeg/Pillow/U1 and prepared-model gates.
+Actual audiovisual access must be permitted for the selected route; a YouTube API
+key is not download permission. No `yt-dlp`/scraper fallback. Source access is separate
+from model-transfer consent. No mandatory VLM or new embedding/graph workflow.
+
+**Acceptance:**
+
+- A post URL plus a genuine permitted media route reaches real deterministic analysis
+  and exact asset/time/region citations. Verify this separately from the assisted
+  URL-plus-owned-file case; do not claim cold media access when only assistance works.
+- The assisted case automatically binds supplied media to the resolved post with
+  provenance and refuses ambiguous/conflicting bindings; the user need not edit JSON.
+- Reports distinguish measured craft proxies, source text, uncertain model proposals
+  and reviewed annotations. Unsupported modalities/mixed carousel items remain explicit.
+- Repeated analysis reuses eligible matching caches; altered assets/configuration or
+  source withdrawal cannot reuse obsolete results. Existing local commands still work.
+
+**Tests:** `tests/integration/test_url_media_workflows.py`: actual authorized local
+video/static/carousel fixtures through URL binding → engine → report → reload;
+ordering/duplicates, hash mismatch, bounded bytes/decoding, interrupted acquisition,
+missing models and transfer denial. Extend media/cache/retention regressions. A live
+permitted media route is a separate gate for advertising URL-only media analysis;
+if unavailable, ship only the accurately labeled assisted capability.
+
+### DX3 — Bounded account study and incremental evidence
+
+**Implement:** account identity resolution and permitted paginated enumeration;
+scoped recent-post manifests including ordinary/failed/unavailable items; resumable
+per-post dispatch; account report composition; explicit refresh with preserved
+permitted history and stale-result detection. Reuse canonical SQL/FTS/graph memory
+for eligible evidence; no new vector collection or mandatory indexing.
+
+**Modules/files:** existing workflow/connector/repository/report modules; integrate
+`account_import_service.py`, account analysis and relevant C1 import services.
+Extend the report skill's account instructions and workflow operations guide.
+
+**Dependencies/integration:** DX1; DX2 for actual media sections. Imports remain the
+same atomic engine contracts. Handle aliases resolve to stable IDs. Honor source
+retention and operation permissions before reusing or analyzing captured fields.
+
+**Acceptance:**
+
+- One supported account URL plus a plain-language goal produces a bounded report
+  without a user-created export. Show actual post counts, dates, selection/omissions,
+  field availability and whether supplied media/owner insights enriched the result.
+- Include ordinary posts, not just top performers; truncated recent samples cannot
+  establish complete cadence, historical outcome windows or an account's causal recipe.
+- A second explicit refresh imports only actual new/changed observations and reuses
+  eligible unchanged media work. An interrupted page/batch resumes without silent gaps.
+- Profile quality, measured conversion, official platform guidance and inferred
+  patterns remain separate; unknown retention/saves/follows/install metrics stay unknown.
+
+**Tests:** `tests/integration/test_url_account_workflows.py`: multi-page account →
+import → actual per-post dispatch → cited account report → process restart; identity
+rename/duplicate aliases, page overlap, deleted posts, truncation, quota interruption,
+explicit freshness, corrections/expiry and selective reanalysis. Include actual C1
+bindings where supported and an unsupported-fields branch, not fabricated fixtures
+claiming API availability. Record a consented live account acquisition smoke.
+
+### DX4 — URL comparisons and evidence-qualified synthesis
+
+**Implement:** `social-dna-compare`; multi-subject scope negotiation; exact canonical
+sample/output bindings; validated R2 comparison plans where eligible; labeled narrative
+comparison otherwise. Add optional existing R7–R10 workflows for sufficiently prepared
+evidence without forcing them on basic reports. Generate user-readable recommendations
+through the existing qualified proposal path when its prerequisites are met.
+
+**Modules/files:** shared workflow/domain/report modules, existing comparison/research/
+discovery/recommendation service adapters and `skills/social-dna-compare/`.
+Extend generated schemas and all independently packaged skill references.
+
+**Dependencies/integration:** DX3, R2/R9/R10 and relevant C1 producers, plus source-use
+permission for derived metrics/comparisons. Do not feed prohibited API data into
+otherwise valid engine calculations. Existing registered timing/holdout/review
+contracts remain authoritative; no agent-generated human attestations.
+
+**Acceptance:**
+
+- Two supported account URLs or two post URLs plus a question produce a reproducible
+  comparative report with subject/sampling/metric/time compatibility and counterexamples.
+  An eligible fixture must execute the actual comparison pipeline, not only show a
+  side-by-side summary; an ineligible fixture must withhold numeric inference.
+- Unequal access, cross-platform metric definitions, immature outcomes, sparse creator
+  counts or missing historical features yield a scoped narrative/partial result.
+- Measured associations, literature-backed hypotheses, official platform statements,
+  model/host interpretation and proposed tests remain separately cited and labeled.
+- Persist exact run/evidence references; reopen/reproduce while eligible. Source
+  correction/withdrawal affects current reuse without silently rewriting old conclusions.
+
+**Tests:** `tests/integration/test_url_comparisons.py`: multi-URL acquisition → actual
+R2 comparison → report → new-process reproduction; ordinary/failure examples,
+incompatible platforms/denominators/windows, incomplete samples, prohibited derived
+uses, invalid literature/review proposals and source withdrawal. Verify deep-research
+refusal without losing useful basic comparison output; retain frozen legacy regressions.
+
+### DX5 — Portable first use and release verification
+
+**Implement:** concise setup/connection guidance and action-oriented diagnostics;
+self-contained selected-bundle exports; complete installed-wheel/sdist workflows;
+live host acceptance protocol and executed checks where authorized. Keep the common
+workflow/evidence references maintained once and included in every task bundle.
+Earlier DX deliveries already ship usable bundles; this is hardening, not the first
+time an actual skill or package works.
+
+**Modules/files:** `application/{skill_service,capability_service}.py`,
+`cli/skill_commands.py`, `skills/`, `pyproject.toml`, `scripts/check_distribution.py`,
+`docs/portable-skill.md`, workflow guide and release records. No host SDK or second engine.
+
+**Dependencies/integration:** DX1–DX4. Preserve old `skill export DEST/socialdna` and
+ResultEnvelope 1.0. Add explicit bundle selection without overwriting destinations.
+Connection checks are explicit network actions, never hidden in `capabilities`.
+Installing skills/changing host settings needs separate authority.
+
+**Acceptance:**
+
+- A fresh install exports each task skill independently; it needs neither siblings nor
+  a source checkout. Shared references and real commands/schemas agree across bundles.
+- In each claimed host, a real conversation selects the appropriate skill, accepts a
+  supported URL/prompt, runs the same engine, returns cited output and handles a denied
+  or unavailable branch. Record actual host/model/access versions and observed results.
+- One-time connection guidance is understandable; normal repeat requests do not require
+  manual normalized exports/CLI IDs. Tokens and private data are absent from archives.
+- Offline/local/export workflows remain usable without connectors/models. No automatic
+  dependency installation, model preparation, paid request or remote transfer occurs.
+
+**Tests:** extend `tests/contract/test_skill_contract.py`,
+`tests/unit/test_skill_export.py`, `tests/end_to_end/test_portable_skill.py`, capability
+tests and installed distribution checks for all bundles and workflows. Run the relevant
+full regression/lint/type/build suite and record live source/host smoke results
+separately. A missing credential/model/host means an open acceptance gate, not a pass.
+
+### DX6-A / DX6-B — Independent additional platform deliveries
+
+**Implement:** one platform at a time, using existing intake/plan/capture/report
+contracts. DX6-A adds reviewed Instagram professional-account/discovery routes;
+DX6-B adds a permitted TikTok route for the actual approved purpose. Include source
+field mappings, authentication guidance, quota/freshness/expiry handling and only
+the supported account/post/media operations. No generic browser scraper.
+
+**Modules/files:** `ingestion/connectors/instagram.py` or `tiktok.py`, their policy/
+metric catalogs, shared workflow adapters only as required, focused skill references
+and `docs/` access/setup documentation. Do not create both implementations in one change.
+
+**Dependencies/integration:** shared DX1–DX5 contracts; each provider's actual app,
+account type, granted scopes and use-case approval. A new route need not duplicate
+already shipped orchestration, memory, statistics or storage services.
+
+**Acceptance for each independent delivery:** at least one permitted real URL →
+capture → canonical import → useful cited report; clearly scoped supported targets
+and evidence levels; capability-specific denial for unsupported consumer/private/
+competitor/insight/media access; all source-policy and lifecycle checks enforced.
+Verify account enumeration or media analysis before advertising those specific
+operations. TikTok Research Tools are not a commercial-access fallback. No approval
+means that route remains unavailable, not a placeholder labeled implemented.
+
+**Tests for each:** provider contract fixtures for pagination, field semantics,
+permissions/expiry, deleted/private content, errors, rate limits and hostile data;
+`tests/integration/test_instagram_workflows.py` or `test_tiktok_workflows.py` through
+real shared import/report/reload; policy denial and cross-platform comparison
+refusals; separately consented live source smoke and host workflow check. Repeat
+installed-bundle, retention, migration and legacy-engine regressions.
+
+### Completion and scope control
+
+DX1 is deliberately a small source-only post-report product, **not** completion of
+the user's full account reverse-engineering vision. A credible single-platform
+URL-first account/comparison release requires DX1–DX5's applicable live gates and
+an honestly stated media-access branch. DX6-A/B are independent **required** platform
+deliveries for the user's three-platform target. A first-platform release is useful
+but does not finish that target or justify claiming all URLs are supported.
+
+No mandatory paid provider, browser, worker cluster, server database, new graph
+database, UI, autonomous monitoring or account publishing is included. If source
+restrictions block a requested capability, report the limitation and present
+permitted assistance; do not expand scope or silently change to an unauthorized route.
+
+### Planning verification record — 2026-11-06
+
+Documentation only: this section, ARCHITECTURE §34, the detailed URL-first design
+and current-scope clarifications in README/portable-skill documentation. No application
+code, skill bundle, migration, dependency or host/source configuration changed.
+
+- `git diff --check`: passed; 130 local document-link targets checked, none missing.
+- Existing skill contract/export/capability regression tests: **30 passed**.
+- Full application suite, new workflow tests, live source acquisition and live host
+  behavior were not run for this planning change. New DX acceptance is unimplemented,
+  not established by those existing passing tests.

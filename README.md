@@ -110,24 +110,29 @@ Working capabilities:
   No interpolated retention, bins-as-viewers precision or causal attribution is
   claimed. See [behavioral analytics](docs/behavioral-analysis.md).
 
-Psychological pattern discovery and the portable Agent Skill remain unavailable.
-Persistent research memory is described in [memory operations](docs/research-memory.md).
-Model interpretations are labeled
-uncertain hypotheses, not psychological/performance findings or verified facts.
+Bounded psychological research/discovery and the portable `socialdna` skill are
+delivered within their documented evidence limits. Persistent research memory is
+described in [memory operations](docs/research-memory.md). Model interpretations
+remain uncertain proposals, not automatically verified psychological mechanisms
+or performance findings.
 Cross-creator effects remain descriptive; unsupported niche/between-creator effects
 and unseen-creator fixed-effect predictions are withheld. Historical baselines need
 measurements genuinely known by the cutoff; late imports do not establish forecasting
 availability. See [versioned analytics](docs/versioned-analytics.md) and
 [legacy performance analytics](docs/performance-analytics.md) for exact limits.
 
-The target product supports individual videos and photos, complete accounts,
-captions/hashtags, within- and cross-niche research, original experiments, and durable
-hypothesis revision. Photos/carousels (U1), portable Agent Skills-compatible
-instructions for Codex, Claude Code, and OpenCode (U2), broader discovery and
-registered experiment outcomes (R9–R10), and production/growth context extensions
-(C1) remain planned. The bounded R7 assessment and R8 reevaluation paths are implemented.
-The shared Python CLI already works independently of an
-agent; compatibility with those three agent hosts has not been validated.
+Photos/carousels (U1), portable skill instructions and report exports (U2), bounded
+discovery and registered experiment outcomes (R9–R10), production/growth context
+evidence (C1), and R7/R8 assessment/reevaluation are implemented. Host directory-layout,
+CLI and packaging checks are automated; live agent conversations remain separately
+unverified. The Python CLI works independently of an agent.
+
+**The URL-first experience is still missing.** The current release analyzes local
+media and supplied exports; stored account/post URLs do not collect their content.
+The proposed [URL-first workflow architecture](docs/url-first-workflows.md) and
+[DX roadmap](PLAN.md#20-url-first-dx-and-task-skills--proposed) add `social-dna-report`,
+`social-dna-analyze` and `social-dna-compare` over permitted acquisition and the same
+engine. These additions are planning-only, not shipped skills/connectors.
 
 ## Install from this checkout
 

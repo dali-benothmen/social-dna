@@ -4,6 +4,17 @@ Delivered in `0.0.20`; database head stays `0017_images`. One instruction bundle
 orchestrates the existing engine in Codex, Claude Code and OpenCode. There are no
 host SDKs, new servers, credentials, automatic downloads or duplicated statistics.
 
+## Planned URL-first task experience
+
+The current bundle accepts local inputs and permitted supplied exports; it does not
+collect arbitrary account/post URLs. Proposed `social-dna-report`,
+`social-dna-analyze` and `social-dna-compare` skills will share a durable URL-intake
+and workflow layer before the existing engine. They are **not installed or implemented**
+by this document. See the [workflow architecture](url-first-workflows.md) and
+[DX milestones and acceptance tests](../PLAN.md#20-url-first-dx-and-task-skills--proposed).
+The existing `socialdna` bundle/export contract remains supported. A real URL-first
+delivery needs permitted collection and observed end-to-end behavior, not new names alone.
+
 ## Start with a local task
 
 ```text

@@ -4,9 +4,13 @@ Revised: 2026-11-06. Implementation: **0.0.20**, database head **0017_images**. 
 
 The [implementation plan](PLAN.md) defines delivery and acceptance gates. Detailed contracts live in [research contracts](docs/research-contracts.md), [statistical design](docs/statistical-design.md), [migration strategy](docs/migration-strategy.md), and the [twelve-step cooking use case](docs/research-use-case.md). The [previous architecture](docs/history/ARCHITECTURE.pre-research-revision.md) is a historical record, not a competing specification. Architecture/plan line references inside the unchanged audit refer to those pre-revision documents.
 
+The [URL-first workflow design](docs/url-first-workflows.md) and §34 propose the
+missing intake/orchestration and task-skill experience. They are **not implemented**
+and do not change the runtime/schema versions or completed delivery records above.
+
 ## 1. Product and non-negotiable boundaries
 
-SocialDNA is a local-first, agent-independent Python engine, exposed through a CLI and eventually a portable Agent Skill. It investigates why content may succeed by preserving observations, operationalizing competing explanations, connecting them to appropriate audience/outcome evidence, testing qualified associations, and revising findings.
+SocialDNA is a local-first, agent-independent Python engine, exposed through a CLI and a delivered portable Agent Skill. It investigates why content may succeed by preserving observations, operationalizing competing explanations, connecting them to appropriate audience/outcome evidence, testing qualified associations, and revising findings. URL-first task skills remain proposed separately in §34.
 
 The target is unified production, audience/psychology, platform-specific distribution, publishing/search and profile/conversion intelligence. These are separate evidence domains using shared infrastructure, not four new engines or one universal ranking score. Search discovery, recommendation exposure and conversion require different objectives and measurements. Never claim proprietary algorithm-weight recovery, recommendation bypass or guaranteed virality.
 
@@ -50,6 +54,11 @@ All paths below are relative to `src/socialdna/`. A proposed filename is a respo
 
 The portable skill is delivered in U2 (§33). U1's bounded static analysis is documented in §32;
 it does not imply general automatic visual interpretation or scientific validity.
+
+URL collection and a durable multi-target workflow coordinator are missing from this
+foundation. `Post.url` / `Media.uri` references do not acquire content. The proposed
+§34 layer resolves/binds inputs before calling existing producers rather than
+turning every analyzer into a platform downloader.
 
 ### 2.3 Four additional capability areas
 
@@ -338,6 +347,10 @@ Keep current CLI commands and result envelopes. R1's evidence/registration/repor
 | Photos / skill | Delivered `analyze image\|carousel`; U2 `capabilities`, `skill export\|schema`, report `--output`; live host behavior remains separately unverified |
 
 The delivered [portable skill](skills/socialdna/SKILL.md) routes to focused core/research/interface/setup references. Host differences are discovery paths and invocation guidance only. Validate actual live behavior separately: format compatibility, directory-layout tests and installed CLI execution are not proof of identical agent behavior.
+
+Proposed `social-dna-report`, `social-dna-analyze` and `social-dna-compare` task skills
+share the §34 workflow layer. Neither their names nor the proposed `workflow`
+commands are currently shipped; existing local/export skill behavior is preserved.
 
 Reports distinguish source-backed observations, mechanism hypotheses/rivals, scoped associations and permitted causal findings. Show missing modalities/data, collection coverage, comparison population, definitions/windows, effect uncertainty, counterexamples and claim limitations. A single-video report remains short and useful; research detail is linked/expandable rather than mandatory in every report.
 
@@ -1028,3 +1041,75 @@ discovery sources, installation, permissions and separate verification gates.
    tests exercise installed resources without checkout fallback. None proves a live
    agent conversation, host tool-choice behavior, model accuracy or empirical validity;
    those gates are separately recorded rather than silently promoted to passing.
+
+## 34. URL-first DX and task skills — proposed
+
+Status: **planning only**. No application code, migration, dependency, actual skill
+bundle or platform connection is introduced by this design. The detailed contracts,
+source-policy findings and security/retention model are in
+[URL-first workflows](docs/url-first-workflows.md); implementation and concrete tests
+are in [PLAN.md §20](PLAN.md#20-url-first-dx-and-task-skills--proposed).
+
+1. **Product boundary.** Support skill + URL(s) + natural-language question, hiding
+   routine normalization and engine-ID plumbing. Three independently distributable
+   task skills cover reports, individual-content analysis and comparisons; preserve
+   `socialdna` as the umbrella/local/export skill. Skills contain guidance, not a
+   second acquisition/statistics engine. Shared references are maintained once but
+   included in each bundle so no sibling installation is required.
+2. **Intake before analysis.** A typed URL router recognizes platform/subject shapes,
+   resolves stable identities through permitted routes and binds source observations
+   or independently supplied originals. A small connector interface supplies bounded
+   captures/coverage, not conclusions. Normalize into existing strict account imports
+   or dedicated C1 contracts. Leave local `analyze video|image|carousel`, frozen
+   comparisons and existing report schemas unchanged.
+3. **One durable coordinator.** Proposed `workflow plan|run|show|report` orchestrates
+   existing services synchronously. Persist immutable request/plan pins, target
+   identities, attempts/checkpoints, capture provenance and exact output bindings in
+   SQLite. ResultEnvelope stays 1.0; workflow state and required actions live in
+   `data`. Resume is idempotent; refresh is explicit new evidence, not an independent
+   retry or an automatic hypothesis reevaluation. No new scheduler/agent framework.
+4. **Respect the existing writer lock.** `open_application()` locks the data directory
+   for its entire lifetime. Claim/reserve under a short transaction, close resources,
+   collect bounded input outside that context, then reopen and recheck permission,
+   generation and withdrawal before atomic import/publication. Per-step attempt
+   tokens prevent stale/concurrent publication. Do not hold that lock during network
+   interaction or nest lock-owning importer entrypoints.
+5. **Source permissions constrain downstream use.** API access, media copying,
+   transformation, comparison, storage/refresh, export and model transfer are
+   distinct checks. Public visibility, owner consent and a configured token are not
+   substitutes for applicable provider approval. YouTube is the provisional first
+   route, with its conditional analytics permissions reviewed before enabling derived
+   uses; Instagram/TikTok follow independently with their actual supported access.
+   Unknown policy scope fails closed. No denied-API scraper fallback or inferred
+   private metrics. Dated primary sources are linked in the workflow design.
+6. **First-use storage and eligibility.** Introduce only actual workflow/target/
+   attempt/capture/binding projections with their writer, resolver and reader. New
+   canonical capture/report types need source dependencies and retention/erasure/
+   backup traversal in the same additive migration. Released `0001`–`0017` remain
+   unchanged. Expired data, caches, reports and derived memory cannot outlive allowed
+   use; no continuous cleanup guarantee from an idle local CLI. Restricted routes
+   requiring unattended maintenance need a real approved mechanism before enablement.
+7. **Compose qualified reports.** Pin exact existing run/evidence outputs and show
+   source-native observations, actual measurements, reviewed research and uncertain
+   host/model interpretation in separate lanes. State source-only/media-enriched/
+   research-qualified coverage and URL-only versus assisted acquisition. A metadata
+   report cannot satisfy an editing/psychological-effect question silently. Preserve
+   source freshness, missingness, counterexamples and eligibility on re-export.
+8. **Memory remains derived.** No new Qdrant collection, graph server or automatic
+   embedding is required. Reuse R6 canonical projections only for eligible actual
+   evidence. Do not index prompts, credentials, HTML dumps or unsourced agent prose.
+   Graph relationships do not discover causality; SQL manifests define statistical
+   populations, and source restrictions can forbid otherwise valid computations.
+9. **Security and autonomy.** Validate hosts/schemes/redirects/DNS, cap requests/bytes/
+   decoding and treat imported text as untrusted data. Never acquire credentials
+   through passwords/cookies or put tokens in arguments/reports. Skill discovery,
+   source authorization, dependency/model preparation and remote transfers remain
+   separate decisions. URL-first authorizes no posting, messaging or account edits.
+10. **Delivery and verification.** DX1 delivers one actual post-URL/source-only report;
+    DX2 permitted media; DX3 bounded accounts/incremental capture; DX4 comparison;
+    DX5 first-use/portable/live-host hardening. DX6-A/B independently add platforms.
+    Instagram, TikTok and YouTube are all required product targets; staged delivery
+    is not permission to omit the other two or call the three-platform goal complete.
+    Fixtures, installed-package tests, real source access and real host conversations
+    are different gates. Missing live acceptance stays visible. Completed U2 and
+    three named directories do not establish the full URL-first product.
