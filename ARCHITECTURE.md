@@ -1,6 +1,6 @@
 # SocialDNA architecture
 
-Revised: 2026-11-06. Implementation: **0.0.17**, database head **0015_discovery**. R1–R9 and C1 are completed and verified within their documented bounds; results are recorded in [PLAN.md](PLAN.md). **R10 and U1/U2 remain planned**. The architecture incorporates the approved [intelligence audit](docs/architecture-audit.md) and [production and growth capability audit](docs/intelligence-capability-audit.md). Actual bounded discovery commands and limits are in [operations](docs/bounded-discovery.md); existing [research memory](docs/research-memory.md), [versioned analytics](docs/versioned-analytics.md) and [psychological research](docs/psychological-research.md) contracts remain supported.
+Revised: 2026-11-06. Implementation: **0.0.18**, database head **0016_experiments**. R1–R10 and C1 are completed and verified within their documented bounds; verification is recorded in [PLAN.md](PLAN.md). **U1/U2 remain planned**. The architecture incorporates the approved [intelligence audit](docs/architecture-audit.md) and [production and growth capability audit](docs/intelligence-capability-audit.md). Actual [experiment/strategy](docs/registered-experiments.md) and [bounded discovery](docs/bounded-discovery.md) commands and limits supplement existing [research memory](docs/research-memory.md), [versioned analytics](docs/versioned-analytics.md) and [psychological research](docs/psychological-research.md) contracts.
 
 The [implementation plan](PLAN.md) defines delivery and acceptance gates. Detailed contracts live in [research contracts](docs/research-contracts.md), [statistical design](docs/statistical-design.md), [migration strategy](docs/migration-strategy.md), and the [twelve-step cooking use case](docs/research-use-case.md). The [previous architecture](docs/history/ARCHITECTURE.pre-research-revision.md) is a historical record, not a competing specification. Architecture/plan line references inside the unchanged audit refer to those pre-revision documents.
 
@@ -902,3 +902,49 @@ online error control, richer semantic metadata features, repeated account-period
 interventions, R10 recommendations/experiments and U1/U2 remain separate work.
 Controlled fixtures establish software behavior, not empirical construct validity
 or platform algorithm recovery. Released migrations `0001`–`0014` are unchanged.
+
+## 31. Registered experiment and strategy decisions (`0.0.18`)
+
+1. **Small supported design, explicit refusals.** Prospective post/account-period
+   slots bind actual accounts before publication; seeded paired assignment and the
+   complete source-defined outcome family are immutable. Actual R5 measurements
+   later bind measured subjects, cohorts, windows and denominators. Source-native
+   aggregate arms can be recorded but never become impression-level sample size or
+   an unsupported causal estimator. Sequential unrandomized variants remain descriptive.
+2. **Conditional evidence, not self-certified causal truth.** Execution fidelity,
+   interference, concurrent changes and stopping have cited review attestations.
+   Twenty independent matched blocks gate within-pair Monte Carlo swaps, Holm tests
+   and Bonferroni paired-t intervals; the threshold is not a power calculation.
+   Missing outcomes, deviations, repeated creators/accounts, incompatible source
+   populations, degenerate uncertainty or immature lag withhold inference. C1
+   publishing/surface/profile gates prevent aggregate attention replacing exposure
+   or conversion. Review truth and audience independence cannot be automatically verified.
+3. **Reuse the real ledger and canonical store.** `0016_experiments` adds six
+   FK-backed projections for actual registrations, result streams, measured-unit
+   bindings, analyses, assessments and hypotheses. No additional infrastructure,
+   Qdrant collection or dependency. Protocols/snapshots/results live in immutable
+   revisions and content-addressed archives. Started/failed/completed shared attempts
+   persist; exact retries/reproduction are not new looks. Source corrections append
+   history and are never labeled independent replication. Released migrations
+   `0001`–`0015` remain unchanged.
+4. **New assessment lane rather than a forged old result.** `experiment_assessment`
+   binds the exact prior R7/R8 assessment and all registered rival hypotheses. It
+   evaluates assignment predictions, not R7's observational feature terms or mediator
+   identity. Existing `research history` exposes it separately; old assessments,
+   reports, statistical schemas and R8 reevaluation logic retain their meanings.
+5. **Qualify structured proposals, do not invent effectiveness.** One recommendation
+   producer accepts original author/agent action proposals across four domains.
+   Actual source lanes, scoped estimates/failures, official guidance, qualitative
+   profile reviews, counterevidence, dates and uncertainty remain distinct. Always
+   `test_first`, no numerical promised lift or external execution. C1 context gates
+   growth branches. Limited cited-span overlap/claim-language guards are not a
+   comprehensive originality, feasibility or semantic-validity oracle.
+6. **Existing memory and retention invariants.** New kinds use real universal
+   research locators, existing binding validation and qualified structural graph
+   edges. Current views check superseded dependencies; historical snapshots remain
+   frozen while permitted. Withdrawals gate use and confirmed erasure scrubs dependent
+   source-derived payloads/artifacts rather than preserving numeric copies in query
+   tables. U1/U2 and independent empirical validation are not implemented by R10.
+
+Exact contracts, scientific assumptions and intentionally unsupported designs are
+documented in [operations](docs/registered-experiments.md).

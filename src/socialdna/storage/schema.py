@@ -15,6 +15,7 @@ from socialdna.storage.migrations.versions.v0012_reevaluation import extend_meta
 from socialdna.storage.migrations.versions.v0013_context import extend_metadata as context
 from socialdna.storage.migrations.versions.v0014_profile import extend_metadata as profile
 from socialdna.storage.migrations.versions.v0015_discovery import extend_metadata as discovery
+from socialdna.storage.migrations.versions.v0016_experiments import extend_metadata as experiments
 
 metadata = foundation_metadata()
 extend_metadata(metadata)
@@ -31,3 +32,4 @@ reevaluation(metadata)
 context(metadata)
 profile(metadata)
 discovery(metadata)
+experiments(metadata)

@@ -1,6 +1,6 @@
 # Research contracts
 
-Status (`0.0.17`, 2026-11-06): R1–R8 and C1 are preserved; R9 adds [bounded discovery and independent focal replication](bounded-discovery.md). R10/U1/U2 remain planned. See the linked operations guides and roadmap for actual signatures/limits; prepared-real-model acceptance is opt-in and conceptual interfaces below are not all executable APIs.
+Status (`0.0.18`, 2026-11-06): R1–R9 and C1 are preserved; R10 adds [registered experiments and qualified strategies](registered-experiments.md). U1/U2 remain planned. See the linked operations guides and roadmap for actual signatures/limits; prepared-real-model acceptance is opt-in and conceptual interfaces below are not all executable APIs.
 
 This document makes the research payloads and invariants in [ARCHITECTURE.md](../ARCHITECTURE.md) concrete. It does not replace the implemented video timeline, comment imports, scalar metrics, or frozen statistical analyses. [Statistical design](statistical-design.md) defines comparison/validation methods; [migration strategy](migration-strategy.md) defines additive adoption. The complete reference flow is in [the cooking use case](research-use-case.md).
 
@@ -278,3 +278,33 @@ Discovery remains exploratory; independent fixed-OLS main/product/quadratic conf
 requires a new frozen specification and untouched actual units. It is observational
 replication, not a psychological assessment or R10 causal experiment. Old R7/R8
 assessment schemas and old v1/v2 statistical outputs retain their exact meanings.
+
+## Delivered R10 contracts and lineage
+
+`ExperimentSpec`, `ExperimentResults` and `RecommendationSpec` are strict actual
+contracts in `research/{experiments,recommendations}.py`; application services own
+all canonical writes/actual source joins. The CLI exposes `experiment register`,
+`import-results`, `analyze`, `show` (optional read-only `--reproduce`) and
+`recommendation create|show`. No external execution command exists.
+
+Canonical kinds `experiment_registration`, `experiment_results`,
+`experiment_analysis`, `experiment_assessment` and `recommendation` reuse the
+existing research locator, entity/evidence inputs, claim/eligibility resolver,
+content-addressed archives and memory builders. Six additive FK-backed projections
+bind protocol hashes, result streams, exact unit/outcome measurement revisions,
+shared attempts, prior question/assessment and every registered rival hypothesis.
+Typed projection reads validate those actual relationships against canonical bytes.
+
+`ClaimValidator.validate_experiment(level, evidence)` permits only actual eligible
+`randomized_assignment_effect_conditional_on_review` analyses for that lane. It
+does not modify R7's observational validation. `experiment_assessment` judgments
+use `treatment_prediction_disposition` and `mechanism_status: not_identified` and
+appear separately in existing research history. They do not forge a statistical
+result locator, erase rivals or overwrite an old assessment.
+
+Recommendation sources preserve actual producer lanes and tested outcomes/failures,
+not caller-selected causal labels. Proposals retain explicit support/counterevidence,
+declared applicability, scope checks, source date/freshness and a discriminating
+next test. Always `test_first`, unknown lift and no external authority. Human/agent
+wording remains a proposed alternative; limited language/overlap guards are not
+global originality or semantic validation. See [exact formats and limits](registered-experiments.md).

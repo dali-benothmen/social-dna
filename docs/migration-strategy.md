@@ -1,6 +1,6 @@
 # Migration, compatibility and retention strategy
 
-Status (`0.0.17` / `0015_discovery`, 2026-11-06): R1–R9 and C1 have canonical producers; R10/U1/U2 remain planned. Released migrations `0001`–`0014` remain unchanged. Discovery adds four query/ledger tables, reusing the existing research locator and holdout schema without a parent rebuild. See [bounded discovery](bounded-discovery.md), [architecture](../ARCHITECTURE.md), [roadmap](../PLAN.md) and [research contracts](research-contracts.md). Earlier evidence CHECK changes retain their atomic FK-checked rebuild/backup behavior.
+Status (`0.0.18` / `0016_experiments`, 2026-11-06): R1–R10 and C1 have canonical producers; U1/U2 remain planned. Released migrations `0001`–`0015` remain unchanged. Experiments add six FK-backed query/binding tables, reusing canonical research revisions/locators and the actual family/attempt ledger without a parent rebuild. See [registered experiments](registered-experiments.md), [architecture](../ARCHITECTURE.md), [roadmap](../PLAN.md) and [research contracts](research-contracts.md). Earlier evidence CHECK changes retain their atomic FK-checked rebuild/backup behavior.
 
 ## 1. Compatibility contract
 
@@ -224,3 +224,18 @@ Never automatically downgrade schema, erase new tables, delete a data directory,
 | Binary compatibility | Current/old binaries reject unsupported future heads clearly; no silent automatic downgrade. |
 
 R1's first demonstrable upgrade is deliberately small: current data → verified backup → additive registry/backfill → original media citation plus imported comment and metric citations → minimal question/spec registration → restart resolution → withdrawal-aware current report. R2 and later migrations add capabilities incrementally against this compatibility foundation.
+
+## Delivered `0016_experiments`
+
+The six new tables are `experiment_registrations`, `experiment_results`,
+`experiment_measurement_bindings`, `experiment_analyses`, `experiment_assessments`
+and `experiment_hypotheses`. Actual FKs bind entity revisions, scalar measurements,
+registration/results, shared attempts and prior research assessments. Payloads and
+numeric source snapshots stay in canonical revisions/artifacts, not duplicated in
+query columns. Recommendation records reuse the existing research envelope directly.
+
+The migration extends frozen prior metadata and creates only these tables; old
+checksums, IDs and report bytes are unchanged. Upgrade/backup/restore authority
+recognizes head `0016_experiments`; downgrade refuses to discard registered history.
+Confirmed source erasure scrubs dependent canonical/artifact copies while permitted
+structural binding/attempt IDs remain. Existing dependency versions are unchanged.

@@ -8,7 +8,13 @@ C1-C (`0.0.15`) adds [platform/source-specific evidence and descriptive reports]
 C1-D (`0.0.16`) adds [public snapshots, frozen rubrics and measured account funnels](profile-conversion.md).
 The C1 foundations are delivered. R9 (`0.0.17`) adds [bounded nonlinear discovery](bounded-discovery.md)
 over qualified craft, publishing, source-surface distribution and exposed-profile/owner-funnel inputs.
-U1 automatic image interpretation, R10 recommendations/experiments and independent
+R10 (`0.0.18`) adds [registered outcomes and qualified strategies](registered-experiments.md)
+for all four domains. Actual paired-assignment estimates are conditional on source
+execution review; native aggregates and unsupported pre/post designs stay descriptive.
+Strategies preserve official/observational/experimental/qualitative evidence lanes,
+unknown lift, counterevidence and a next test. Non-cooking, non-psychological fixtures
+cover all four branches; public profile quality is not measured conversion.
+U1 automatic image interpretation, U2 portable/polished workflows and independent
 real-world validation remain separate.
 The original audit below records the earlier baseline;
 it is not a claim that all four intelligence areas or empirical validity are complete.

@@ -517,6 +517,11 @@ class EvidenceResolver:
                 not binding
                 or locator.subject.kind
                 not in (
+                    "recommendation",
+                    "experiment_registration",
+                    "experiment_results",
+                    "experiment_analysis",
+                    "experiment_assessment",
                     "research_assessment",
                     "research_finding",
                     "experiment_brief",
@@ -740,6 +745,27 @@ class ClaimValidator:
     def __init__(self, connection: Connection) -> None:
         self.connection = connection
         self.resolver = EvidenceResolver(connection)
+
+    def validate_experiment(
+        self, claim_level: str, evidence: tuple[EvidenceRef, ...]
+    ) -> tuple[ResolvedEvidence, ...]:
+        if claim_level != "randomized_assignment_effect_conditional_on_review" or not evidence:
+            raise ConfigurationError(
+                "Experiment claims are scoped assignment effects, not mediator/mechanism proof"
+            )
+        resolved = tuple(self.resolver.resolve(ref, purpose="new_claim") for ref in evidence)
+        for item in resolved:
+            if item.subject.kind == "experiment_analysis" and isinstance(
+                item.locator, ResearchLocator
+            ):
+                payload = json.loads(
+                    EvidenceRepository(self.connection).entity(item.subject)["payload_json"]
+                )
+                if payload["analysis"]["claim_level"] == claim_level:
+                    return resolved
+        raise ConfigurationError(
+            "No eligible registered randomized assignment contrast supports this claim"
+        )
 
     def validate_research(
         self, claim_level: str, evidence: tuple[EvidenceRef, ...]

@@ -1,6 +1,6 @@
 # Statistical design and validation
 
-Status (`0.0.17`): corrected R2 comparisons, lineage and actual-model validation remain unchanged. R9 adds [bounded marginal nonlinear discovery](bounded-discovery.md), including qualified C1 inputs; this is not a revision of frozen within-creator estimands. Fixed-OLS independent focal replication is available under explicit support/freshness gates. Broader causal/experiment designs below remain future capabilities; old specifications retain their semantics. See [architecture](../ARCHITECTURE.md), [research contracts](research-contracts.md), [roadmap](../PLAN.md) and [cooking use case](research-use-case.md).
+Status (`0.0.18`): corrected R2 comparisons and R9 [bounded marginal discovery](bounded-discovery.md) retain their semantics. R10 adds [registered paired-assignment analysis](registered-experiments.md), not a generic causal estimator or revision of old estimands. Only explicitly supported prospective designs receive conditional assignment-effect claims; native arm aggregates and unsupported repeated-period designs remain descriptive. See [architecture](../ARCHITECTURE.md), [research contracts](research-contracts.md), [roadmap](../PLAN.md) and [cooking use case](research-use-case.md).
 
 This specification defines analytical eligibility and interpretation. Passing a software test, obtaining a full-rank fit, or exceeding an engineering sample threshold does not demonstrate construct validity, causal identification, adequate power or external validity.
 
@@ -263,3 +263,24 @@ interval changes are descriptive, not hypothesis tests of change. Consumed holdo
 still refuse reuse. The numerical engine is unchanged from `0.0.10`/`0.0.11`;
 exact reproduction remains permitted only with compatible library versions and
 matching frozen results, without rebuilding old inputs from current data.
+
+## R10 delivered fixed-roster assignment contract
+
+`paired-assignment-1` freezes two variants, actual planned post/account slots, full
+outcome family, meaningful-difference thresholds, source windows/offsets/lag and no
+interim looks. At least 20 independent complete matched blocks are required, with
+creator dependence respected. The estimand is an equal-block assignment contrast,
+not a pooled viewer rate, treatment-receipt effect or identified mediator. Source
+execution reviews are attestations; conditional claims retain those assumptions.
+
+Seeded within-pair swaps use the +1 Monte Carlo p correction. Holm tests and
+Bonferroni paired-t simultaneous intervals cover every declared primary/secondary/
+mechanism endpoint, including unavailable tests as p=1. Missing data, unknown
+interference, protocol deviations, nonrandomized/native aggregates and degenerate
+uncertainty do not receive p-values/intervals. Stated source-defined denominators
+are not independent experimental units. A measured construct change is not mediation.
+
+Corrections retain all earlier estimates/attempts, never new independent-replication
+claims; no sequential or online error-control guarantee is made. The actual
+[operations contract](registered-experiments.md#statistical-method-and-deliberate-bounds)
+documents interval assumptions, source-scope gates and deliberate design exclusions.

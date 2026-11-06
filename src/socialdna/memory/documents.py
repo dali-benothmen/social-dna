@@ -139,6 +139,33 @@ def text_fields(value: dict[str, Any]) -> str:
 
 
 def current_revision(connection: Connection, ref: EntityRef, as_of: str | None = None) -> bool:
+    if ref.kind == "recommendation":
+        repository = EvidenceRepository(connection)
+        payload = json.loads(repository.entity(ref)["payload_json"])
+        for raw in payload["entity_inputs"]:
+            if not current_revision(connection, EntityRef.model_validate(raw), as_of):
+                return False
+        for raw in payload["evidence_inputs"]:
+            evidence = repository.get("evidence_revisions", raw["revision_id"])
+            child = repository.ref(
+                repository.get("entity_revisions", evidence["subject_revision_id"])
+            )
+            if not current_revision(connection, child, as_of):
+                return False
+    if ref.kind in (
+        "experiment_registration",
+        "experiment_results",
+        "experiment_analysis",
+        "experiment_assessment",
+    ):
+        payload = json.loads(EvidenceRepository(connection).entity(ref)["payload_json"])
+        for raw in payload["entity_inputs"]:
+            child = EntityRef.model_validate(raw)
+            # A same-kind predecessor is preserved history, not a current dependency.
+            # Other actual inputs include corrected measurements and definitions too.
+            if child.kind != ref.kind:
+                if not current_revision(connection, child, as_of):
+                    return False
     if ref.kind in ("discovery_search", "creative_pattern"):
         repository = EvidenceRepository(connection)
         payload = json.loads(repository.entity(ref)["payload_json"])
@@ -347,6 +374,11 @@ def build(connection: Connection, kind: str, identity: str) -> dict[str, Any] | 
             return None
         row = repository.get("entity_revisions", identity)
         if row["kind"] not in (
+            "recommendation",
+            "experiment_registration",
+            "experiment_results",
+            "experiment_analysis",
+            "experiment_assessment",
             "discovery_search",
             "creative_pattern",
             "research_question",
@@ -378,6 +410,38 @@ def build(connection: Connection, kind: str, identity: str) -> dict[str, Any] | 
         text = locator["quote"]
     else:
         text = text_fields(payload)
+        if owner.kind == "recommendation":
+            text = "Proposed strategy; test first, not a guaranteed lift.\n" + json.dumps(
+                {
+                    "domain": payload["spec"]["domain"],
+                    "scope": payload["scope_conditions"],
+                    "actions": payload["actions"],
+                    "source_lanes": [
+                        {k: source[k] for k in ("lane", "role", "scope_match")}
+                        for source in payload["sources"]
+                    ],
+                    "limitations": payload["limitations"],
+                    "next_test": payload["next_test"],
+                },
+                ensure_ascii=False,
+            )
+        if owner.kind == "experiment_analysis":
+            text = (
+                "Registered experiment analysis; conditional on reviewed source execution.\n"
+                + json.dumps(
+                    {
+                        "claim_level": payload["claim_level"],
+                        "outcomes": payload["analysis"]["outcomes"],
+                        "mechanism_status": payload["mechanism_status"],
+                        "limitations": payload["analysis"]["limitations"],
+                    },
+                    ensure_ascii=False,
+                )
+            )
+        if owner.kind == "experiment_assessment":
+            text = "Assignment prediction feedback, not mediator identification.\n" + json.dumps(
+                payload["judgments"], ensure_ascii=False
+            )
         if owner.kind == "distribution_observation":
             observed = payload["result"]
             text = (
@@ -493,6 +557,7 @@ def build(connection: Connection, kind: str, identity: str) -> dict[str, Any] | 
         else "statistical_findings"
         if owner.kind
         in ("statistical_analysis", "research_assessment", "research_finding", "discovery_search")
+        or owner.kind in ("experiment_analysis", "experiment_assessment")
         else "psychological_patterns"
         if owner.kind
         in ("hypothesis", "psychological_construct", "operationalization", "creative_pattern")
@@ -503,6 +568,9 @@ def build(connection: Connection, kind: str, identity: str) -> dict[str, Any] | 
             "study_finding",
             "research_protocol",
             "experiment_brief",
+            "recommendation",
+            "experiment_registration",
+            "experiment_results",
             "context_report",
             "trend_context",
             "platform_document",
@@ -530,6 +598,11 @@ def build(connection: Connection, kind: str, identity: str) -> dict[str, Any] | 
             "research_finding",
             "discovery_search",
             "creative_pattern",
+            "experiment_registration",
+            "experiment_results",
+            "experiment_analysis",
+            "experiment_assessment",
+            "recommendation",
         )
         else "official_guidance"
         if owner.kind == "platform_statement"

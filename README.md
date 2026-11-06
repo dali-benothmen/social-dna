@@ -1,7 +1,12 @@
 # SocialDNA
 
 SocialDNA is a local-first social-media research engine. The implemented release is
-`0.0.17`: bounded nonlinear discovery, train-only candidate selection, creator/time/niche
+`0.0.18`: prospective registered experiments, actual authorized outcomes, conditional
+matched-assignment estimates, preserved hypothesis/contradiction history and
+evidence-qualified production, publishing, distribution and profile strategies.
+See [registered experiments and strategies](docs/registered-experiments.md).
+No experiment is executed, effect guaranteed or psychological mediator automatically identified.
+It extends `0.0.17`'s bounded nonlinear discovery, train-only candidate selection, creator/time/niche
 transfer tests, all-attempt history and independent focal-contrast replication,
 including qualified C1 production, publishing, distribution and profile inputs.
 See [bounded discovery](docs/bounded-discovery.md). It extends `0.0.16`'s

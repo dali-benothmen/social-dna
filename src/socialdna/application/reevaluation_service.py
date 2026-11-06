@@ -427,6 +427,30 @@ def history(application: Application, identity: str) -> dict[str, Any]:
                 .order_by(transitions.c.created_at, transitions.c.request_id)
             ).mappings()
         ]
+        from socialdna.storage import experiment_repository
+
+        experiment_table = metadata.tables["experiment_assessments"]
+        experiment_feedback = []
+        revision: str
+        for revision in connection.scalars(
+            select(experiment_table.c.revision_id).where(
+                experiment_table.c.question_revision_id.in_(question_revisions)
+            )
+        ):
+            experiment_ref = repo.ref(repo.get("entity_revisions", revision))
+            try:
+                content = experiment_repository.content(connection, experiment_ref)
+                experiment_feedback.append(
+                    {
+                        "ref": experiment_ref.model_dump(),
+                        "eligible": True,
+                        "judgments": content["judgments"],
+                    }
+                )
+            except ConfigurationError:
+                experiment_feedback.append(
+                    {"ref": experiment_ref.model_dump(), "eligible": False, "judgments": None}
+                )
     records = []
     for assessment in refs:
         record = show_record(application, assessment)
@@ -452,6 +476,7 @@ def history(application: Application, identity: str) -> dict[str, Any]:
         "assessments": records,
         "transitions": links,
         "requests": attempts,
+        "experiment_assessments": experiment_feedback,
     }
 
 

@@ -110,6 +110,11 @@ def preview(
                 "profile_review",
                 "funnel_definition",
                 "funnel_context",
+                "experiment_registration",
+                "experiment_results",
+                "experiment_analysis",
+                "experiment_assessment",
+                "recommendation",
             )
             for r in entities
         )

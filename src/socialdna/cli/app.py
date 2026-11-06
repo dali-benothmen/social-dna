@@ -14,10 +14,12 @@ from socialdna.cli.common import ConfigFile, DataDir, Format, execute
 from socialdna.cli.context_commands import register as register_context_commands
 from socialdna.cli.creative_commands import register as register_creative_commands
 from socialdna.cli.errors import error_result
+from socialdna.cli.experiment_commands import register as register_experiments
 from socialdna.cli.memory_commands import register as register_memory_commands
 from socialdna.cli.output import emit
 from socialdna.cli.platform_commands import register as register_platform_commands
 from socialdna.cli.profile_commands import register as register_profile_commands
+from socialdna.cli.recommendation_commands import register as register_recommendations
 from socialdna.cli.research_commands import register as register_research_commands
 from socialdna.config.settings import Settings
 from socialdna.core.enums import ExitCode
@@ -45,6 +47,8 @@ models_app = typer.Typer(help="Inspect and explicitly prepare verified optional 
 app.add_typer(models_app, name="models")
 compare_app = typer.Typer(help="Compare age-aligned post or account populations.")
 app.add_typer(compare_app, name="compare")
+register_experiments(app)
+register_recommendations(app)
 
 
 @app.callback()

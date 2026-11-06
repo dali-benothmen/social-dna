@@ -16,6 +16,11 @@ from socialdna.storage.evidence_repository import EvidenceRepository
 from socialdna.storage.schema import metadata
 
 KINDS = {
+    "recommendation",
+    "experiment_registration",
+    "experiment_results",
+    "experiment_analysis",
+    "experiment_assessment",
     "discovery_search",
     "creative_pattern",
     "literature_source",
@@ -36,13 +41,14 @@ def provenance(
     *,
     uri: str | None = None,
     permission: str = "user_authored_research",
+    source_kind: str | None = None,
 ) -> str:
     source_id = stable_id("research-source", uri or key)
     connection.execute(
         insert(metadata.tables["source_records"])
         .values(
             id=source_id,
-            source_kind="reviewed_literature" if uri else "research_import",
+            source_kind=source_kind or ("reviewed_literature" if uri else "research_import"),
             source_uri=uri or "urn:socialdna:research:" + key,
             permission_basis=permission,
             terms_json=canonical_json({"review": "human supplied; not automatic verification"}),
@@ -111,6 +117,11 @@ def cite(connection: Connection, ref: EntityRef) -> EvidenceRef:
             },
         )
     elif ref.kind in (
+        "recommendation",
+        "experiment_registration",
+        "experiment_results",
+        "experiment_analysis",
+        "experiment_assessment",
         "research_assessment",
         "research_finding",
         "experiment_brief",
