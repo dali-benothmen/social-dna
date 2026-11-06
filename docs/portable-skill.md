@@ -123,6 +123,29 @@ renderer or accessibility certification is claimed. Share only within authorized
 
 ## Verification and remaining gates
 
+Release `0.0.26` adds `socialdna setup --task TASK --host HOST --url URL` (omit
+URL for local/saved inputs), `skill list`, and `skill inspect --name NAME`.
+Setup reports prerequisites and argument-array templates without library writes,
+network/model execution or installation. Action-required guidance exits 5; this
+is not a storage-corruption error. URL identity, credential presence, interface
+availability and actual permission/evidence sufficiency remain distinct.
+
+Exports copy a reviewed public file allowlist, validate all resources before
+creating a destination and publish `SKILL.md` last from complete staged bytes using
+an exclusive hard link (a filesystem prerequisite; failure is actionable, not a
+fallback overwrite). Exclusive destination/file creation refuses existing installations.
+Handled failures attempt rollback only of the exact newly created leaf;
+a process killed before publication can leave an undiscoverable
+incomplete directory requiring explicit recovery. This is not a hostile concurrent
+filesystem security boundary. Returned SHA-256 manifests describe exported bytes,
+not a cryptographic publisher signature or proof that the content is trustworthy.
+Every task includes the single maintained setup guide plus workflow reference;
+no sibling bundle or source checkout is needed. Build mappings and archive path
+audits exclude tested credential/runtime paths, not every possible secret string.
+
+The [live acceptance protocol](host-acceptance.md) separates authorized model
+conversations from offline tests and records outstanding gates.
+
 Automated workflows exercise all three directory layouts, paths with spaces,
 offline/no-model operation without FFmpeg, partial ordered media, exact citations,
 UTF-8/escaped Markdown, JSON exports, non-overwrite behavior, schema-2.0 account
@@ -134,9 +157,13 @@ CI retains Linux/macOS/Windows and Python 3.11/3.13, with explicit UTF-8 and bou
 BLAS threads. Locally observed results, not configured matrices, are recorded in PLAN.
 Read-only version checks found Codex `0.162.0-alpha.17.2`, Claude Code `2.1.296` and
 OpenCode `1.19.0`. They do **not** prove live discovery, tool choice or conversations.
-No headless AI request, remote API, model download or real host configuration mutation
-was performed. Live host behavioral smokes remain unexecuted and separate from
-static/CLI/package validation; prepared-real-model acceptance is still opt-in.
+The authorized DX5 Codex attempt installed one bundle in a temporary synthetic
+project, then stopped before conversation because the host's normal runtime state
+was read-only. No model execution or host engine tool call was observed. No global
+configuration change, source API request, model download or credential workaround
+was performed. Claude Code/OpenCode conversations remain unexecuted. See the
+actual [host acceptance record](host-acceptance.md); prepared-real-model acceptance
+is still opt-in.
 
 A future live smoke should install only in an approved temporary project, select
 the skill, analyze an owned photo with the shared CLI, inspect citations/report and

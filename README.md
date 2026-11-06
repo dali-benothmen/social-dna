@@ -1,6 +1,12 @@
 # SocialDNA
 
-SocialDNA is a local-first social-media research engine. Release `0.0.25` includes
+SocialDNA is a local-first social-media research engine. Release `0.0.26` adds
+read-only first-use guidance (`socialdna setup`), a truthful skill catalog
+(`skill list`), hashed public bundle manifests (`skill inspect`), and independently
+self-contained task exports. Setup never installs, connects, opens a library or
+runs a model. See [portable setup](docs/portable-skill.md) and the separately
+recorded [live-host gates](docs/host-acceptance.md).
+It extends `0.0.25`'s
 [multi-URL library comparisons and exact evidence audits](docs/comparison-workflows.md),
 actual registered statistics, frozen cited synthesis and independently exportable
 `social-dna-compare`/`social-dna-evidence` bundles. This is an assisted existing-library

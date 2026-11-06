@@ -1391,3 +1391,51 @@ Visual/audio observation qualification follows actual provider provenance rather
 than guessing from a feature-name prefix, so model outputs remain labeled estimates.
 Both task bundles remain self-contained; real host behavior and prepared-model
 accuracy require separate observations. See [operations](docs/video-reconstruction.md).
+
+### 34.8 First-use and release-hardening decisions (`0.0.26`)
+
+`application/setup_service.py` is a read-only guidance adapter, not a second
+workflow planner, installer or collector. `setup` validates declared task/URL/scope,
+checks executable/key presence only when relevant, and returns diagnostics and
+argument-array templates with explicit result bindings. It opens no SQLite/Qdrant
+store, launches no provider/host process and makes no connection probe. A present
+credential is unverified, not connected; a recognized URL is not fetched. Optional
+models are not prerequisites for deterministic local media. Video tools do not
+block photos. `doctor` remains a separate potentially mutating library diagnostic.
+Missing setup inputs use action-required/partial, not storage-integrity errors.
+
+`skill list` derives the nine delivered bundles (umbrella plus eight tasks) and six
+planned specialists from the existing task catalog. `skill inspect` validates and
+hashes only reviewed public resources. Each task export includes the same maintained
+setup guide and workflow contract; a user installs only the chosen task. Repeat
+agent workflows bind real returned IDs rather than ask users for normalized JSON
+or invented identifiers. General templates do not manufacture permission, profile
+observations, transcript tracks, comparison designs or research evidence.
+
+Export no longer recursively copies arbitrary directory contents. It validates an
+explicit resource allowlist before creating the exclusive destination, writes
+supporting files first, and publishes complete staged `SKILL.md` bytes last through
+an exclusive hard link. This avoids overwriting a concurrent existing entrypoint
+or exposing a partially written skill. Filesystems without hard links fail safely;
+no overwrite fallback is used. Handled I/O failures roll back only the inode-matched
+new leaf. Interrupted unpublished exports need explicit recovery. This is not a
+security boundary against a hostile concurrent writer. Manifests describe the
+actual copied bytes, not publisher signatures or semantic trust.
+
+Wheel resource mappings and sdist skills are explicit public-file allowlists.
+Source distribution roots exclude runtime/authentication stores. Distribution
+checks inspect both archives for unsafe paths, links and tested credential/runtime
+filenames, then install independently and exercise real workflows. These defenses
+cannot identify arbitrary secret strings in otherwise public source files; release
+review remains necessary. No dependency, host SDK, database migration, statistical
+method or ResultEnvelope change is required. SQLite remains `0019_content` and
+frozen `0.0.25` performance methods retain explicit compatible reproduction.
+
+The [live protocol and observed record](docs/host-acceptance.md) distinguish
+documented host layouts, CLI/package tests, explicit skill selection and automatic
+agent routing. The authorized synthetic-only Codex attempt was blocked before a
+conversation by read-only normal host runtime state. No alternate auth/home/policy
+configuration or paid retry was used. Claude Code/OpenCode remain unexecuted live
+gates. Offline hardening is deliverable independently, but all-host behavioral
+acceptance is not complete. Native acquisition and six DX7 specialists stay in
+their own milestones, not in first-use setup.

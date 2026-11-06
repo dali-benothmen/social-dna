@@ -1,16 +1,18 @@
 # SocialDNA implementation plan
 
-Revised: 2026-11-06. Scope: R1–R10, all four C1 deliveries and U1 remain completed within their documented bounds. U2's portable skill/report implementation is delivered; verification is recorded in §16. Live host behavioral checks and prepared-real-model acceptance remain separate opt-in gates; no weights were downloaded or inferred.
+Revised: 2026-11-07. Scope: R1–R10, all four C1 deliveries and U1 remain completed within their documented bounds. U2's portable skill/report implementation is delivered; verification is recorded in §16. Live host behavioral checks and prepared-real-model acceptance remain separate opt-in gates; no weights were downloaded or inferred.
 
 New product work: **DX1 is implemented within its source-only bounds; live source
 and real host acceptance remain open** in §20 and [operations](docs/source-workflows.md).
-The target remains 14 task skills. Independently exportable ingest, report, analyze
-(content scope) and reconstruct now ship alongside `socialdna`, not full creator
-research, profile auditing or cold audiovisual URL acquisition. **DX2-A and DX2-B
+The target remains 14 task skills. Eight independently exportable tasks now ship
+alongside `socialdna`: ingest, report, analyze (content/profile), reconstruct,
+account, research, compare and evidence. These are bounded assisted/library lanes,
+not native account enumeration, semantic profile-quality judgment or cold
+audiovisual URL acquisition. **DX2-A and DX2-B
 are implemented in the assisted original-media lane**; cold URL-only media, real
 host selection and prepared-real-model accuracy remain separate open gates.
 
-Runtime: package `0.0.23`, SQLite head `0019_content`. Released migrations `0001_foundation`–`0019_content` remain unchanged after the assisted-media commit; reconstruction requires no new migration. Legacy Milestones 0, 1, 3 and 4 are completed deliveries; their limitations remain visible. Legacy Milestones 2, 5 and 6 are **superseded, not completed**.
+Runtime: package `0.0.26`, SQLite head `0019_content`. Released migrations `0001_foundation`–`0019_content` remain unchanged after the assisted-media commit; later reconstruction/library/DX5 releases require no new migration. Legacy Milestones 0, 1, 3 and 4 are completed deliveries; their limitations remain visible. Legacy Milestones 2, 5 and 6 are **superseded, not completed**.
 
 Authoritative design: [ARCHITECTURE.md](ARCHITECTURE.md), [research contracts](docs/research-contracts.md), [statistical design](docs/statistical-design.md), [migration strategy](docs/migration-strategy.md), and [reference use case](docs/research-use-case.md). The [audit](docs/architecture-audit.md) records the reasons for this revision; the [previous roadmap](docs/history/PLAN.pre-research-revision.md) is historical, not an alternative active plan.
 
@@ -1156,7 +1158,7 @@ tool actions, citations and outcome; do not force other specialists into basic t
 | DX3-A | Owned/influencer profile URL → cited strengths/weaknesses audit; analyze profile scope | DX1; C1-D/U1; actual snapshot/photo access | Assisted field-check lane delivered; native/semantic/live gates open |
 | DX3-B | Bounded account/question study and explicit incremental follow-up; account/research skills | DX1, DX3-A; DX2-A/B for media/script claims; existing account/C1/memory producers | Assisted library foundation; native collection/live gates open |
 | DX4 | Multi-URL comparison, exact evidence audit and cited synthesis; compare/evidence skills | DX3-B, existing R2/R6–R10; source-use permissions | Library comparison/audit lane delivered; native acquisition/live gates open |
-| DX5 | First-use setup guidance, portable release hardening and live host acceptance | DX1–DX4; source/model access for applicable smoke tests | Proposed |
+| DX5 | First-use setup guidance, portable release hardening and live host acceptance | DX1–DX4; source/model access for applicable smoke tests | Offline hardening delivered; Codex runtime blocked, remaining live-host gates open |
 | DX6-A | Independently delivered Instagram routes | DX1–DX5 shared contracts; actual Meta app/access approval | Proposed |
 | DX6-B | Independently delivered TikTok routes | DX1–DX5 shared contracts; actual eligible TikTok app/access approval | Proposed |
 | DX7-A | Audience collection/reaction/behavior workflow | DX3-B; R4/R5, permitted bounded evidence | Proposed |
@@ -1692,6 +1694,47 @@ bounded paths and cross-process reload; reuse existing research-memory tests.
 
 ### DX5 — Portable first use and release verification
 
+**Delivery (`0.0.26`, no schema change):** read-only `setup` with task/host/URL/scope
+diagnostics and result-bound argument templates; `skill list` and hashed
+`skill inspect`; explicit public-resource exports with complete staged entrypoint
+publication and conservative owned-leaf rollback. Every selected task includes the
+single maintained setup guide and workflow reference. Wheel/sdist resource mappings
+and archive safety checks exclude tested runtime/credential paths. No new model,
+connector, infrastructure or statistical method is introduced. Archived `0.0.25`
+statistical reproduction remains explicitly compatible.
+
+**Executed source verification:** 568 unique tests passed across the complete
+unit/contract suites, all five portable end-to-end cases and 93 selected integration
+cases for source capture, content/reconstruction, profile/account workflows,
+comparisons/audits, historical performance reproduction and account analytics.
+Coverage includes all task/host layouts, no-write setup, absent tools/credentials,
+secret non-disclosure, exact citations, CRLF byte preservation, public-file
+allowlists, concurrent non-overwrite, interrupted publication/rollback, synthetic
+preparation without a host call, archive traversal/private paths and source denial.
+Six existing NumPy warnings come from deliberately empty/immature/incompatible
+cohorts; those tests assert partial output and withheld inference. Ruff lint/format,
+mypy (227 source files), offline lock validation/build and all nine structural
+skill validations passed. Structural validation is not live behavioral acceptance.
+
+**Executed installed verification:** offline wheel and sdist installations passed
+`check_distribution.py --source-workflows-only`: migrations/health, all nine bundle
+exports in all three host directory layouts, setup/catalog/hash contracts, static
+JSON/Markdown reports and exact citations, synthetic native-source capture/resume,
+authorized image/video/reconstruction, assisted profile/account studies, actual R2
+comparison/reproduction, canonical evidence audits and frozen cross-process reload.
+Final wheel exports were independently rechecked after the CRLF validation fix.
+Archive safety checks passed for both formats. The legacy deep-research branch of
+the distribution script, prepared-real-model runs, real platform acquisition and
+live host conversations are not claimed by this release verification.
+
+**Live acceptance remains open:** the authorized synthetic-only Codex attempt
+failed before conversation because normal host runtime state was read-only. No
+model/tools/report were observed and no auth/home/policy workaround was attempted.
+Claude Code/OpenCode were not run. Neither offline tests nor this blocked attempt
+complete the all-host behavioral gate. See the actual
+[host record and repeatable procedure](docs/host-acceptance.md); the preparation
+script does not launch a model or change global configuration.
+
 **Implement:** concise setup/connection guidance and action-oriented diagnostics;
 self-contained selected-bundle exports; complete installed-wheel/sdist workflows;
 live host acceptance protocol and executed checks where authorized. Keep the common
@@ -1701,9 +1744,10 @@ time an actual skill or package works. At this point the eight delivered tasks a
 ingest, report, analyze (both scopes), reconstruct, account, research, compare and
 evidence. The six DX7 tasks remain planned until their own tested delivery.
 
-**Modules/files:** `application/{skill_service,capability_service}.py`,
+**Modules/files:** `application/{setup_service,skill_service,capability_service}.py`,
 `cli/skill_commands.py`, `skills/`, `pyproject.toml`, `scripts/check_distribution.py`,
-`docs/portable-skill.md`, workflow guide and release records. No host SDK or second engine.
+`scripts/prepare_host_acceptance.py`, `docs/{portable-skill,host-acceptance}.md`,
+workflow guide and release records. No host SDK or second engine.
 
 **Dependencies/integration:** DX1–DX4. Preserve old `skill export DEST/socialdna` and
 ResultEnvelope 1.0. Add explicit bundle selection without overwriting destinations.
@@ -1724,7 +1768,8 @@ Installing skills/changing host settings needs separate authority.
 
 **Tests:** extend `tests/contract/test_skill_contract.py`,
 `tests/unit/test_skill_export.py`, `tests/end_to_end/test_portable_skill.py`, capability
-tests and installed distribution checks for all bundles and workflows. Run the relevant
+tests; add `tests/unit/test_{setup,distribution_safety,host_acceptance_preparation}.py`
+and installed distribution checks for all bundles and workflows. Run the relevant
 full regression/lint/type/build suite and record live source/host smoke results
 separately. A missing credential/model/host means an open acceptance gate, not a pass.
 Apply these same packaging/routing/host gates to every subsequent DX7 bundle;

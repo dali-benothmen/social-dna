@@ -13,6 +13,44 @@ from PIL import Image
 from socialdna.domain.results import ResultEnvelope
 
 
+def test_first_use_templates_produce_a_real_cited_photo_report(tmp_path: Path) -> None:
+    data = tmp_path / "library"
+    setup = invoke(
+        data,
+        "setup",
+        "--task",
+        "analyze",
+        "--input-kind",
+        "image",
+        "--project-dir",
+        str(tmp_path / "project with spaces"),
+        expected=5,
+    ).data
+    assert not data.exists()
+    steps = {step["id"]: step for step in setup["next_steps"]}
+    photo = tmp_path / "owned photo.png"
+    Image.new("RGB", (90, 60), "orange").save(photo)
+    arguments = steps["analyze"]["argv"]
+    analyzed = invoke(
+        data,
+        *[
+            str(photo) if arg == "{original_path}" else arg
+            for arg in arguments[arguments.index("analyze") :]
+        ],
+    ).data
+    arguments = steps["report"]["argv"]
+    report = invoke(
+        data,
+        *[
+            analyzed["run_id"] if arg == "{run_id}" else arg
+            for arg in arguments[arguments.index("report") :]
+        ],
+    ).data
+    evidence = report["content"]["evidence"]
+    resolved = invoke(data, "evidence", "resolve", evidence["id"], "--purpose", "new_claim").data
+    assert resolved["eligible"] and resolved["locator_kind"] == "image_record"
+
+
 def invoke(data: Path, *args: str, expected: int = 0) -> ResultEnvelope:
     result = subprocess.run(
         [

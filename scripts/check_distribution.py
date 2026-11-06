@@ -14,8 +14,40 @@ import subprocess
 import sys
 import tempfile
 import tomllib
+import zipfile
 from datetime import UTC, datetime, timedelta
-from pathlib import Path
+from pathlib import Path, PurePosixPath
+from tarfile import open as open_tar
+
+
+def audit_archive(distribution: Path) -> dict[str, int]:
+    """Reject unsafe/private runtime paths without extracting or reading credential stores."""
+    if distribution.suffix == ".whl":
+        with zipfile.ZipFile(distribution) as archive:
+            entries = [
+                (item.filename, (item.external_attr >> 16) & 0o170000 == 0o120000)
+                for item in archive.infolist()
+            ]
+    else:
+        with open_tar(distribution, "r:gz") as archive:
+            entries = [(item.name, not (item.isfile() or item.isdir())) for item in archive]
+    forbidden = {".git", ".agents", ".codex", ".claude", ".opencode", ".venv", "__pycache__"}
+    for name, link in entries:
+        path = PurePosixPath(name)
+        if (
+            link
+            or path.is_absolute()
+            or ".." in path.parts
+            or "\\" in name
+            or any(":" in part for part in path.parts)
+            or any(part in forbidden for part in path.parts)
+            or path.name in {".env", "auth.json", "credentials.json"}
+            or path.name.startswith(".env.")
+            or path.suffix in {".db", ".sqlite", ".sqlite3", ".pem", ".key"}
+            or any(marker in path.name for marker in (".db-", ".sqlite-", ".sqlite3-"))
+        ):
+            raise RuntimeError(f"Unsafe or private distribution member: {name}")
+    return {"members_checked": len(entries)}
 
 
 def run(arguments: list[str], *, cwd: Path) -> str:
@@ -54,6 +86,34 @@ def portable_smoke(base: list[str], python: Path, isolated: Path, bundle_source:
     )["data"]
     if (isolated / "unused").exists() or preflight["policy"]["library_opened"]:
         raise RuntimeError("Installed capability preflight initialized a library")
+    catalog = json.loads(run([*base, "skill", "list"], cwd=isolated))["data"]
+    if len(catalog["bundles"]) != 9 or len(catalog["planned"]) != 6:
+        raise RuntimeError("Installed skill catalog confuses delivered and planned skills")
+    setup = subprocess.run(
+        [
+            base[0],
+            "--data-dir",
+            str(isolated / "setup-unused"),
+            "--offline",
+            "--no-ai",
+            "--format",
+            "json",
+            "setup",
+            "--task",
+            "analyze",
+            "--input-kind",
+            "image",
+        ],
+        cwd=isolated,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=120,
+    )
+    if setup.returncode != 5 or json.loads(setup.stdout)["data"]["policy"]["library_opened"]:
+        raise RuntimeError("Installed setup did not preserve its action-required/no-write contract")
+    if (isolated / "setup-unused").exists():
+        raise RuntimeError("Installed setup initialized storage")
     if "site-packages" not in run(
         [
             str(python),
@@ -97,7 +157,11 @@ def portable_smoke(base: list[str], python: Path, isolated: Path, bundle_source:
             manifest = json.loads(
                 run([*base, "skill", "export", str(target), "--name", task], cwd=isolated)
             )["data"]
-            if set(manifest["files"]) != {"SKILL.md", "references/workflow.md"}:
+            if set(manifest["files"]) != {
+                "SKILL.md",
+                "references/workflow.md",
+                "references/setup.md",
+            }:
                 raise RuntimeError("Installed task skill is not independently self-contained")
             task_source = bundle_source.parent / task / "SKILL.md"
             shared_source = bundle_source.parent / "shared" / "workflow.md"
@@ -105,6 +169,18 @@ def portable_smoke(base: list[str], python: Path, isolated: Path, bundle_source:
                 target / "references/workflow.md"
             ).read_bytes() != shared_source.read_bytes():
                 raise RuntimeError("Installed task skill differs from its maintained source")
+            if (target / "references/setup.md").read_bytes() != (
+                bundle_source / "references/setup.md"
+            ).read_bytes():
+                raise RuntimeError("Installed task skill lost its canonical setup guide")
+            inspected = json.loads(run([*base, "skill", "inspect", "--name", task], cwd=isolated))[
+                "data"
+            ]
+            if inspected["sha256"] != manifest["sha256"] or any(
+                hashlib.sha256((target / name).read_bytes()).hexdigest() != checksum
+                for name, checksum in inspected["sha256"].items()
+            ):
+                raise RuntimeError("Installed task manifest does not describe exported bytes")
     dry = json.loads(
         run(
             [*base, "workflow", "plan", "--url", "https://youtu.be/EaYRjrQuxEk", "--dry-run"],
@@ -492,6 +568,7 @@ def main() -> None:
         if len(distributions) != 1:
             raise RuntimeError(f"Expected exactly one {pattern} in dist/, found {distributions}")
         distribution = distributions[0]
+        print(f"Archive safety: {distribution.name}: {audit_archive(distribution)}", flush=True)
         with tempfile.TemporaryDirectory(prefix="socialdna-distribution-") as directory:
             isolated = Path(directory)
             environment = isolated / "venv"

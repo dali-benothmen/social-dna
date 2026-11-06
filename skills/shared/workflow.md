@@ -1,5 +1,10 @@
 # Bounded source and assisted-content workflow contract
 
+For first use or a missing prerequisite, read [setup guidance](setup.md) and run
+`socialdna setup --task TASK --host HOST` with the intended host and optional URL.
+This only explains requirements; it does not install, connect or open a library.
+The normal agent workflow binds returned IDs itself, never asks users to invent IDs.
+
 The CLI uses result envelope version `1.0`. Always parse the envelope; stdout is JSON
 even for `workflow report --format markdown` (the Markdown is in `data.content`).
 Optional `--output` writes the document, not the envelope, with exclusive creation.

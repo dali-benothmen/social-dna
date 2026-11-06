@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "socialdna"
-version = "0.0.25"
+version = "0.0.26"
 description = "Local-first, evidence-grounded social media research engine"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -53,20 +53,49 @@ dev = [
   "mypy>=1.14,<2",
 ]
 
+[tool.hatch.build]
+exclude = [
+  "**/__pycache__/**", "**/.env", "**/.env.*", "**/.agents/**", "**/.claude/**",
+  "**/.codex/**", "**/.opencode/**", "**/*.db*", "**/*.sqlite*", "**/*.pem",
+  "**/*.key", "**/credentials.json", "**/auth.json", "**/.venv/**",
+]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/socialdna"]
 
 [tool.hatch.build.targets.wheel.force-include]
-"skills/socialdna" = "socialdna/skill_bundle"
-"skills/social-dna-ingest" = "socialdna/task_skill_bundles/social-dna-ingest"
-"skills/social-dna-report" = "socialdna/task_skill_bundles/social-dna-report"
-"skills/social-dna-analyze" = "socialdna/task_skill_bundles/social-dna-analyze"
-"skills/social-dna-reconstruct" = "socialdna/task_skill_bundles/social-dna-reconstruct"
-"skills/social-dna-account" = "socialdna/task_skill_bundles/social-dna-account"
-"skills/social-dna-research" = "socialdna/task_skill_bundles/social-dna-research"
-"skills/social-dna-compare" = "socialdna/task_skill_bundles/social-dna-compare"
-"skills/social-dna-evidence" = "socialdna/task_skill_bundles/social-dna-evidence"
-"skills/shared" = "socialdna/task_skill_shared"
+"skills/socialdna/SKILL.md" = "socialdna/skill_bundle/SKILL.md"
+"skills/socialdna/LICENSE" = "socialdna/skill_bundle/LICENSE"
+"skills/socialdna/assets/account.json" = "socialdna/skill_bundle/assets/account.json"
+"skills/socialdna/references/core.md" = "socialdna/skill_bundle/references/core.md"
+"skills/socialdna/references/interface.md" = "socialdna/skill_bundle/references/interface.md"
+"skills/socialdna/references/research.md" = "socialdna/skill_bundle/references/research.md"
+"skills/socialdna/references/setup.md" = "socialdna/skill_bundle/references/setup.md"
+"skills/socialdna/references/commands.json" = "socialdna/skill_bundle/references/commands.json"
+"skills/social-dna-ingest/SKILL.md" = "socialdna/task_skill_bundles/social-dna-ingest/SKILL.md"
+"skills/social-dna-report/SKILL.md" = "socialdna/task_skill_bundles/social-dna-report/SKILL.md"
+"skills/social-dna-analyze/SKILL.md" = "socialdna/task_skill_bundles/social-dna-analyze/SKILL.md"
+"skills/social-dna-reconstruct/SKILL.md" = "socialdna/task_skill_bundles/social-dna-reconstruct/SKILL.md"
+"skills/social-dna-account/SKILL.md" = "socialdna/task_skill_bundles/social-dna-account/SKILL.md"
+"skills/social-dna-research/SKILL.md" = "socialdna/task_skill_bundles/social-dna-research/SKILL.md"
+"skills/social-dna-compare/SKILL.md" = "socialdna/task_skill_bundles/social-dna-compare/SKILL.md"
+"skills/social-dna-evidence/SKILL.md" = "socialdna/task_skill_bundles/social-dna-evidence/SKILL.md"
+"skills/shared/workflow.md" = "socialdna/task_skill_shared/workflow.md"
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "/src", "/tests", "/scripts", "/docs", "/examples", "/.github", "/README.md",
+  "/LICENSE", "/PLAN.md", "/ARCHITECTURE.md", "/pyproject.toml", "/uv.lock",
+  "/skills/socialdna/SKILL.md", "/skills/socialdna/LICENSE",
+  "/skills/socialdna/assets/account.json", "/skills/socialdna/references/core.md",
+  "/skills/socialdna/references/interface.md", "/skills/socialdna/references/research.md",
+  "/skills/socialdna/references/setup.md", "/skills/socialdna/references/commands.json",
+  "/skills/social-dna-ingest/SKILL.md", "/skills/social-dna-report/SKILL.md",
+  "/skills/social-dna-analyze/SKILL.md", "/skills/social-dna-reconstruct/SKILL.md",
+  "/skills/social-dna-account/SKILL.md", "/skills/social-dna-research/SKILL.md",
+  "/skills/social-dna-compare/SKILL.md", "/skills/social-dna-evidence/SKILL.md",
+  "/skills/shared/workflow.md",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -2,8 +2,11 @@
   "schema_version": "1.0",
   "commands": [
     {"path": ["capabilities"], "options": ["--format", "--data-dir", "--config"]},
+    {"path": ["setup"], "options": ["--task", "--host", "--project-dir", "--url", "--scope", "--input-kind", "--format", "--data-dir", "--config"]},
+    {"path": ["skill", "list"], "options": ["--format"]},
+    {"path": ["skill", "inspect"], "options": ["--name", "--format"]},
     {"path": ["skill", "export"], "options": ["--format", "--name"]},
-    {"path": ["workflow", "plan"], "options": ["--url", "--mode", "--from", "--goal", "--question-scope", "--max-attempts", "--dry-run", "--scope", "--media", "--permission-basis", "--subtitles", "--transcribe", "--ocr", "--align", "--replace-media", "--copy-media", "--reconstruction-output", "--track", "--start-ms", "--end-ms", "--allow-verbatim", "--creative-revision", "--profile-revision", "--audit-focus", "--account-external-id", "--max-posts", "--analyze-media", "--refresh-from", "--context-revision"]},
+    {"path": ["workflow", "plan"], "options": ["--url", "--mode", "--from", "--goal", "--question-scope", "--max-attempts", "--dry-run", "--scope", "--media", "--permission-basis", "--subtitles", "--transcribe", "--ocr", "--align", "--replace-media", "--copy-media", "--reconstruction-output", "--track", "--start-ms", "--end-ms", "--allow-verbatim", "--creative-revision", "--profile-revision", "--audit-focus", "--account-external-id", "--max-posts", "--analyze-media", "--refresh-from", "--context-revision", "--left-url", "--against", "--comparison-spec", "--support-revision", "--contrary-revision", "--recommendation-spec", "--entity-revision", "--evidence-id", "--evidence-revision", "--audit-depth", "--audit-max-nodes", "--audit-max-edges", "--include-graph", "--include-history", "--depth", "--max-frames"]},
     {"path": ["workflow", "observe-profile"], "options": ["--external-id", "--captured-at", "--permission-basis", "--source-description", "--username", "--display-name", "--bio", "--category", "--link", "--links-empty", "--pin-revision", "--pins-empty", "--photo", "--photo-absent"]},
     {"path": ["workflow", "run"], "options": []},
     {"path": ["workflow", "show"], "options": []},

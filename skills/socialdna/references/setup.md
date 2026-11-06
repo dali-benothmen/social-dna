@@ -1,5 +1,52 @@
 # Engine and host setup
 
+## First-use diagnosis
+
+Run `socialdna --format json setup --task analyze --host codex --input-kind image`
+for an owned local photo, or add `--url URL` for a URL workflow (omit input-kind
+unless supplying a local original). Choose `--scope profile` for profile analysis;
+`--host` accepts `codex`, `claude-code` or `opencode`. `--project-dir PATH` selects
+the suggested project installation path without creating it.
+
+Setup returns diagnostics and argument-array next-step templates. It never opens
+or migrates a library, probes a connection, starts a model, installs a bundle or
+changes host settings. Exit 5 means action is needed, not a failed installation.
+Resolve template bindings from actual previous results. An agent handles workflow
+IDs; the user should normally supply a URL, question and any missing authorization
+or original file, not normalized JSON or hand-crafted engine IDs.
+
+`skill list` separates eight delivered task bundles from six planned specialists.
+`skill inspect --name social-dna-analyze` validates bundled public files and returns
+their SHA-256 hashes without writing. Each task export includes this setup guide
+and the shared workflow reference; no sibling skill installation is necessary.
+For a task bundle, append `--name social-dna-analyze` to `skill export` and name the
+destination `social-dna-analyze` rather than `socialdna` in the examples below.
+
+## Source connections and explicit actions
+
+Local photo/video analysis requires no platform key. FFmpeg/ffprobe are required
+only for video; local ASR/OCR and other prepared models remain optional. No models
+are downloaded or selected automatically by setup.
+
+The delivered native connection is one YouTube post's official public metadata,
+not its media, captions, comments or account enumeration. Configure the key in the
+engine's local `SOCIALDNA_YOUTUBE_API_KEY` environment variable (or the locally
+configured variable), never in a prompt, URL, JSON export or command argument.
+Presence is not validity or permission. `workflow maintenance` inspects the
+required retention scheduler; it does not install or enable one. Review the
+returned platform/OS requirements and obtain explicit permission before setup.
+`workflow plan --url URL` persists intent only; `workflow run RETURNED_ID` is the
+explicit network action and checks actual access, budgets and retention readiness.
+It can return denied/unavailable/partial. Do not bypass these gates or relabel API
+metadata as independently observed creative/research evidence.
+
+Instagram/TikTok and profile/account URLs are recognized identities, not delivered
+native collectors. Use actual permitted observations, existing eligible library
+records or authorized originals. No key can unlock a collector that is not built.
+Never infer retention, audience analytics, filming details or conversion from URL
+metadata. Offline mode prohibits native acquisition but supports local analysis,
+saved eligible reports, exports and source qualification.
+
 The entire `socialdna` skill directory is portable. There are no host-specific SDKs,
 hooks, tool allowlists, dynamic shell substitutions or alternate analysis services.
 Use a terminal-enabled local session. Remote/cloud sessions need their own engine,

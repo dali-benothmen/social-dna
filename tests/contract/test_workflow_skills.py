@@ -26,13 +26,19 @@ def test_each_task_skill_exports_independently_with_shared_reference(tmp_path, n
     parent.mkdir(parents=True)
     destination = parent / name
     result = export_skill(destination, name)
-    assert set(result["files"]) == {"SKILL.md", "references/workflow.md"}
+    assert set(result["files"]) == {"SKILL.md", "references/workflow.md", "references/setup.md"}
     assert not result["host_configuration_changed"]
     text = (destination / "SKILL.md").read_text()
     assert text.startswith("---\nname: " + name + "\n")
-    for link in re.findall(r"\[[^\]]+\]\(([^)]+)\)", text):
-        target = (destination / link).resolve()
-        assert target.is_relative_to(destination.resolve()) and target.is_file()
+    for relative in result["files"]:
+        document = destination / relative
+        if document.suffix != ".md":
+            continue
+        for link in re.findall(r"\[[^\]]+\]\(([^)]+)\)", document.read_text()):
+            if "://" in link or link.startswith("#"):
+                continue
+            target = (document.parent / link).resolve()
+            assert target.is_relative_to(destination.resolve()) and target.is_file()
     with pytest.raises(ConfigurationError):
         export_skill(destination, name)
 

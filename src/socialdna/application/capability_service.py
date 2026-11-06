@@ -68,6 +68,15 @@ def capabilities(settings: Settings, *, no_ai: bool = False) -> dict[str, Any]:
             )
         )
 
+    available(
+        "first_use_guidance",
+        "Read-only prerequisite guidance and public bundle manifests; no connection probes.",
+        ["setup"],
+        ["skill", "list"],
+        ["skill", "inspect"],
+        ["skill", "export"],
+        limitations=["Availability is not permission, actual access or live host acceptance."],
+    )
     video_tools = all(shutil.which(name) for name in ("ffmpeg", "ffprobe"))
     available(
         "library_url_comparisons",
