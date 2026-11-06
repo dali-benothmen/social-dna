@@ -1,7 +1,10 @@
 # SocialDNA
 
 SocialDNA is a local-first social-media research engine. The implemented release is
-`0.0.18`: prospective registered experiments, actual authorized outcomes, conditional
+`0.0.19`: dedicated static-image and ordered-carousel analysis, exact asset/region
+citations, optional prepared OCR, cached/restartable reports and bounded account media
+batches. See [photos and carousels](docs/image-analysis.md). It extends
+`0.0.18`'s prospective registered experiments, actual authorized outcomes, conditional
 matched-assignment estimates, preserved hypothesis/contradiction history and
 evidence-qualified production, publishing, distribution and profile strategies.
 See [registered experiments and strategies](docs/registered-experiments.md).

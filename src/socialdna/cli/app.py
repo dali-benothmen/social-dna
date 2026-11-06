@@ -15,6 +15,7 @@ from socialdna.cli.context_commands import register as register_context_commands
 from socialdna.cli.creative_commands import register as register_creative_commands
 from socialdna.cli.errors import error_result
 from socialdna.cli.experiment_commands import register as register_experiments
+from socialdna.cli.image_commands import register as register_images
 from socialdna.cli.memory_commands import register as register_memory_commands
 from socialdna.cli.output import emit
 from socialdna.cli.platform_commands import register as register_platform_commands
@@ -49,6 +50,7 @@ compare_app = typer.Typer(help="Compare age-aligned post or account populations.
 app.add_typer(compare_app, name="compare")
 register_experiments(app)
 register_recommendations(app)
+register_images(analysis)
 
 
 @app.callback()
@@ -147,7 +149,7 @@ def import_local_command(
     config: ConfigFile = None,
     output_format: Format = None,
 ) -> None:
-    """Register local video; --copy-media also retains managed original bytes."""
+    """Register local video/image; --copy-media also retains managed original bytes."""
     from socialdna.application.bootstrap import open_application
     from socialdna.application.import_service import import_local
 

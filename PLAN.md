@@ -1,8 +1,8 @@
 # SocialDNA implementation plan
 
-Revised: 2026-11-06. Scope: R1–R10 and all four C1 deliveries are completed and verified within their documented bounds (§14 records R10 verification). Prepared-real-model acceptance remains opt-in; no supplied weights were downloaded or inferred.
+Revised: 2026-11-06. Scope: R1–R10, all four C1 deliveries and U1 are completed and verified within their documented bounds (§14/§15 record the latest verification). Prepared-real-model acceptance remains opt-in; no supplied weights were downloaded or inferred.
 
-Runtime: package `0.0.18`, SQLite head `0016_experiments`. Released migrations `0001_foundation`–`0015_discovery` remain unchanged. Legacy Milestones 0, 1, 3 and 4 are completed deliveries; their limitations remain visible. Legacy Milestones 2, 5 and 6 are **superseded, not completed**. **U1/U2 remain planned and unimplemented**.
+Runtime: package `0.0.19`, SQLite head `0017_images`. Released migrations `0001_foundation`–`0016_experiments` remain unchanged. Legacy Milestones 0, 1, 3 and 4 are completed deliveries; their limitations remain visible. Legacy Milestones 2, 5 and 6 are **superseded, not completed**. **U2 remains planned and unimplemented**.
 
 Authoritative design: [ARCHITECTURE.md](ARCHITECTURE.md), [research contracts](docs/research-contracts.md), [statistical design](docs/statistical-design.md), [migration strategy](docs/migration-strategy.md), and [reference use case](docs/research-use-case.md). The [audit](docs/architecture-audit.md) records the reasons for this revision; the [previous roadmap](docs/history/PLAN.pre-research-revision.md) is historical, not an alternative active plan.
 
@@ -24,7 +24,7 @@ Delivery rules:
 - Keep basic media/account analysis fast: do not register a research question, load a graph, index embeddings or invoke a reasoner merely to describe a video.
 - Missing data is not zero; absent detection under sparse sampling is not demonstrated absence; expressed intention is not behavior; association is not causation.
 - Every research result declares its population, availability, estimand, evidence version, uncertainty, alternatives and limitations. `insufficient_data`, rejected and inconclusive results are successful research outcomes when honestly supported.
-- Implementation changes require unit/integration/contract/end-to-end verification, migration/compatibility checks, documentation updates and a scoped working commit when authorized. R10 is currently authorized; U1/U2 require separate authority. Commit messages describe the engineering change without type prefixes or milestone labels.
+- Implementation changes require unit/integration/contract/end-to-end verification, migration/compatibility checks, documentation updates and a scoped working commit when authorized. U1 is currently authorized; U2 requires separate authority. Commit messages describe the engineering change without type prefixes or milestone labels.
 
 ## 2. Preserved implementation and historical deliveries
 
@@ -54,7 +54,7 @@ M4 delivered its scoped implementation, but its retrospective baseline, same-cre
 | C1 | Versioned production and growth-context evidence, four independent deliveries | R1–R6; after R7; U1 for static visual branches | Completed and verified, `0.0.13`–`0.0.16`; see §19 |
 | R9 | Bounded nonlinear, cross-creator and cross-niche discovery, including delivered C1 dimensions | R2, R3, R6–R8; respective C1 slice for a new domain branch | Completed and verified, `0.0.17` |
 | R10 | Registered experiment outcomes and evidence-qualified creative/distribution/publishing/profile recommendations | R7–R9; respective C1 slice for a new domain branch | Completed and verified, `0.0.18` |
-| U1 | Individual photo/carousel analysis reusing existing media contracts | R1 | Planned, parallel usability track |
+| U1 | Individual photo/carousel analysis reusing existing media contracts | R1 | Completed and verified, `0.0.19` |
 | U2 | Portable Codex/Claude Code/OpenCode skill and usable reports | U1, R2; capability-gated integration with later R milestones | Planned, parallel usability track |
 
 Audience comments and behavioral metrics are split into R4/R5 because sampling/semantic annotation and metric time-series validity are different testable products. Memory follows canonical producers and revision contracts, rather than freezing the current media-only evidence model. A small literature corpus, hypothesis registration and experiment proposal appear in R7; general discovery and experiment-outcome analysis wait for R9/R10. U1/U2 prevent research infrastructure from postponing ordinary creator workflows.
@@ -735,7 +735,7 @@ U2's portable skill/polished UX and U1 image interpretation remain separate.
 
 ## 15. U1 — Photo and carousel usability track
 
-Status: **planned, unimplemented; may run after R1 independently of R3–R10**.
+Status: **completed and verified in `0.0.19` / `0017_images`**. See [operations and bounded limits](docs/image-analysis.md).
 
 ### Objective
 
@@ -764,6 +764,52 @@ Orientation/EXIF/privacy; malformed/oversized images; region bounds; duplicate/r
 ### Demonstrable end-to-end behavior
 
 Import a permitted cooking photo/carousel → analyze deterministic appearance and supplied text → inspect ordered evidence and an actionable descriptive report → reopen in another process with no research or vector work triggered.
+
+### Delivered components and decisions
+
+- `domain/images.py`, `media/images.py`: bounded raster decode, all EXIF orientations,
+  metadata-free RGB display derivatives, explicit alpha compositing and no fabricated duration.
+- `application/image_service.py`, `storage/image_repository.py`: actual offline image
+  and ordered carousel producers/readers; versioned available-item aggregation,
+  exact position/region/quote citations, cache reuse, partial failures and immutable archives.
+- Existing local import, shared visual measurements, TaskRunner and prepared OCR worker
+  are reused. Optional universal task-input citations extend the task contract without
+  changing legacy timed model inputs. There is no model download or new dependency.
+- `0017_images`: three real FK-backed projections and an atomic extension of the existing
+  evidence locator CHECK. Released migrations are unchanged. Source withdrawal/erasure
+  gates and scrubs source-derived static records, caches, display artifacts and reports.
+- `cli/image_commands.py`, `reporting/images.py`: actual `analyze image|carousel`,
+  restartable JSON/escaped Markdown reports and account media-batch dispatch with
+  explicit post/item limits. Alternative text, caption, hashtags and OCR stay separate.
+
+Mixed-in videos, animated/multipage images, unsupported codecs and remote URLs are
+explicit unavailable/refused items, not fake static successes. Higher-level automatic
+visual interpretation, empirical quality/effectiveness validation and U2 remain outside
+this delivery. Existing video/analytics/research contracts are preserved.
+
+### Verification record
+
+- Complete suite executed in non-overlapping partitions, then final affected media/
+  account/video and migration reruns: **566 passed, 3 skipped / 569 collected** on
+  Linux/Python 3.11. There are 33 new static-media cases and one additional released-
+  head upgrade fixture. Skips require explicitly prepared local models; no weights
+  were downloaded. Controlled OCR responses validate contracts, not recognition accuracy.
+- Actual raster tests cover all eight orientation transforms, metadata stripping,
+  alpha compositing, malformed/oversized/animated input, source-byte changes, corrupted
+  derivative recovery, original/reused caches, transient OCR failure/resume, exact
+  regions/positions, duplicate/reordered/gapped/mixed/remote/partial carousels,
+  escaped text, public account batching, source withdrawal and confirmed erasure.
+- Upgrade/backup/restore fixtures cover released heads `0001`–`0016`, unchanged old
+  IDs/report bytes, failed DDL rollback and downgrade refusal before populated
+  evidence rebuild. The regression-discovered downgrade edge is fixed in the new
+  migration; no released migration was edited.
+- Ruff lint/format, strict mypy (**190 source modules**), local documentation links
+  and `git diff --check` pass. Offline lock verification retains 194 packages.
+- Offline wheel/sdist builds match every current Python module byte-for-byte. An
+  isolated wheel install using prepared development dependencies, without source
+  package imports, passes image → exact citation → cached analysis → restarted report
+  → partial ordered carousel → escaped Markdown → `storage verify`, with empty PATH
+  and no prepared model. No unexecuted OS/Python matrix or empirical efficacy is claimed.
 
 ## 16. U2 — Portable skill, reporting and product hardening
 

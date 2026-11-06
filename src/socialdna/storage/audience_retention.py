@@ -115,6 +115,9 @@ def preview(
                 "experiment_analysis",
                 "experiment_assessment",
                 "recommendation",
+                "image_analysis",
+                "carousel_analysis",
+                "post_media_input",
             )
             for r in entities
         )
@@ -193,6 +196,24 @@ def preview(
             connection.scalars(
                 select(audience_runs.c.run_id).where(audience_runs.c.revision_id.in_(affected))
             )
+        )
+        static_records = metadata.tables["static_records"]
+        runs.update(
+            connection.scalars(
+                select(static_records.c.run_id).where(
+                    static_records.c.revision_id.in_(affected), static_records.c.run_id.is_not(None)
+                )
+            )
+        )
+        tasks = metadata.tables["analysis_tasks"]
+        # Cache producers may precede a reused run; erase their payloads too.
+        source_tasks = {
+            json.loads(r["payload_json"]).get("producer_task_id")
+            for r in entities
+            if r["id"] in affected
+        }
+        runs.update(
+            connection.scalars(select(tasks.c.run_id).where(tasks.c.id.in_(source_tasks - {None})))
         )
         if prior == (len(affected), len(citations), len(analysis_ids)):
             break
@@ -389,6 +410,39 @@ def resume(database: Any, paths: DataPaths) -> None:
             connection.execute(
                 table.update()
                 .where(table.c.id.in_(items.get("statistical_analysis", [])))
+                .values(result_json=canonical_json(document))
+            )
+            task_results, tasks = (
+                metadata.tables["analysis_task_results"],
+                metadata.tables["analysis_tasks"],
+            )
+            static_runs = connection.scalars(
+                select(metadata.tables["static_records"].c.run_id).where(
+                    metadata.tables["static_records"].c.revision_id.in_(
+                        items.get("entity_revision", [])
+                    )
+                )
+            )
+            # Only static caches are new here; existing frozen video outputs retain their contract.
+            affected_static_runs = {r for r in static_runs if r}
+            producers = list(
+                connection.scalars(
+                    select(tasks.c.reused_from_task_id).where(
+                        tasks.c.run_id.in_(affected_static_runs),
+                        tasks.c.reused_from_task_id.is_not(None),
+                    )
+                )
+            )
+            affected_static_runs.update(
+                connection.scalars(select(tasks.c.run_id).where(tasks.c.id.in_(producers)))
+            )
+            connection.execute(
+                task_results.update()
+                .where(
+                    task_results.c.task_id.in_(
+                        select(tasks.c.id).where(tasks.c.run_id.in_(affected_static_runs))
+                    )
+                )
                 .values(result_json=canonical_json(document))
             )
             if inspect(connection).has_table("discovery_bindings"):

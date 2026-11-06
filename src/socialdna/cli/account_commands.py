@@ -77,6 +77,7 @@ def register(ingestion: typer.Typer, analysis: typer.Typer, comparison: typer.Ty
         model: str | None = None,
         analyze_media: bool = False,
         max_posts: int = 100,
+        max_items: int = 20,
         depth: str = "standard",
         with_local_models: bool = False,
         reproduce_run: str | None = None,
@@ -110,6 +111,7 @@ def register(ingestion: typer.Typer, analysis: typer.Typer, comparison: typer.Ty
                     analyze_media=analyze_media,
                     media_options=options,
                     max_posts=max_posts,
+                    max_items=max_items,
                     reproduce_run=reproduce_run,
                 )
 

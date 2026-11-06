@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     allow_download: bool = False
     remote_media_consent: bool = False
     max_media_bytes: int = Field(default=2_000_000_000, gt=0)
+    max_image_pixels: int = Field(default=40_000_000, gt=0, le=80_000_000)
+    max_image_bytes: int = Field(default=50_000_000, gt=0, le=200_000_000)
     max_duration_seconds: float = Field(default=600, gt=0, allow_inf_nan=False)
     max_decode_frames: int = Field(default=36_000, gt=0)
     media_timeout_seconds: float = Field(default=300, gt=0, allow_inf_nan=False)

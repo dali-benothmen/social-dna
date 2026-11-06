@@ -1,6 +1,7 @@
 # Account export contract (version 1.0)
 
-Status: version 1.0 import contract from `0.0.4`, preserved in `0.0.10`. R1 captures
+Status: version 1.0 import contract from `0.0.4`, preserved in `0.0.19` with optional
+source `media.alt_text` added for [photo/carousel analysis](image-analysis.md). R1 captures
 source-backed immutable revisions/citations without changing export fields. R4/R5
 use separate [audience](audience-analysis.md) and [behavioral](behavioral-analysis.md)
 formats; they do not relax this v1 importer. Future C1 context contracts also preserve these exports;
@@ -77,7 +78,7 @@ and completeness-qualified cadence context rather than guessing it from stored U
 |---|---|---|
 | `account` | `external_id` | `handle`, `creator_key`, `niche`, `profile` object |
 | `post` | `external_id`, `account_external_id`, `published_at` | `content_type` (`video` default, `photo`, `carousel`, `text`), `title`, `caption`, `url` |
-| `media` | `post_external_id`, `uri` | `position` integer >=0, default 0; relative paths resolve against the import file |
+| `media` | `post_external_id`, `uri` | `position` integer >=0, default 0; relative paths resolve against the import file; optional `alt_text` (up to 10000 code points, source supplied, not OCR) |
 | `tag` | `post_external_id`, `value` | `kind`: `hashtag` (default) or `topic`; casefolded/trimmed for identity |
 | `comment` | `post_external_id`, `external_id`, `body`, `published_at` | `parent_external_id` within the same post; requires `comments_permitted: true` |
 | `metric_definition` | `key`, `definition` | `subject_type`: `post` (default)/`account`; `unit`: `count` (default)/`seconds`/`ratio`/`percent`; `measurement`: `cumulative` (default)/`period` |

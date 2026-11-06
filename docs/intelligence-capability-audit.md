@@ -14,8 +14,10 @@ execution review; native aggregates and unsupported pre/post designs stay descri
 Strategies preserve official/observational/experimental/qualitative evidence lanes,
 unknown lift, counterevidence and a next test. Non-cooking, non-psychological fixtures
 cover all four branches; public profile quality is not measured conversion.
-U1 automatic image interpretation, U2 portable/polished workflows and independent
-real-world validation remain separate.
+U1 (`0.0.19`) adds [static appearance/OCR and ordered carousel evidence](image-analysis.md),
+including static-file workflows for thumbnails/profile images. Automatic expert
+semantic/quality judgments are not implied. U2 portable/polished workflows and
+independent real-world validation remain separate.
 The original audit below records the earlier baseline;
 it is not a claim that all four intelligence areas or empirical validity are complete.
 

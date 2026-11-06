@@ -97,6 +97,7 @@ class Media(Record):
     position: int = Field(default=0, ge=0, strict=True)
     # References are not fetched during import; local paths are explicitly analyzed later.
     uri: str = Field(min_length=1, max_length=8192)
+    alt_text: str | None = Field(default=None, max_length=10000)
 
 
 class Tag(Record):

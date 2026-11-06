@@ -1,4 +1,5 @@
 import json
+from importlib.metadata import version as package_version
 from pathlib import Path
 from typing import Any
 
@@ -10,6 +11,7 @@ from socialdna.core.exceptions import InvalidMedia
 from socialdna.core.hashing import canonical_json, hash_file
 from socialdna.core.ids import stable_id
 from socialdna.core.time import utc_now
+from socialdna.domain.images import ImageInfo
 from socialdna.domain.media import MediaInfo
 from socialdna.media.ffmpeg import tool_version
 from socialdna.media.probe import probe
@@ -24,6 +26,11 @@ def import_local(
         raise InvalidMedia(f"Local media file does not exist: {source}")
     if source.stat().st_size > application.settings.max_media_bytes:
         raise InvalidMedia("File exceeds max_media_bytes.")
+    from socialdna.media.images import decode, looks_like_image
+
+    is_image = looks_like_image(source)
+    if is_image and source.stat().st_size > application.settings.max_image_bytes:
+        raise InvalidMedia("Image exceeds max_image_bytes")
     checksum = hash_file(source)
     media_id, post_id = stable_id("media", checksum), stable_id("local-post", checksum)
     probes = metadata.tables["media_probes"]
@@ -33,12 +40,20 @@ def import_local(
             .mappings()
             .first()
         )
-    info = (
-        MediaInfo.model_validate_json(existing["probe_json"])
+    info: MediaInfo | ImageInfo = (
+        decode(source, application.settings)[0]
+        if is_image
+        else MediaInfo.model_validate_json(existing["probe_json"])
         if existing
         else probe(source, application.settings)
     )
-    version = existing["tool_version"] if existing else tool_version("ffprobe")
+    version = (
+        package_version("Pillow")
+        if is_image
+        else existing["tool_version"]
+        if existing
+        else tool_version("ffprobe")
+    )
     source_id = stable_id("local-source", str(source), checksum)
     with application.database.transaction() as connection:
         artifact_id = (
@@ -54,12 +69,12 @@ def import_local(
             .values(
                 id=media_id,
                 sha256=checksum,
-                media_type="video",
+                media_type="image" if is_image else "video",
                 original_uri=source.as_uri(),
-                duration_ms=info.duration_ms,
+                duration_ms=info.duration_ms if isinstance(info, MediaInfo) else None,
                 width=info.width,
                 height=info.height,
-                streams_json=canonical_json(info.streams),
+                streams_json=canonical_json(info.streams) if isinstance(info, MediaInfo) else "[]",
                 artifact_id=artifact_id,
             )
             .on_conflict_do_nothing()
@@ -110,7 +125,7 @@ def import_local(
                 id=post_id,
                 platform="local",
                 external_id=checksum,
-                content_type="video",
+                content_type="photo" if is_image else "video",
                 title=source.name,
                 url=source.as_uri(),
             )
@@ -121,6 +136,25 @@ def import_local(
             .values(post_id=post_id, position=0, media_asset_id=media_id, role="primary")
             .on_conflict_do_nothing()
         )
+        if is_image:
+            from socialdna.storage.evidence_repository import EvidenceRepository
+
+            provenance = stable_id("image-import", source_id)
+            connection.execute(
+                insert(metadata.tables["provenance_records"])
+                .values(
+                    id=provenance,
+                    source_record_id=source_id,
+                    method="static-import-1",
+                    tool_name="Pillow",
+                    tool_version=version,
+                    created_at=utc_now(),
+                )
+                .on_conflict_do_nothing()
+            )
+            EvidenceRepository(connection).capture(
+                "media", media_id, provenance, mode="source_capture"
+            )
     return {
         "media_id": media_id,
         "post_id": post_id,
@@ -148,6 +182,8 @@ def resolve_media(
             raise InvalidMedia(
                 "Target is neither an existing local file nor a registered media ID."
             )
+        if asset["media_type"] != "video":
+            raise InvalidMedia("Static images require analyze image, not a video timeline")
         stored_probe = (
             connection.execute(select(probes).where(probes.c.media_asset_id == media_id))
             .mappings()

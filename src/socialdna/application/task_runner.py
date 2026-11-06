@@ -134,7 +134,11 @@ class TaskRunner:
                 if blocked and not allow_partial
                 else compute(context)
             )
-            if output.provider and not output.skipped and not output.input_evidence_ids:
+            if (
+                output.provider
+                and not output.skipped
+                and not (output.input_evidence_ids or output.input_citations)
+            ):
                 raise ProviderFailure("Model outputs require a non-empty input evidence list.")
             if (
                 output.records
@@ -144,6 +148,12 @@ class TaskRunner:
             ):
                 raise ProviderFailure("Configured model outputs require provider provenance.")
             with self.application.database.transaction() as connection:
+                from socialdna.application.evidence_service import EvidenceResolver
+
+                for citation in output.input_citations:
+                    EvidenceResolver(connection).resolve(
+                        citation, purpose="new_claim", media_id=self.media_id
+                    )
                 if output.provider and not output.skipped:
                     evidence = metadata.tables["evidence_items"]
                     verified: set[str] = set(
@@ -217,6 +227,15 @@ class TaskRunner:
                     connection.execute(
                         insert(metadata.tables["inference_inputs"])
                         .values(task_id=task_id, evidence_id=evidence_id)
+                        .on_conflict_do_nothing()
+                    )
+                for citation in output.input_citations:
+                    connection.execute(
+                        insert(metadata.tables["task_citation_inputs"])
+                        .values(
+                            task_id=task_id,
+                            evidence_revision_id=citation.revision_id,
+                        )
                         .on_conflict_do_nothing()
                     )
                 from socialdna.storage.evidence_repository import EvidenceRepository
@@ -293,6 +312,24 @@ class TaskRunner:
             self.results[key] = {}
 
     def _artifacts_valid(self, connection: Any, result: dict[str, Any]) -> bool:
+        if result.get("redacted"):
+            return False
+        from socialdna.application.evidence_service import EvidenceResolver
+        from socialdna.domain.evidence import EvidenceRef
+
+        table = metadata.tables["task_citation_inputs"]
+        citations = metadata.tables["evidence_revisions"]
+        for row in connection.execute(
+            select(citations.c.evidence_id, citations.c.id)
+            .join(table, table.c.evidence_revision_id == citations.c.id)
+            .where(table.c.task_id == result.get("producer_task_id"))
+        ):
+            try:
+                EvidenceResolver(connection).resolve(
+                    EvidenceRef(id=row.evidence_id, revision_id=row.id), purpose="new_claim"
+                )
+            except Exception:
+                return False
         for artifact_id in result.get("artifacts", []):
             try:
                 if not self.application.artifacts.verify(

@@ -4,6 +4,7 @@ from typing import Any
 
 from socialdna.core.ids import stable_id
 from socialdna.domain.creative import CreativeAnnotationSet
+from socialdna.domain.evidence import EvidenceRef
 from socialdna.domain.providers import ProviderIdentity
 from socialdna.storage.schema import metadata
 
@@ -17,6 +18,7 @@ class TaskOutput:
     provider: ProviderIdentity | None = None
     prompt_hash: str | None = None
     input_evidence_ids: list[str] = field(default_factory=list)
+    input_citations: list[EvidenceRef] = field(default_factory=list)
     creative_annotation: CreativeAnnotationSet | None = None
 
 

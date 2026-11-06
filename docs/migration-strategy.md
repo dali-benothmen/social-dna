@@ -1,6 +1,6 @@
 # Migration, compatibility and retention strategy
 
-Status (`0.0.18` / `0016_experiments`, 2026-11-06): R1–R10 and C1 have canonical producers; U1/U2 remain planned. Released migrations `0001`–`0015` remain unchanged. Experiments add six FK-backed query/binding tables, reusing canonical research revisions/locators and the actual family/attempt ledger without a parent rebuild. See [registered experiments](registered-experiments.md), [architecture](../ARCHITECTURE.md), [roadmap](../PLAN.md) and [research contracts](research-contracts.md). Earlier evidence CHECK changes retain their atomic FK-checked rebuild/backup behavior.
+Status (`0.0.19` / `0017_images`, 2026-11-06): R1–R10, C1 and U1 have canonical producers; U2 remains planned. Released migrations `0001`–`0016` remain unchanged. Static media adds three FK-backed projections and extends the universal evidence CHECK through the existing atomic rebuild. See [static image/carousel evidence](image-analysis.md), [architecture](../ARCHITECTURE.md), [roadmap](../PLAN.md) and [research contracts](research-contracts.md). Existing experiment/research schemas retain their semantics.
 
 ## 1. Compatibility contract
 
@@ -239,3 +239,19 @@ checksums, IDs and report bytes are unchanged. Upgrade/backup/restore authority
 recognizes head `0016_experiments`; downgrade refuses to discard registered history.
 Confirmed source erasure scrubs dependent canonical/artifact copies while permitted
 structural binding/attempt IDs remain. Existing dependency versions are unchanged.
+
+## Delivered `0017_images`
+
+`static_records` binds actual image/carousel analysis runs and source post-media
+inputs to real entity revisions. `static_evidence_bindings` supplies the single
+typed binding for `image_record` locators, including original-asset citations.
+`task_citation_inputs` adds real universal provider-input citations without
+manufacturing legacy timed evidence. Reports/features remain canonical revisions,
+task results and managed artifacts; no numeric source copies live in query columns.
+
+The new migration composes frozen prior metadata and uses the existing FK-disabled,
+transactional/FK-checked evidence rebuild. Existing locator rows, IDs, indexes,
+immutable guards and projection-journal triggers survive unchanged. Populated
+canonical history refuses downgrade before any table rebuild. Backup/restore
+recognizes the new head; source erasure also scrubs original/reused static task
+caches and registered display/report artifacts. No old migration or dependency is edited.

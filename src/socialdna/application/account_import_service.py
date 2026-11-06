@@ -531,6 +531,32 @@ def _persist(
         )
         if kind == "metric_snapshot":
             repository.metric_evidence(identity)
+    from socialdna.storage import image_repository
+
+    for record in parsed.records:
+        if isinstance(record, Media):
+            post_id = _identity("post", record.platform, record.post_external_id)
+            post_ref = repository.latest("post", post_id) or repository.capture("post", post_id)
+            references = metadata.tables["media_references"]
+            captured_uri = connection.scalar(
+                select(references.c.uri).where(
+                    references.c.post_id == post_id, references.c.position == record.position
+                )
+            )
+            image_repository.save(
+                connection,
+                "post_media_input",
+                f"{post_id}:{record.position}",
+                {
+                    "post": post_ref.model_dump(),
+                    "position": record.position,
+                    "uri": captured_uri,
+                    "alt_text": record.alt_text,
+                    "entity_inputs": [post_ref.model_dump()],
+                    "evidence_inputs": [],
+                },
+                provenance_id,
+            )
     return {
         "batch_id": batch_id,
         "source_id": source_id,

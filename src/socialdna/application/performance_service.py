@@ -592,10 +592,13 @@ def analyze_account(
     analyze_media: bool = False,
     media_options: AnalysisOptions | None = None,
     max_posts: int = 100,
+    max_items: int = 20,
     reproduce_run: str | None = None,
 ) -> dict[str, Any]:
     if max_posts < 1 or max_posts > 1000:
         raise ConfigurationError("max-posts must be between 1 and 1000")
+    if not 1 <= max_items <= 100:
+        raise ConfigurationError("max-items must be between 1 and 100")
     if reproduce_run:
         return reproduce(application, reproduce_run, account_id)
     if spec is None:
@@ -604,7 +607,11 @@ def analyze_account(
         _validate_definitions(connection, spec)
     batch = (
         _batch_media(
-            application, account_id, media_options or AnalysisOptions(no_ai=True), max_posts
+            application,
+            account_id,
+            media_options or AnalysisOptions(no_ai=True),
+            max_posts,
+            max_items,
         )
         if analyze_media
         else []
@@ -680,10 +687,22 @@ def compare(
 
 
 def _batch_media(
-    application: Application, account_id: str, options: AnalysisOptions, max_posts: int
+    application: Application,
+    account_id: str,
+    options: AnalysisOptions,
+    max_posts: int,
+    max_items: int = 20,
 ) -> list[dict[str, Any]]:
     from socialdna.application.analysis_service import analyze_video
+    from socialdna.application.image_service import analyze_carousel, analyze_image
     from socialdna.application.import_service import import_local
+    from socialdna.domain.images import ImageOptions
+
+    image_options = ImageOptions(
+        palette_bins=options.palette_bins,
+        no_ai=options.no_ai,
+        ocr=not options.no_ai and options.ocr is not False,
+    )
 
     with application.database.transaction() as connection:
         accounts, posts, references, links = (
@@ -700,6 +719,13 @@ def _batch_media(
             )
         )
         selected_ids = post_ids[:max_posts]
+        carousel_ids: set[str] = set(
+            connection.scalars(
+                select(posts.c.id).where(
+                    posts.c.id.in_(selected_ids), posts.c.content_type == "carousel"
+                )
+            )
+        )
         refs = [
             dict(row)
             for row in connection.execute(
@@ -718,6 +744,16 @@ def _batch_media(
         {"post_id": item, "position": 0, "status": "skipped", "message": "Batch max-posts limit"}
         for item in post_ids[max_posts:]
     ]
+    for carousel_id in sorted(carousel_ids):
+        entry: dict[str, Any] = {"post_id": carousel_id, "position": 0}
+        try:
+            analyzed = analyze_carousel(
+                application, carousel_id, options=image_options, max_items=max_items
+            )
+            entry.update(media_run_id=analyzed["run_id"], status=analyzed["status"])
+        except SocialDNAError as exc:
+            entry.update(status="failed", message=str(exc))
+        batch.append(entry)
     refs_by_key = {(row["post_id"], row["position"]): row for row in refs}
     for key, media_id in linked.items():
         refs_by_key.setdefault(key, {"post_id": key[0], "position": key[1], "media_id": media_id})
@@ -730,10 +766,30 @@ def _batch_media(
             "message": "No media reference or linked local video",
         }
         for post_id in selected_ids
-        if post_id not in referenced_posts
+        if post_id not in referenced_posts and post_id not in carousel_ids
     )
+    positions_by_post: dict[str, list[int]] = {}
+    for post_id, position in refs_by_key:
+        positions_by_post.setdefault(post_id, []).append(position)
+    selected_keys = {
+        (post_id, position)
+        for post_id, positions in positions_by_post.items()
+        for position in sorted(positions)[:max_items]
+    }
     for row in sorted(refs_by_key.values(), key=lambda item: (item["post_id"], item["position"])):
-        entry: dict[str, Any] = {"post_id": row["post_id"], "position": row["position"]}
+        if row["post_id"] in carousel_ids:
+            continue
+        if (row["post_id"], row["position"]) not in selected_keys:
+            batch.append(
+                {
+                    "post_id": row["post_id"],
+                    "position": row["position"],
+                    "status": "skipped",
+                    "message": "Batch max-items limit",
+                }
+            )
+            continue
+        entry = {"post_id": row["post_id"], "position": row["position"]}
         try:
             if "uri" in row:
                 uri = urlparse(row["uri"])
@@ -781,7 +837,17 @@ def _batch_media(
                             available_at=utc_now(),
                         )
                     )
-            result = analyze_video(application, media_id, options=options)
+            with application.database.transaction() as connection:
+                asset_type = connection.scalar(
+                    select(metadata.tables["media_assets"].c.media_type).where(
+                        metadata.tables["media_assets"].c.id == media_id
+                    )
+                )
+            result = (
+                analyze_image(application, media_id, options=image_options)
+                if asset_type == "image"
+                else analyze_video(application, media_id, options=options)
+            )
             entry.update(media_run_id=result["run_id"], status=result["status"])
         except SocialDNAError as exc:
             entry.update(status="failed", message=str(exc))
@@ -1026,6 +1092,7 @@ def reproduce(
                 "0.0.15",
                 "0.0.16",
                 "0.0.17",
+                "0.0.18",
             )
         )
         or (
@@ -1044,6 +1111,7 @@ def reproduce(
                 "0.0.15",
                 "0.0.16",
                 "0.0.17",
+                "0.0.18",
             )
         )
     )

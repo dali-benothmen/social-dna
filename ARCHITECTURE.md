@@ -1,6 +1,6 @@
 # SocialDNA architecture
 
-Revised: 2026-11-06. Implementation: **0.0.18**, database head **0016_experiments**. R1–R10 and C1 are completed and verified within their documented bounds; verification is recorded in [PLAN.md](PLAN.md). **U1/U2 remain planned**. The architecture incorporates the approved [intelligence audit](docs/architecture-audit.md) and [production and growth capability audit](docs/intelligence-capability-audit.md). Actual [experiment/strategy](docs/registered-experiments.md) and [bounded discovery](docs/bounded-discovery.md) commands and limits supplement existing [research memory](docs/research-memory.md), [versioned analytics](docs/versioned-analytics.md) and [psychological research](docs/psychological-research.md) contracts.
+Revised: 2026-11-06. Implementation: **0.0.19**, database head **0017_images**. R1–R10 and C1 are completed and verified within their documented bounds; U1 adds [static image and ordered carousel workflows](docs/image-analysis.md), with verification recorded in [PLAN.md](PLAN.md). **U2 remains planned**. The architecture incorporates the approved [intelligence audit](docs/architecture-audit.md) and [production and growth capability audit](docs/intelligence-capability-audit.md). Actual [experiment/strategy](docs/registered-experiments.md) and [bounded discovery](docs/bounded-discovery.md) commands and limits supplement existing [research memory](docs/research-memory.md), [versioned analytics](docs/versioned-analytics.md) and [psychological research](docs/psychological-research.md) contracts.
 
 The [implementation plan](PLAN.md) defines delivery and acceptance gates. Detailed contracts live in [research contracts](docs/research-contracts.md), [statistical design](docs/statistical-design.md), [migration strategy](docs/migration-strategy.md), and the [twelve-step cooking use case](docs/research-use-case.md). The [previous architecture](docs/history/ARCHITECTURE.pre-research-revision.md) is a historical record, not a competing specification. Architecture/plan line references inside the unchanged audit refer to those pre-revision documents.
 
@@ -48,7 +48,8 @@ All paths below are relative to `src/socialdna/`. A proposed filename is a respo
 | Add canonical producers | Proposed creative-event, audience and behavioral service/domain modules; `analytics/{designs,features}.py`, `research/discovery.py` | Introduce in R2–R5/R9 with real imports, writers, readers and tests. Reuse existing media/analytics services. |
 | Add derived memory | Proposed `memory/{lexical,vector_sync,graph,hybrid}.py`, `providers/embeddings.py`, `application/query_service.py` | R6 SQL/FTS + Qdrant outbox + bounded NetworkX projection, never application-owned hidden facts. |
 
-The planned portable skill and photo/carousel support are U2/U1; neither is claimed as fully delivered today.
+The portable skill remains U2. U1's bounded static analysis is documented in §32;
+it does not imply general automatic visual interpretation or scientific validity.
 
 ### 2.3 Four additional capability areas
 
@@ -948,3 +949,43 @@ or platform algorithm recovery. Released migrations `0001`–`0014` are unchange
 
 Exact contracts, scientific assumptions and intentionally unsupported designs are
 documented in [operations](docs/registered-experiments.md).
+
+## 32. Static image and ordered carousel decisions (`0.0.19`)
+
+1. **Share media primitives, not fabricated timelines.** Existing checksum-addressed
+   media assets, locations, probes, artifacts, tasks, runs and numeric appearance
+   measurements support static raster input. Image duration stays null. No static
+   frame/observation/OCR row is inserted into video interval tables; video commands
+   and their old timebase semantics remain unchanged.
+2. **Explicit coordinate and privacy policy.** Bounded Pillow decoding applies EXIF
+   orientation, preserves aspect ratio and creates a metadata-free RGB display.
+   Alpha uses fixed white compositing; ICC/EXIF/GPS are not propagated. Region
+   coordinates refer to that display, not rotated raw pixels. Unmodified originals
+   are retained only with explicit copy authority. Unsupported/animated/multipage
+   input is refused rather than silently flattened.
+3. **Actual canonical inputs and first-use bindings.** `post_media_input` freezes URI,
+   position, source alternative text and post/source identity. `image_analysis` and
+   `carousel_analysis` bind actual runs and source revisions. `0017_images` adds three
+   small FK-backed projections: static records, typed evidence bindings and universal
+   task-input citations. The existing atomic evidence CHECK rebuild preserves prior
+   rows, IDs, indexes and triggers; released migrations are unchanged.
+4. **Prepared OCR reuses the provider, not video persistence.** The existing local
+   worker reads a normalized image under a static identity. Universal input citations
+   supplement legacy timed inference inputs without replacing them. Provider identity,
+   manifest/runtime/configuration, exact quotes and normalized regions are retained.
+   Disabled/unavailable/failed OCR is not measured absence; deterministic output survives.
+5. **Ordered descriptions with explicit coverage.** Carousel positions are frozen,
+   duplicate placements disclosed and per-post item limits enforced. Mixed videos,
+   remote URLs, absent files and budget exclusions stay in the manifest. Versioned
+   position-weighted available-item summaries do not infer viewer progression,
+   completeness or performance. Source text and OCR are separate evidence lanes.
+6. **Reuse existing lifecycle and retention.** Image fingerprints include method,
+   options, limits and numerical/prepared-provider versions. Cache reads validate
+   artifacts and universal input eligibility. JSON/escaped Markdown reports and
+   account-batch dispatch reuse existing services. Withdrawal gates inputs; confirmed
+   erasure scrubs static canonical payloads, reports, displays and original/reused
+   task caches. No new server, dependency, collection or mandatory indexing workflow.
+
+U1 supplies descriptive visual evidence and review prompts, not automatic expert
+craft/brand interpretation, identified effects or a portable agent skill. U2 and
+independent model/empirical validation remain separate. See [operations](docs/image-analysis.md).

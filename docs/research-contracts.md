@@ -1,6 +1,6 @@
 # Research contracts
 
-Status (`0.0.18`, 2026-11-06): R1–R9 and C1 are preserved; R10 adds [registered experiments and qualified strategies](registered-experiments.md). U1/U2 remain planned. See the linked operations guides and roadmap for actual signatures/limits; prepared-real-model acceptance is opt-in and conceptual interfaces below are not all executable APIs.
+Status (`0.0.19`, 2026-11-06): R1–R10 and C1 are preserved; U1 adds [static image/carousel evidence](image-analysis.md) without research registration or fabricated intervals. U2 remains planned. See the linked operations guides and roadmap for actual signatures/limits; prepared-real-model acceptance is opt-in and conceptual interfaces below are not all executable APIs.
 
 This document makes the research payloads and invariants in [ARCHITECTURE.md](../ARCHITECTURE.md) concrete. It does not replace the implemented video timeline, comment imports, scalar metrics, or frozen statistical analyses. [Statistical design](statistical-design.md) defines comparison/validation methods; [migration strategy](migration-strategy.md) defines additive adoption. The complete reference flow is in [the cooking use case](research-use-case.md).
 
@@ -308,3 +308,15 @@ declared applicability, scope checks, source date/freshness and a discriminating
 next test. Always `test_first`, unknown lift and no external authority. Human/agent
 wording remains a proposed alternative; limited language/overlap guards are not
 global originality or semantic validation. See [exact formats and limits](registered-experiments.md).
+
+## Static media evidence contract (`0.0.19`)
+
+`ImageLocator` adds `image_record` to the existing typed universal registry. It binds
+actual source/analysis revisions, normalized display artifact/region, source text or
+exact OCR quote/index, and frozen carousel post/position where applicable. Standalone
+image evidence has no carousel position; no static evidence carries playback time.
+`static_evidence_bindings` and canonical `static_records` validate actual producer/run/
+media/post ownership. `task_citation_inputs` supplements legacy timed provider inputs
+for the existing prepared OCR worker. All use the shared resolver/eligibility path.
+Static reports remain descriptive; source annotations and separate research designs
+are still required for higher-level scientific or performance conclusions.

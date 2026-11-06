@@ -33,6 +33,8 @@ def timeline(
         asset = connection.execute(select(assets).where(assets.c.id == media_id)).mappings().first()
         if asset is None:
             raise InvalidMedia("Unknown media ID.")
+        if asset["media_type"] == "image":
+            raise InvalidMedia("Static images have no playback timeline; use the image report")
         if run_id is None:
             run_id = connection.scalar(
                 select(runs.c.id)

@@ -177,6 +177,35 @@ class ResearchLocator(BaseModel):
     subject: EntityRef
 
 
+class ImageLocator(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True, allow_inf_nan=False)
+    kind: Literal["image_record"] = "image_record"
+    subject: EntityRef
+    field: Literal["asset", "summary", "item", "ocr", "alternative_text"] = "summary"
+    media: EntityRef | None = None
+    post: EntityRef | None = None
+    position: int | None = Field(default=None, strict=True, ge=0)
+    box_index: int | None = Field(default=None, strict=True, ge=0)
+    artifact_id: str | None = None
+    # Normalized [left, top, right, bottom] in orientation-corrected display coordinates.
+    region: tuple[float, float, float, float] | None = None
+    quote: str | None = None
+
+    @model_validator(mode="after")
+    def bounded(self) -> "ImageLocator":
+        if self.region is not None:
+            left, top, right, bottom = self.region
+            if not 0 <= left < right <= 1 or not 0 <= top < bottom <= 1:
+                raise ValueError(
+                    "Image region must be nonempty and inside normalized display bounds"
+                )
+        if (self.field == "ocr") != (self.box_index is not None):
+            raise ValueError("OCR citations require their exact region index")
+        if self.field in ("ocr", "alternative_text") and not self.quote:
+            raise ValueError("Text evidence needs the exact source text")
+        return self
+
+
 EvidenceLocator = Annotated[
     MediaLocator
     | CommentLocator
@@ -188,7 +217,8 @@ EvidenceLocator = Annotated[
     | BehavioralLocator
     | StudyLocator
     | ContextLocator
-    | ResearchLocator,
+    | ResearchLocator
+    | ImageLocator,
     Field(discriminator="kind"),
 ]
 
