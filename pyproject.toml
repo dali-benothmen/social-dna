@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "socialdna"
-version = "0.0.21"
+version = "0.0.22"
 description = "Local-first, evidence-grounded social media research engine"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -60,6 +60,7 @@ packages = ["src/socialdna"]
 "skills/socialdna" = "socialdna/skill_bundle"
 "skills/social-dna-ingest" = "socialdna/task_skill_bundles/social-dna-ingest"
 "skills/social-dna-report" = "socialdna/task_skill_bundles/social-dna-report"
+"skills/social-dna-analyze" = "socialdna/task_skill_bundles/social-dna-analyze"
 "skills/shared" = "socialdna/task_skill_shared"
 
 [tool.pytest.ini_options]

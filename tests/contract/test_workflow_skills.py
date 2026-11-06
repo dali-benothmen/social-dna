@@ -7,7 +7,7 @@ from socialdna.application.skill_service import export_skill
 from socialdna.core.exceptions import ConfigurationError
 
 
-@pytest.mark.parametrize("name", ["social-dna-ingest", "social-dna-report"])
+@pytest.mark.parametrize("name", ["social-dna-ingest", "social-dna-report", "social-dna-analyze"])
 @pytest.mark.parametrize("host", [".agents", ".claude", ".opencode"])
 def test_each_task_skill_exports_independently_with_shared_reference(tmp_path, name, host):
     parent = tmp_path / host / "skills"

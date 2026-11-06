@@ -84,7 +84,7 @@ def validate_references(
             previous = posts.get(identity)
             account_id = _identity("account", record.platform, record.account_external_id)
             if previous and (
-                previous["account_id"] != account_id
+                (previous["account_id"] is not None and previous["account_id"] != account_id)
                 or (
                     previous["published_at"] is not None
                     and previous["published_at"] != record.published_at

@@ -1,5 +1,8 @@
 # Source-only URL workflows
 
+This documents DX1's native API lane. For the later independently supplied original
+media lane (no key or timer), see [assisted post analysis](media-workflows.md).
+
 Implemented in `0.0.21` / migration `0018_workflows`. Automated synthetic transports are
 not live API acceptance. The supplied real URL awaits a locally configured key,
 active retention maintenance and a separate real host/skill conversation.

@@ -251,6 +251,15 @@ def capabilities(settings: Settings, *, no_ai: bool = False) -> dict[str, Any]:
         ["workflow", "maintain"],
         limitations=["Only ingest/report task modes are implemented."],
     )
+    available(
+        "assisted_content_workflows",
+        "Post URL plus authorized local originals reaches existing video/photo/carousel services.",
+        ["workflow", "plan"],
+        ["workflow", "run"],
+        ["workflow", "report"],
+        prerequisites=["Supplied originals and an explicit user permission declaration."],
+        limitations=["No cold URL media acquisition, profile scope or remote model transfer."],
+    )
     entries.append(
         CapabilityEntry(
             id="youtube_native_metadata",

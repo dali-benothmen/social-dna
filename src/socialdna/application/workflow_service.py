@@ -2,6 +2,7 @@
 
 import os
 import sqlite3
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -18,7 +19,7 @@ from socialdna.core.exceptions import (
     StoragePermissionError,
 )
 from socialdna.domain.acquisition import POLICY_VERSION, CaptureFailure
-from socialdna.domain.workflows import RequiredAction, WorkflowPlan, WorkflowRequest
+from socialdna.domain.workflows import MediaInput, RequiredAction, WorkflowPlan, WorkflowRequest
 from socialdna.ingestion.connectors import youtube
 from socialdna.ingestion.urls import parse_url
 from socialdna.storage import workflow_repository as repository
@@ -44,7 +45,7 @@ def _reference_plan(settings: Settings, identity: str) -> WorkflowPlan:
 
 
 def plan(settings: Settings, request: WorkflowRequest, *, dry_run: bool = False) -> dict[str, Any]:
-    if request.mode == "ingest":
+    if request.mode in ("ingest", "analyze"):
         assert request.url is not None
         target = parse_url(request.url)
         request = request.model_copy(update={"url": target.canonical_url})
@@ -64,6 +65,24 @@ def plan(settings: Settings, request: WorkflowRequest, *, dry_run: bool = False)
             previous.canonical_url,
         )
     supported = platform == "youtube" and kind == "post"
+    media_inputs: tuple[MediaInput, ...] = ()
+    subtitle_hash: str | None = None
+    if request.mode == "analyze":
+        from socialdna.application.content_workflow_service import inputs
+
+        media_inputs, subtitle_hash = inputs(settings, request)
+        request = request.model_copy(
+            update={
+                "goal": "Analyze the supplied content with measured evidence."
+                if request.goal == "Capture the source's native public metadata."
+                else request.goal,
+                "media": tuple(item.path for item in media_inputs),
+                "subtitles": str(Path(request.subtitles).expanduser().resolve())
+                if request.subtitles
+                else None,
+            }
+        )
+        supported = kind == "post" and request.scope == "content" and bool(media_inputs)
     specification = WorkflowPlan(
         request=request,
         platform=platform,
@@ -75,6 +94,8 @@ def plan(settings: Settings, request: WorkflowRequest, *, dry_run: bool = False)
         response_byte_limit=settings.workflow_response_byte_limit,
         request_timeout_seconds=settings.workflow_request_timeout_seconds,
         retention_days=settings.workflow_retention_days,
+        media_inputs=media_inputs,
+        subtitles_sha256=subtitle_hash,
         operations=("capture_native_metadata", "canonical_identity_import", "compose_native_report")
         if request.mode == "ingest"
         else ("compose_saved_native_report",),
@@ -85,6 +106,22 @@ def plan(settings: Settings, request: WorkflowRequest, *, dry_run: bool = False)
             "Live capture requires an API key and verified scheduled retention maintenance.",
         ),
     )
+    if request.mode == "analyze":
+        specification = specification.model_copy(
+            update={
+                "operations": (
+                    "bind_supplied_originals",
+                    "analyze_content",
+                    "compose_assisted_report",
+                ),
+                "retention_days": None,
+                "policy_version": "supplied-original-association-v1",
+                "limitations": (
+                    "Assisted originals only; no URL media acquisition or profile auditing.",
+                    "Association/permission is declared, not verified publisher ownership.",
+                ),
+            }
+        )
     if dry_run:
         return {"dry_run": True, "written": False, "plan": specification.model_dump(mode="json")}
     with open_application(settings) as application:
@@ -144,6 +181,34 @@ def run(settings: Settings, identity: str, *, client: httpx.Client | None = None
         with application.database.transaction() as connection:
             _, specification = repository.get(connection, identity)
             bound = repository.bindings(connection, identity)
+        if specification.request.mode == "analyze":
+            if not specification.supported:
+                with application.database.transaction() as connection:
+                    repository.state(
+                        connection, identity, "awaiting_action", "authorized_media_required"
+                    )
+                return {
+                    "workflow_id": identity,
+                    "status": "partial",
+                    "network_attempted": False,
+                    "required_actions": [
+                        {
+                            "code": "authorized_media_required",
+                            "message": "Supply authorized original media and declare permission. "
+                            "Cold URL acquisition and profile scope are not implemented.",
+                        }
+                    ],
+                }
+            from socialdna.application.content_workflow_service import run as run_content
+
+            with application.database.transaction() as connection:
+                repository.state(connection, identity, "running")
+            try:
+                return run_content(application, identity, specification)
+            except BaseException:
+                with application.database.transaction() as connection:
+                    repository.state(connection, identity, "partial", "content_interrupted")
+                raise
         if any(item["role"] == "capture" for item in bound):
             result = generate(application, identity)
             with application.database.transaction() as connection:
@@ -172,6 +237,15 @@ def run(settings: Settings, identity: str, *, client: httpx.Client | None = None
                         "The saved input has no committed capture; no network request was made"
                     )
                 repo = EvidenceRepository(connection)
+                parent_records = [
+                    item
+                    for item in previous
+                    if item["role"] == "report"
+                    and repo.get("entity_revisions", item["revision_id"])["kind"]
+                    == "content_report"
+                ]
+                if parent_records:
+                    selected += parent_records
                 for item in selected:
                     ref = repo.ref(repo.get("entity_revisions", item["revision_id"]))
                     repository.bind(connection, identity, item["role"], ref, item["capture_id"])
@@ -237,6 +311,7 @@ def run(settings: Settings, identity: str, *, client: httpx.Client | None = None
             )
     try:
         # No application context/SQLite/vector handle survives this network interval.
+        assert specification.retention_days is not None
         captured = youtube.fetch(
             specification.external_id,
             key,

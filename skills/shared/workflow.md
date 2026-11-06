@@ -1,4 +1,4 @@
-# Source-only workflow contract
+# Bounded source and assisted-content workflow contract
 
 The CLI uses result envelope version `1.0`. Always parse the envelope; stdout is JSON
 even for `workflow report --format markdown` (the Markdown is in `data.content`).
@@ -17,7 +17,7 @@ Implemented commands:
 - `workflow report WORKFLOW_ID --format json|markdown [--output NEW_FILE]`
 - `workflow maintenance [--output-dir NEW_DIRECTORY]`
 - `workflow maintain`
-- `skill schema workflow_request|workflow_plan|capture|workflow_report`
+- `skill schema workflow_request|workflow_plan|capture|workflow_report|content_report`
 
 Global `--data-dir PATH` selects the persistent library. `--offline --no-ai` is safe
 for planning, saved-result reporting and cleanup. Dry-run planning does not create
@@ -25,7 +25,7 @@ the library or make requests. Invalid URLs never become network destinations.
 
 ## Acquisition and scope
 
-Only a fixed official YouTube Data API videos.list request is implemented, for one
+For network acquisition, only a fixed official YouTube Data API videos.list request is implemented, for one
 YouTube video/Short URL. Account URLs and Instagram/TikTok shapes are recognized,
 not collectable. No enumeration, playback, media, captions or comments are fetched.
 An API key must be present in the configured secret environment variable (default
@@ -60,3 +60,23 @@ The report is source-only; arbitrary goals stay partial unless supported. Export
 reports must be revalidated against active evidence before reuse, not treated as a
 permanent permission grant. SQLite stores canonical sources and immutable evidence;
 no vector or graph writes are required for this bounded native-report path.
+
+## Assisted content (no platform request)
+
+`workflow plan --mode analyze --scope content --url URL --media FILE
+--permission-basis creator_owned_original` analyzes an independently supplied
+original without any API key. Use `authorized_analysis` only for genuinely authorized
+originals. These are user declarations, not verified ownership. Repeat `--media` in
+carousel order (up to 20; total bytes bounded by max_media_bytes). No download occurs.
+Supplied file/subtitle hashes are pinned; changed inputs need a new plan. Conflicting
+URL/media bindings require explicit `--replace-media`. Do not infer owner or publication
+time. Default deterministic analysis has no model dependency. Optional prepared local
+`--transcribe`, `--ocr`, `--align` remain separately requested; missing models yield
+partial output. Profiles and cold URL media acquisition remain planned.
+
+Source withdrawal/confirmed erasure withholds content reports, clears bound video
+text/caches and removes registered managed derivatives; external originals/exports
+are outside automatic erasure. Independently supplied originals do not inherit API
+counts or API permission. `social-dna-report` can re-export saved assisted reports
+without network or model work. Reports preserve sampled measurements, source text,
+model estimates and reviewed annotations as different evidence lanes.

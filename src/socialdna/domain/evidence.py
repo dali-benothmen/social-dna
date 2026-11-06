@@ -144,6 +144,12 @@ class StudyLocator(BaseModel):
     location: str
 
 
+class ContentLocator(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    kind: Literal["content_record"] = "content_record"
+    subject: EntityRef
+
+
 class ContextLocator(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
     kind: Literal["context_record"] = "context_record"
@@ -216,6 +222,7 @@ EvidenceLocator = Annotated[
     | AudienceLocator
     | BehavioralLocator
     | StudyLocator
+    | ContentLocator
     | ContextLocator
     | ResearchLocator
     | ImageLocator,

@@ -235,6 +235,7 @@ def restore_library(
                     "0016_experiments",
                     "0017_images",
                     "0018_workflows",
+                    "0019_content",
                 ):
                     raise StorageIntegrityError("Withdrawal authority has an unsupported schema")
                 obligations = (

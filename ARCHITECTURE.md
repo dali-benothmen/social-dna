@@ -1,13 +1,13 @@
 # SocialDNA architecture
 
-Revised: 2026-11-06. Implementation: **0.0.21**, database head **0018_workflows**. R1–R10, C1 and U1 remain completed within their documented bounds. U2 adds the [portable skill and report delivery](docs/portable-skill.md); live host behavioral checks remain a separate unexecuted gate. DX1 adds [source-only URL workflows](docs/source-workflows.md), with live source/host acceptance still open. Verification is recorded in [PLAN.md](PLAN.md). The approved [intelligence audit](docs/architecture-audit.md), [capability audit](docs/intelligence-capability-audit.md), [experiment/strategy](docs/registered-experiments.md), [bounded discovery](docs/bounded-discovery.md), [research memory](docs/research-memory.md), [versioned analytics](docs/versioned-analytics.md) and [psychological research](docs/psychological-research.md) contracts retain their scope.
+Revised: 2026-11-06. Implementation: **0.0.22**, database head **0019_content**. R1–R10, C1 and U1 remain completed within their documented bounds. U2 adds the [portable skill and report delivery](docs/portable-skill.md); live host behavioral checks remain a separate unexecuted gate. DX1 adds [source-only URL workflows](docs/source-workflows.md); DX2-A adds [assisted original-media analysis](docs/media-workflows.md), not cold URL-only media acquisition. Live source/host acceptance remains open. Verification is recorded in [PLAN.md](PLAN.md). The approved [intelligence audit](docs/architecture-audit.md), [capability audit](docs/intelligence-capability-audit.md), [experiment/strategy](docs/registered-experiments.md), [bounded discovery](docs/bounded-discovery.md), [research memory](docs/research-memory.md), [versioned analytics](docs/versioned-analytics.md) and [psychological research](docs/psychological-research.md) contracts retain their scope.
 
 The [implementation plan](PLAN.md) defines delivery and acceptance gates. Detailed contracts live in [research contracts](docs/research-contracts.md), [statistical design](docs/statistical-design.md), [migration strategy](docs/migration-strategy.md), and the [twelve-step cooking use case](docs/research-use-case.md). The [previous architecture](docs/history/ARCHITECTURE.pre-research-revision.md) is a historical record, not a competing specification. Architecture/plan line references inside the unchanged audit refer to those pre-revision documents.
 
 The [URL-first workflow design](docs/url-first-workflows.md) and §34 propose the
 missing intake/orchestration and **14-task-skill** experience, including profile
 audits and finished-video script reconstruction. Only the bounded DX1 ingest/report
-path is implemented; all other task bundles/scopes remain planned. Completed
+path and assisted analyze/content are implemented; other task bundles/scopes remain planned. Completed
 delivery records above retain their original verification/version boundaries.
 
 ## 1. Product and non-negotiable boundaries
@@ -1267,3 +1267,34 @@ returns JSON even for Markdown content; legacy report behavior is unchanged.
 Live API and real host behavior are separate open acceptance gates, not implied by
 synthetic HTTP, directory-layout or packaging tests. [Operations](docs/source-workflows.md)
 documents actual setup/limits; later milestones remain unstarted.
+
+### 34.6 Assisted original-media decisions (`0.0.22`)
+
+DX2-A ships the explicitly permitted assisted lane: a recognized post URL and
+independently authorized local files. It does not extend the native API grant to
+media downloads. Planning pins paths/hashes/analysis options; run verifies inputs,
+declares an independent source, binds ordered media, dispatches existing services
+and freezes cited reports. Defaults use no model, remote transfer, key or timer.
+Source and provider limitations remain visible; profile scope stays unsupported.
+
+`0019_content` adds immutable workflow/run and citation projections. A typed
+`ContentLocator` resolves `content_binding`, `content_run` and `content_report`
+through the existing canonical evidence/dependency guard. This avoids inventing an
+account for `ContextLocator` or treating descriptive analysis as psychology. Known
+platform post identity may be reused as a scalar association; API snapshot fields
+and counts are not copied into the independent provenance lane. Unknown account/time
+remain null. A local ordered-carousel manifest prevents cloning restricted API
+metadata into the U1 analyzer. Explicit replacement preserves link/report history.
+
+Video run IDs checkpoint before task execution; completed results and matching tasks
+reuse eligible caches. Saved JSON/Markdown loads verify frozen bytes and current
+eligibility. Existing erasure/restore machinery covers content records, bound text,
+legacy excerpts, reused producer results and artifacts. The confirmed journal alone
+temporarily lifts immutable excerpt guards for required redaction. No new indexing
+representation, embedding space, graph backend or scheduler is needed. Raw saved-plan
+hash verification preserves old plans when additive defaults are introduced.
+
+`social-dna-analyze` exports independently with the shared contract; content scope
+is implemented, profile scope is not. Installed distribution tests and fresh-process
+CLI tests are automated acceptance, not proof of actual host task selection or cold
+platform access. See [assisted media operations](docs/media-workflows.md).

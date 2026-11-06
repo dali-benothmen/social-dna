@@ -39,6 +39,18 @@ def generate(
 ) -> dict[str, Any]:
     if report_format not in {"json", "markdown"}:
         raise ConfigurationError("Workflow report format must be json or markdown")
+    content_ref = None
+    with application.database.transaction() as connection:
+        for item in repository.bindings(connection, identity):
+            if item["role"] == "report":
+                repo = EvidenceRepository(connection)
+                ref = repo.ref(repo.get("entity_revisions", item["revision_id"]))
+                if ref.kind == "content_report":
+                    content_ref = ref
+    if content_ref:
+        from socialdna.storage.content_repository import load
+
+        return {**load(application, content_ref, report_format), "workflow_id": identity}
     with application.database.transaction() as connection:
         _, plan = repository.get(connection, identity)
         bound = repository.bindings(connection, identity)

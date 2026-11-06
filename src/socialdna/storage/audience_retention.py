@@ -120,6 +120,9 @@ def preview(
                 "post_media_input",
                 "acquisition_capture",
                 "workflow_report",
+                "content_binding",
+                "content_run",
+                "content_report",
             )
             for r in entities
         )
@@ -154,8 +157,9 @@ def preview(
     citations: set[str] = set()
     analysis_ids: set[str] = set()
     runs: set[str] = set()
+    content_tasks: set[str] = set()
     while True:
-        prior = (len(affected), len(citations), len(analysis_ids))
+        prior = (len(affected), len(citations), len(analysis_ids), len(runs))
         citations.update(r["id"] for r in evidence if r["subject_revision_id"] in affected)
         needles = (
             comments
@@ -222,7 +226,10 @@ def preview(
         runs.update(
             connection.scalars(select(tasks.c.run_id).where(tasks.c.id.in_(source_tasks - {None})))
         )
-        if prior == (len(affected), len(citations), len(analysis_ids)):
+        from socialdna.storage.content_retention import expand
+
+        content_tasks.update(expand(connection, affected, runs, entities))
+        if prior == (len(affected), len(citations), len(analysis_ids), len(runs)):
             break
     source_ids = {r["source_id"] for r in entities if r["id"] in affected and r["source_id"]}
     if source_id:
@@ -238,7 +245,9 @@ def preview(
         )
     )
     refs = metadata.tables["artifact_references"]
-    owner_ids = affected | {r["entity_id"] for r in entities if r["id"] in affected} | runs
+    owner_ids = (
+        affected | {r["entity_id"] for r in entities if r["id"] in affected} | runs | content_tasks
+    )
     artifacts.update(
         connection.scalars(select(refs.c.artifact_id).where(refs.c.owner_id.in_(owner_ids)))
     )
@@ -332,11 +341,13 @@ def resume(database: Any, paths: DataPaths) -> None:
             from socialdna.storage.workflow_retention import scrub as scrub_workflows
 
             scrub_workflows(connection, items)
+            from socialdna.storage.content_retention import scrub as scrub_content
+
             triggers = list(
                 connection.exec_driver_sql(
                     "SELECT name,sql FROM sqlite_master WHERE type='trigger' AND "
                     "tbl_name IN ('entity_revisions','evidence_revisions',"
-                    "'audience_collection_members') "
+                    "'audience_collection_members','evidence_items') "
                     "AND upper(sql) LIKE '%BEFORE UPDATE%'"
                 ).all()
             )
@@ -344,6 +355,7 @@ def resume(database: Any, paths: DataPaths) -> None:
                 if not name.isidentifier():
                     raise StorageIntegrityError("Unexpected history trigger; redaction refused")
                 connection.exec_driver_sql(f'DROP TRIGGER "{name}"')
+            scrub_content(connection, items)
             document = {
                 "redacted": True,
                 "reason": "authorized audience erasure",

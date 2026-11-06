@@ -14,6 +14,7 @@ from socialdna.domain.evidence import (
     AudienceLocator,
     BehavioralLocator,
     CommentLocator,
+    ContentLocator,
     ContextLocator,
     CreativeEventLocator,
     EntityRef,
@@ -43,6 +44,9 @@ LEGACY_KINDS = {
     "ocr_box": ("ocr_boxes", "id"),
 }
 AUTHORED_KINDS = {
+    "content_binding",
+    "content_run",
+    "content_report",
     "acquisition_capture",
     "workflow_report",
     "image_analysis",
@@ -196,6 +200,10 @@ class EvidenceRepository:
             )
 
             validate_behavioral(self, ref, json.loads(row["payload_json"]))
+        if ref.kind in ("content_binding", "content_run", "content_report"):
+            from socialdna.storage.content_repository import validate_projection as content_check
+
+            content_check(self, ref, json.loads(row["payload_json"]))
         if ref.kind in ("image_analysis", "carousel_analysis", "post_media_input"):
             from socialdna.storage.image_repository import validate_projection as static_check
 
@@ -429,6 +437,7 @@ class EvidenceRepository:
         | AudienceLocator
         | BehavioralLocator
         | StudyLocator
+        | ContentLocator
         | ContextLocator
         | ResearchLocator
         | ImageLocator,

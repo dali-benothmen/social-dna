@@ -6,9 +6,11 @@ New product work: **DX1 is implemented within its source-only bounds; live sourc
 and real host acceptance remain open** in §20 and [operations](docs/source-workflows.md).
 The target remains 14 task skills. This release adds independently exportable ingest
 and saved-report skills to the existing `socialdna` bundle, not full creator research,
-profile auditing or audiovisual URL analysis. DX2 and later are not started.
+profile auditing or cold audiovisual URL acquisition. **DX2-A is implemented in the
+assisted URL-plus-authorized-original lane**; its cold URL-only media gate remains
+open. DX2-B is the next separately delivered change authorized by the current request.
 
-Runtime: package `0.0.21`, SQLite head `0018_workflows`. Released migrations `0001_foundation`–`0017_images` remain unchanged; U2 required no database migration. Legacy Milestones 0, 1, 3 and 4 are completed deliveries; their limitations remain visible. Legacy Milestones 2, 5 and 6 are **superseded, not completed**.
+Runtime: package `0.0.22`, SQLite head `0019_content`. Released migrations `0001_foundation`–`0018_workflows` remain unchanged; U2 required no database migration. Legacy Milestones 0, 1, 3 and 4 are completed deliveries; their limitations remain visible. Legacy Milestones 2, 5 and 6 are **superseded, not completed**.
 
 Authoritative design: [ARCHITECTURE.md](ARCHITECTURE.md), [research contracts](docs/research-contracts.md), [statistical design](docs/statistical-design.md), [migration strategy](docs/migration-strategy.md), and [reference use case](docs/research-use-case.md). The [audit](docs/architecture-audit.md) records the reasons for this revision; the [previous roadmap](docs/history/PLAN.pre-research-revision.md) is historical, not an alternative active plan.
 
@@ -30,7 +32,7 @@ Delivery rules:
 - Keep basic media/account analysis fast: do not register a research question, load a graph, index embeddings or invoke a reasoner merely to describe a video.
 - Missing data is not zero; absent detection under sparse sampling is not demonstrated absence; expressed intention is not behavior; association is not causation.
 - Every research result declares its population, availability, estimand, evidence version, uncertainty, alternatives and limitations. `insufficient_data`, rejected and inconclusive results are successful research outcomes when honestly supported.
-- Implementation changes require unit/integration/contract/end-to-end verification, migration/compatibility checks, documentation updates and a scoped working commit when authorized. The previous U1/U2 implementation authorization is fulfilled; the new DX track is planning-only until separately approved. Commit messages describe the engineering change without type prefixes or milestone labels.
+- Implementation changes require unit/integration/contract/end-to-end verification, migration/compatibility checks, documentation updates and a scoped working commit when authorized. DX1 and the current DX2-A/B request are approved; later DX deliveries remain planning-only until separately approved. Commit messages describe the engineering change without type prefixes or milestone labels.
 
 ## 2. Preserved implementation and historical deliveries
 
@@ -1148,8 +1150,8 @@ tool actions, citations and outcome; do not force other specialists into basic t
 
 | Delivery | Working result | Dependencies | Status |
 |---|---|---|---|
-| DX1 | One real post URL → permitted capture/import → source-qualified saved report; ingest/report skills | Existing U2/R1; source-policy feasibility gate | Proposed |
-| DX2-A | Permitted media-enriched post analysis; analyze content scope | DX1; existing video/U1/provider services | Proposed |
+| DX1 | One real post URL → permitted capture/import → source-qualified saved report; ingest/report skills | Existing U2/R1; source-policy feasibility gate | Implemented `0.0.21`; live source/host gates open |
+| DX2-A | Permitted media-enriched post analysis; analyze content scope | DX1; existing video/U1/provider services | Assisted lane implemented `0.0.22`; cold media/live host gates open |
 | DX2-B | Finished-video transcript and audiovisual-script reconstruction | DX2-A; actual text/media tracks and optional prepared providers | Proposed |
 | DX3-A | Owned/influencer profile URL → cited strengths/weaknesses audit; analyze profile scope | DX1; C1-D/U1; actual snapshot/photo access | Proposed |
 | DX3-B | Bounded account/question study and explicit incremental follow-up; account/research skills | DX1, DX3-A; DX2-A/B for media/script claims; existing account/C1/memory producers | Proposed |
@@ -1293,6 +1295,41 @@ cannot be substituted by recorded HTTP fixtures or directory-layout tests. If no
 run, report the remaining live gates explicitly; DX5 extends this to all claimed hosts.
 
 ### DX2-A — Real media-enriched URL analysis
+
+**Delivered scope (`0.0.22`):** [assisted media operations](docs/media-workflows.md).
+One recognized YouTube/Instagram/TikTok post URL plus declared authorized local
+originals dispatches real video, photo or ordered-carousel analysis without a key,
+network request or model download. Profile scope and cold URL-only acquisition
+remain unsupported. This is the explicitly permitted assisted alternative in the
+acceptance gate below, not a claim to have delivered three live media connectors.
+
+Added `content_workflow_service.py`, `domain/content.py`, `content_repository.py`,
+`content_retention.py` and migration `0019_content`, extending workflow modes/CLI,
+typed evidence resolution, erasure and independent skill export. Unknown owners and
+publication times are not invented. A local ordered-carousel proxy avoids copying
+native API account/publication fields into an independent media source. Conflicting
+bindings require explicit replacement; planned checksums pin files/subtitles.
+Run checkpoints survive interruption; frozen JSON/Markdown re-export without inference.
+Canonical content records/citations use `ContentLocator`, with actual run/workflow
+foreign keys and immutable projections; no new vector collection or graph backend.
+
+Automated acceptance is in `test_content_workflows.py`: decoded FFmpeg video and
+subtitles, measured image/duplicate/mixed carousel, cross-process Instagram/TikTok
+assisted CLI, hash/permission/conflict refusals, cold partials, interrupted resume,
+withdrawal/confirmed erasure, non-initializing dry-run, unknown owner/time and old-plan
+fingerprints. Skill export and installed wheel/sdist acceptance include analyze.
+Actual live URL-only media, prepared-model accuracy and real host conversations
+remain distinct open gates. Final executed test counts are recorded at handoff.
+
+**Executed verification:** 364 unit/contract tests passed; all 10 assisted-content
+integration cases passed (nine together plus the added API-source isolation case).
+The 50-case media/audience/memory regression partition passed after rerunning two
+checksum cases against the finalized migration. Migration/backup/native-workflow
+checks had 49 passes and one downgrade failure, fixed and rerun successfully;
+15 focused migration/skill cases and three latest-head/downgrade cases passed.
+Ruff, formatting, mypy, both distribution builds and isolated offline wheel/sdist
+source/media/skill acceptance passed. The exported analyze bundle passed the skill
+structural validator. No live source, model download or host conversation was run.
 
 **Implement:** bind resolved post IDs to permitted acquired assets or independently
 supplied originals; dispatch video/image/ordered-carousel through existing services;

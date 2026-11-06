@@ -83,7 +83,7 @@ def portable_smoke(base: list[str], python: Path, isolated: Path, bundle_source:
             (destination / name).read_bytes() != content for name, content in expected.items()
         ):
             raise RuntimeError("Installed skill differs from the complete source bundle")
-        for task in ("social-dna-ingest", "social-dna-report"):
+        for task in ("social-dna-ingest", "social-dna-report", "social-dna-analyze"):
             target = parent / task
             manifest = json.loads(
                 run([*base, "skill", "export", str(target), "--name", task], cwd=isolated)
@@ -563,6 +563,16 @@ def main() -> None:
                         str(python),
                         str(root / "scripts/source_workflow_smoke.py"),
                         str(isolated / "synthetic-source-data"),
+                    ],
+                    cwd=isolated,
+                ).strip()
+            )
+            print(
+                run(
+                    [
+                        str(python),
+                        str(root / "scripts/media_workflow_smoke.py"),
+                        str(isolated / "supplied-media-data"),
                     ],
                     cwd=isolated,
                 ).strip()

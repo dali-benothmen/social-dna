@@ -11,6 +11,7 @@ from socialdna.application.bootstrap import open_application
 from socialdna.cli.common import ConfigFile, DataDir, Format, execute
 from socialdna.config.settings import Settings
 from socialdna.core.exceptions import ConfigurationError
+from socialdna.domain.media import AnalysisOptions
 from socialdna.domain.workflows import WorkflowRequest
 from socialdna.reporting.export import export_report
 
@@ -28,6 +29,17 @@ def register(app: typer.Typer) -> None:
         goal: str = "Capture the source's native public metadata.",
         question_scope: str = "unassessed",
         max_attempts: int = 3,
+        scope: str = "content",
+        media: Annotated[list[Path] | None, typer.Option("--media")] = None,
+        permission_basis: str | None = None,
+        copy_media: bool = False,
+        replace_media: bool = False,
+        subtitles: Path | None = None,
+        depth: str = "standard",
+        max_frames: int = 120,
+        transcribe: bool = False,
+        ocr: bool = False,
+        align: bool = False,
         dry_run: bool = False,
         data_dir: DataDir = None,
         config: ConfigFile = None,
@@ -43,12 +55,30 @@ def register(app: typer.Typer) -> None:
                     "goal": goal,
                     "question_scope": question_scope,
                     "max_attempts": max_attempts,
+                    "scope": scope,
+                    "media": tuple(str(path) for path in (media or [])),
+                    "permission_basis": permission_basis,
+                    "copy_media": copy_media,
+                    "replace_media": replace_media,
+                    "subtitles": str(subtitles) if subtitles else None,
+                    "analysis_options": AnalysisOptions.model_validate(
+                        {
+                            "no_ai": bool((ctx.find_root().obj or {}).get("no_ai"))
+                            or not (transcribe or ocr or align),
+                            "depth": depth,
+                            "max_frames": max_frames,
+                            "transcribe": transcribe,
+                            "ocr": ocr,
+                            "align": align,
+                        }
+                    ),
                 }
             )
         except ValidationError:
             raise ConfigurationError(
                 "Invalid workflow request: ingest needs --url; report needs --from. "
-                "Other task modes are planned. See skill schema workflow_request."
+                "Analyze needs a post URL and declared permission for supplied originals. "
+                "See skill schema workflow_request."
             ) from None
         execute(
             ctx,

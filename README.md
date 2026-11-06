@@ -1,10 +1,14 @@
 # SocialDNA
 
 SocialDNA is a local-first social-media research engine. The implemented release is
-`0.0.21`: [bounded source-only URL workflows](docs/source-workflows.md), independently
+`0.0.22`: [assisted post-media analysis](docs/media-workflows.md), independently
+exportable `social-dna-analyze` (content scope), URL-plus-authorized-original video,
+photo and carousel workflows, and source-gated saved reports. No cold URL-only
+media downloader or profile audit ships. It extends `0.0.21`'s
+[bounded source-only URL workflows](docs/source-workflows.md), independently
 exportable ingest/report skills, official one-post YouTube native metadata capture,
 durable attempts/citations and retention-gated frozen reports. Live source/host
-acceptance remains open; no audiovisual URL analysis or account enumeration ships.
+acceptance remains open; no account enumeration ships.
 It extends `0.0.20`'s [portable Codex/Claude Code/OpenCode skill](docs/portable-skill.md),
 non-initializing capability preflight, engine-generated JSON schemas and explicit
 non-overwriting JSON/Markdown report exports. It extends `0.0.19`'s dedicated

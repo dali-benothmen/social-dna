@@ -29,8 +29,9 @@ def get(connection: Connection, identity: str) -> tuple[dict[str, Any], Workflow
     if row is None:
         raise ConfigurationError("Unknown workflow identity; use the ID returned by workflow plan.")
     plan = WorkflowPlan.model_validate_json(row["plan_json"])
-    if hash_config(plan.model_dump(mode="json")) != row["plan_hash"] or (
-        json.loads(row["request_json"]) != plan.request.model_dump(mode="json")
+    stored = json.loads(row["plan_json"])
+    if hash_config(stored) != row["plan_hash"] or (
+        json.loads(row["request_json"]) != stored["request"]
     ):
         raise StorageIntegrityError("Stored workflow request/plan fingerprint mismatch")
     return dict(row), plan

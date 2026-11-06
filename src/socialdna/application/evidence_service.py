@@ -15,6 +15,7 @@ from socialdna.domain.evidence import (
     AudienceLocator,
     BehavioralLocator,
     CommentLocator,
+    ContentLocator,
     ContextLocator,
     CreativeEventLocator,
     EntityRef,
@@ -303,12 +304,14 @@ class EvidenceResolver:
                 )
             except ConfigurationError as exc:
                 limitations.append("Derived analysis input is ineligible: " + str(exc))
-        if isinstance(locator, ImageLocator):
+        if isinstance(locator, (ImageLocator, ContentLocator)):
             from socialdna.memory.documents import entity_active as active_static_input
 
             document = json.loads(entities[0]["payload_json"])
-            if locator.artifact_id and is_redacted(
-                self.connection, "artifact", locator.artifact_id
+            if (
+                isinstance(locator, ImageLocator)
+                and locator.artifact_id
+                and is_redacted(self.connection, "artifact", locator.artifact_id)
             ):
                 limitations.append("Static image derivative was erased")
             for raw in document.get("entity_inputs", []):
@@ -494,11 +497,12 @@ class EvidenceResolver:
         | AudienceLocator
         | BehavioralLocator
         | StudyLocator
+        | ContentLocator
         | ContextLocator
         | ResearchLocator
         | ImageLocator,
     ) -> None:
-        counts = {}
+        counts: dict[str, Any] = {}
         for name in (
             "legacy_media_evidence_bindings",
             "comment_evidence_bindings",
@@ -513,7 +517,14 @@ class EvidenceResolver:
             "research_evidence_bindings",
             "context_evidence_bindings",
             "static_evidence_bindings",
+            "content_evidence_bindings",
         ):
+            if name == "content_evidence_bindings":
+                from sqlalchemy import inspect
+
+                if not inspect(self.connection).has_table(name):
+                    counts[name] = None
+                    continue
             table = metadata.tables[name]
             counts[name] = (
                 self.connection.execute(
@@ -525,7 +536,17 @@ class EvidenceResolver:
         if sum(value is not None for value in counts.values()) != 1:
             raise StorageIntegrityError("Evidence requires exactly one typed locator binding")
         subject = json.loads(self.repository.entity(locator.subject)["payload_json"])
-        if isinstance(locator, ImageLocator):
+        if isinstance(locator, ContentLocator):
+            from socialdna.storage.content_repository import KINDS as CONTENT_KINDS
+
+            binding = counts["content_evidence_bindings"]
+            if (
+                not binding
+                or locator.subject.kind not in CONTENT_KINDS
+                or (binding["subject_revision_id"] != locator.subject.revision_id)
+            ):
+                raise StorageIntegrityError("Content citation binding mismatch")
+        elif isinstance(locator, ImageLocator):
             from socialdna.storage.image_repository import locator as expected_static_locator
 
             binding = counts["static_evidence_bindings"]
