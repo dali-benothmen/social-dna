@@ -8,6 +8,7 @@ when build tooling is isolated outside PATH.
 import argparse
 import hashlib
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -18,12 +19,119 @@ from pathlib import Path
 
 
 def run(arguments: list[str], *, cwd: Path) -> str:
-    result = subprocess.run(arguments, cwd=cwd, capture_output=True, text=True, timeout=120)
+    result = subprocess.run(
+        arguments,
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=120,
+        env={**os.environ, "PYTHONUTF8": "1"},
+    )
     if result.returncode != 0:
         raise RuntimeError(
             f"Command failed ({result.returncode}): {arguments}\n{result.stdout}\n{result.stderr}"
         )
     return result.stdout
+
+
+def portable_smoke(base: list[str], python: Path, isolated: Path, bundle_source: Path) -> None:
+    """Export actual installed bundle to all host layouts and retain usable reports."""
+    preflight = json.loads(
+        run(
+            [
+                base[0],
+                "--data-dir",
+                str(isolated / "unused"),
+                "--offline",
+                "--no-ai",
+                "--format",
+                "json",
+                "capabilities",
+            ],
+            cwd=isolated,
+        )
+    )["data"]
+    if (isolated / "unused").exists() or preflight["policy"]["library_opened"]:
+        raise RuntimeError("Installed capability preflight initialized a library")
+    if "site-packages" not in run(
+        [
+            str(python),
+            "-c",
+            "from socialdna.application.skill_service import bundle_path; print(bundle_path())",
+        ],
+        cwd=isolated,
+    ):
+        raise RuntimeError("Installed skill bundle fell back to checkout files")
+    for host in (".agents", ".claude", ".opencode"):
+        parent = isolated / "project with spaces" / host / "skills"
+        parent.mkdir(parents=True)
+        destination = parent / "socialdna"
+        exported = json.loads(run([*base, "skill", "export", str(destination)], cwd=isolated))[
+            "data"
+        ]
+        if not {"SKILL.md", "references/core.md", "references/interface.md"} <= set(
+            exported["files"]
+        ):
+            raise RuntimeError("Installed exported skill is missing supporting resources")
+        expected = {
+            path.relative_to(bundle_source).as_posix(): path.read_bytes()
+            for path in bundle_source.rglob("*")
+            if path.is_file()
+        }
+        if set(exported["files"]) != set(expected) or any(
+            (destination / name).read_bytes() != content for name, content in expected.items()
+        ):
+            raise RuntimeError("Installed skill differs from the complete source bundle")
+    contract = json.loads(run([*base, "skill", "schema", "result"], cwd=isolated))["data"]
+    if contract["schema"]["properties"]["schema_version"]["const"] != "1.0":
+        raise RuntimeError("Installed result schema diverged")
+    photo = isolated / "a photo.png"
+    run(
+        [
+            str(python),
+            "-c",
+            "from PIL import Image; import sys; "
+            "Image.new('RGB', (80, 60), 'orange').save(sys.argv[1])",
+            str(photo),
+        ],
+        cwd=isolated,
+    )
+    analysis = json.loads(run([*base, "--no-ai", "analyze", "image", str(photo)], cwd=isolated))[
+        "data"
+    ]
+    saved = isolated / "a report.json"
+    report = json.loads(
+        run(
+            [*base, "report", "generate", "--run", analysis["run_id"], "--output", str(saved)],
+            cwd=isolated,
+        )
+    )["data"]
+    if json.loads(saved.read_text(encoding="utf-8")) != report["content"]:
+        raise RuntimeError("Installed JSON export differs from the canonical report")
+    saved_md = isolated / "a report.md"
+    markdown = run(
+        [
+            *base,
+            "report",
+            "generate",
+            "--run",
+            analysis["run_id"],
+            "--format",
+            "markdown",
+            "--output",
+            str(saved_md),
+        ],
+        cwd=isolated,
+    )
+    if markdown != saved_md.read_text(encoding="utf-8") or not markdown.startswith("# Image"):
+        raise RuntimeError("Installed Markdown export lost its readable document")
+    evidence = report["content"]["evidence"]
+    resolved = json.loads(
+        run([*base, "evidence", "resolve", evidence["id"], "--purpose", "new_claim"], cwd=isolated)
+    )["data"]
+    if not resolved["eligible"] or resolved["locator_kind"] != "image_record":
+        raise RuntimeError("Installed static report lost its exact citation")
 
 
 def audience_smoke(base: list[str], isolated: Path, post_ids: list[str]) -> None:
@@ -414,6 +522,11 @@ def main() -> None:
                 "--format",
                 "json",
             ]
+            portable_smoke(base, python, isolated, root / "skills" / "socialdna")
+            print(
+                f"PASS: {distribution.name} portable skill exports, schemas, "
+                "static reports and citations"
+            )
             imported = json.loads(run([*base, "import", "json", str(export)], cwd=isolated))
             account_id = imported["data"]["account_ids"][0]
             audience_posts = imported["data"]["post_ids"]

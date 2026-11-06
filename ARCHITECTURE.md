@@ -1,6 +1,6 @@
 # SocialDNA architecture
 
-Revised: 2026-11-06. Implementation: **0.0.19**, database head **0017_images**. R1–R10 and C1 are completed and verified within their documented bounds; U1 adds [static image and ordered carousel workflows](docs/image-analysis.md), with verification recorded in [PLAN.md](PLAN.md). **U2 remains planned**. The architecture incorporates the approved [intelligence audit](docs/architecture-audit.md) and [production and growth capability audit](docs/intelligence-capability-audit.md). Actual [experiment/strategy](docs/registered-experiments.md) and [bounded discovery](docs/bounded-discovery.md) commands and limits supplement existing [research memory](docs/research-memory.md), [versioned analytics](docs/versioned-analytics.md) and [psychological research](docs/psychological-research.md) contracts.
+Revised: 2026-11-06. Implementation: **0.0.20**, database head **0017_images**. R1–R10, C1 and U1 remain completed within their documented bounds. U2 adds the [portable skill and report delivery](docs/portable-skill.md); live host behavioral checks remain a separate unexecuted gate. Verification is recorded in [PLAN.md](PLAN.md). The approved [intelligence audit](docs/architecture-audit.md), [capability audit](docs/intelligence-capability-audit.md), [experiment/strategy](docs/registered-experiments.md), [bounded discovery](docs/bounded-discovery.md), [research memory](docs/research-memory.md), [versioned analytics](docs/versioned-analytics.md) and [psychological research](docs/psychological-research.md) contracts retain their scope.
 
 The [implementation plan](PLAN.md) defines delivery and acceptance gates. Detailed contracts live in [research contracts](docs/research-contracts.md), [statistical design](docs/statistical-design.md), [migration strategy](docs/migration-strategy.md), and the [twelve-step cooking use case](docs/research-use-case.md). The [previous architecture](docs/history/ARCHITECTURE.pre-research-revision.md) is a historical record, not a competing specification. Architecture/plan line references inside the unchanged audit refer to those pre-revision documents.
 
@@ -48,7 +48,7 @@ All paths below are relative to `src/socialdna/`. A proposed filename is a respo
 | Add canonical producers | Proposed creative-event, audience and behavioral service/domain modules; `analytics/{designs,features}.py`, `research/discovery.py` | Introduce in R2–R5/R9 with real imports, writers, readers and tests. Reuse existing media/analytics services. |
 | Add derived memory | Proposed `memory/{lexical,vector_sync,graph,hybrid}.py`, `providers/embeddings.py`, `application/query_service.py` | R6 SQL/FTS + Qdrant outbox + bounded NetworkX projection, never application-owned hidden facts. |
 
-The portable skill remains U2. U1's bounded static analysis is documented in §32;
+The portable skill is delivered in U2 (§33). U1's bounded static analysis is documented in §32;
 it does not imply general automatic visual interpretation or scientific validity.
 
 ### 2.3 Four additional capability areas
@@ -323,7 +323,7 @@ Storage verification checks dangling refs, hashes, projection generations, missi
 
 ## 10. Agent skill, commands and reports
 
-Keep current CLI commands and result envelopes. R1's evidence/registration/report and backup/restore commands are implemented as documented in [R1 operations](docs/research-foundation.md). Later-milestone names below remain **proposed**, not installed commands.
+Keep current CLI commands and result envelopes. R1's evidence/registration/report and backup/restore commands are documented in [R1 operations](docs/research-foundation.md). Delivered surfaces below remain bounded by their individual operations guides; the U2 command inventory is checked against the actual CLI.
 
 | Workflow | Engine surface / milestone |
 |---|---|
@@ -334,14 +334,14 @@ Keep current CLI commands and result envelopes. R1's evidence/registration/repor
 | Retrieve / maintain memory | `query`, `graph neighbors\|path`, bounded `storage reconcile\|reindex` adapters — R6 |
 | Evaluate / revise | `research evaluate\|reevaluate\|history` — R7/R8 |
 | Discover / experiment | Explicit bounded discovery and experiment register/outcome adapters — R9/R10 |
-| Production / growth context | Versioned craft/context/platform-document/profile imports and evidence-backed summaries — C1, planned; exact commands fixed at each slice's delivery |
-| Photos / skill | Photo/carousel import-analysis adapters — U1; portable skill instructions and host smoke tests — U2 |
+| Production / growth context | Reviewed craft/context/platform/profile imports and qualified summaries — delivered C1 |
+| Photos / skill | Delivered `analyze image\|carousel`; U2 `capabilities`, `skill export\|schema`, report `--output`; live host behavior remains separately unverified |
 
-A future portable `SKILL.md` describes capability discovery, consent, budgets, choosing analysis mode, calling the CLI, resolving evidence, reporting limitations, and when to request better data. Keep host-specific wrappers minimal. Use the [Agent Skills format](https://agentskills.io/specification); validate actual invocation behavior separately on Codex, Claude Code and OpenCode. Format compatibility is not proof of identical host behavior.
+The delivered [portable skill](skills/socialdna/SKILL.md) routes to focused core/research/interface/setup references. Host differences are discovery paths and invocation guidance only. Validate actual live behavior separately: format compatibility, directory-layout tests and installed CLI execution are not proof of identical agent behavior.
 
 Reports distinguish source-backed observations, mechanism hypotheses/rivals, scoped associations and permitted causal findings. Show missing modalities/data, collection coverage, comparison population, definitions/windows, effect uncertainty, counterexamples and claim limitations. A single-video report remains short and useful; research detail is linked/expandable rather than mandatory in every report.
 
-Future recommendations are original experiment briefs tied to uncertainty, not promises of increased reach or copied creator scripts. Any posting, external messaging, account mutation, remote upload or experiment execution needs separately scoped authority.
+R10 recommendations are structured, evidence-qualified proposals tied to uncertainty, not promises of increased reach or copied creator scripts. Any posting, external messaging, account mutation, remote upload or experiment execution needs separately scoped authority; U2 grants none of those actions.
 
 ## 11. Reference research flow
 
@@ -989,3 +989,42 @@ documented in [operations](docs/registered-experiments.md).
 U1 supplies descriptive visual evidence and review prompts, not automatic expert
 craft/brand interpretation, identified effects or a portable agent skill. U2 and
 independent model/empirical validation remain separate. See [operations](docs/image-analysis.md).
+
+## 33. Portable host orchestration and usable report exports (`0.0.20`)
+
+U2 adds a single [skill bundle](skills/socialdna/SKILL.md), not a second engine or
+host-specific service. Its [operations guide](docs/portable-skill.md) records host
+discovery sources, installation, permissions and separate verification gates.
+
+1. **Instruction/data boundary.** Small host-neutral instructions route to focused
+   references. Imported text/model output is untrusted evidence, not shell code.
+   Hosts use actual engine IDs, exact schemas and evidence eligibility, preserve
+   counterevidence, and keep agent commentary distinct from measured findings.
+2. **Preflight without library initialization.** `capabilities` reads PATH/settings,
+   prepared asset checksums and installed runtime metadata, not SQLite or indexes.
+   Optional-model failures are isolated. Four growth domains and research, reactions,
+   behavior, deterministic media and optional providers have separate entries.
+   States distinguish interfaces, optional preparation, missing prerequisites and
+   future functionality; neither native inference nor scientific validity is implied.
+   Semantic space bindings/coverage and endpoint reachability remain explicit limits.
+3. **One portable distribution.** `application/skill_service.py` exports the same
+   wheel-bundled source to an explicit new directory, refusing existing targets.
+   `skill schema` derives contracts from engine models instead of duplicated JSON.
+   Setup does not change host settings, install dependencies or grant permissions.
+   Thin path/invocation guidance follows official Codex/Claude Code/OpenCode docs.
+4. **Reports remain evidence artifacts.** Existing report generation and JSON/escaped
+   Markdown renderers remain authoritative. `report generate --output` exports a
+   new UTF-8 document, never overwrites, and preserves partial/error contracts.
+   Local asset links remain local. Export copies are outside managed erasure and
+   require eligibility checks before reuse. HTML is deferred because no separate
+   tested consumer justifies another renderer.
+5. **No schema or statistical redesign.** Database head stays `0017_images`;
+   released migrations, report/envelope schemas and numerical methods are unchanged.
+   Additive capability schema 1.0 is runtime metadata, not a new canonical entity.
+   Frozen `0.0.19` statistical runs retain explicit compatible reproduction.
+6. **Verification boundaries.** Contract tests validate references, command routes,
+   flags, exit codes and generated schemas. Subprocess tests exercise all three host
+   directory layouts and offline partial/cited/report workflows. Wheel/sdist smoke
+   tests exercise installed resources without checkout fallback. None proves a live
+   agent conversation, host tool-choice behavior, model accuracy or empirical validity;
+   those gates are separately recorded rather than silently promoted to passing.

@@ -1,7 +1,10 @@
 # SocialDNA
 
 SocialDNA is a local-first social-media research engine. The implemented release is
-`0.0.19`: dedicated static-image and ordered-carousel analysis, exact asset/region
+`0.0.20`: a [portable Codex/Claude Code/OpenCode skill](docs/portable-skill.md),
+non-initializing capability preflight, engine-generated JSON schemas and explicit
+non-overwriting JSON/Markdown report exports. It extends `0.0.19`'s dedicated
+static-image and ordered-carousel analysis, exact asset/region
 citations, optional prepared OCR, cached/restartable reports and bounded account media
 batches. See [photos and carousels](docs/image-analysis.md). It extends
 `0.0.18`'s prospective registered experiments, actual authorized outcomes, conditional

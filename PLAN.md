@@ -1,8 +1,8 @@
 # SocialDNA implementation plan
 
-Revised: 2026-11-06. Scope: R1–R10, all four C1 deliveries and U1 are completed and verified within their documented bounds (§14/§15 record the latest verification). Prepared-real-model acceptance remains opt-in; no supplied weights were downloaded or inferred.
+Revised: 2026-11-06. Scope: R1–R10, all four C1 deliveries and U1 remain completed within their documented bounds. U2's portable skill/report implementation is delivered; verification is recorded in §16. Live host behavioral checks and prepared-real-model acceptance remain separate opt-in gates; no weights were downloaded or inferred.
 
-Runtime: package `0.0.19`, SQLite head `0017_images`. Released migrations `0001_foundation`–`0016_experiments` remain unchanged. Legacy Milestones 0, 1, 3 and 4 are completed deliveries; their limitations remain visible. Legacy Milestones 2, 5 and 6 are **superseded, not completed**. **U2 remains planned and unimplemented**.
+Runtime: package `0.0.20`, SQLite head `0017_images`. Released migrations `0001_foundation`–`0017_images` remain unchanged; U2 requires no database migration. Legacy Milestones 0, 1, 3 and 4 are completed deliveries; their limitations remain visible. Legacy Milestones 2, 5 and 6 are **superseded, not completed**.
 
 Authoritative design: [ARCHITECTURE.md](ARCHITECTURE.md), [research contracts](docs/research-contracts.md), [statistical design](docs/statistical-design.md), [migration strategy](docs/migration-strategy.md), and [reference use case](docs/research-use-case.md). The [audit](docs/architecture-audit.md) records the reasons for this revision; the [previous roadmap](docs/history/PLAN.pre-research-revision.md) is historical, not an alternative active plan.
 
@@ -55,7 +55,7 @@ M4 delivered its scoped implementation, but its retrospective baseline, same-cre
 | R9 | Bounded nonlinear, cross-creator and cross-niche discovery, including delivered C1 dimensions | R2, R3, R6–R8; respective C1 slice for a new domain branch | Completed and verified, `0.0.17` |
 | R10 | Registered experiment outcomes and evidence-qualified creative/distribution/publishing/profile recommendations | R7–R9; respective C1 slice for a new domain branch | Completed and verified, `0.0.18` |
 | U1 | Individual photo/carousel analysis reusing existing media contracts | R1 | Completed and verified, `0.0.19` |
-| U2 | Portable Codex/Claude Code/OpenCode skill and usable reports | U1, R2; capability-gated integration with later R milestones | Planned, parallel usability track |
+| U2 | Portable Codex/Claude Code/OpenCode skill and usable reports | U1, R2; capability-gated integration with later R milestones | Delivered `0.0.20`; live host behavior separately unverified (§16) |
 
 Audience comments and behavioral metrics are split into R4/R5 because sampling/semantic annotation and metric time-series validity are different testable products. Memory follows canonical producers and revision contracts, rather than freezing the current media-only evidence model. A small literature corpus, hypothesis registration and experiment proposal appear in R7; general discovery and experiment-outcome analysis wait for R9/R10. U1/U2 prevent research infrastructure from postponing ordinary creator workflows.
 
@@ -813,7 +813,7 @@ this delivery. Existing video/analytics/research contracts are preserved.
 
 ## 16. U2 — Portable skill, reporting and product hardening
 
-Status: **planned, unimplemented; core package after U1/R2, with later capability-gated updates**.
+Status: **delivered in `0.0.20`, no schema migration**. See [portable skill operations](docs/portable-skill.md). Live host behavioral smoke checks remain unexecuted, not inferred from CLI or structural tests.
 
 ### Objective
 
@@ -843,6 +843,70 @@ Skill link/reference/command contract validation; capability-gated workflow fixt
 
 Follow a host-neutral skill workflow to analyze a local video/photo/account export, compare creators under R2 rules and produce a cited report. In a research-ready installation, invoke the cooking workflow and show hypothesis history; in a core-only installation, explain the unavailable capability precisely and stop that branch.
 
+### Delivered implementation and integration
+
+- `skills/socialdna/SKILL.md` and focused setup/core/research/interface references,
+  plus a tested command/exit-code inventory. Skill-creator guidance kept shared
+  constraints short and host differences limited to discovery/invocation. Official
+  host conventions were verified at delivery, including OpenCode 1 and 2.
+- `domain/capabilities.py`, `application/capability_service.py` and
+  `cli/skill_commands.py`: non-initializing, no-inference/no-network preflight;
+  available/unavailable/planned/optional-prepared states, per-domain coverage,
+  configured resource ceilings and precise source/model/policy prerequisites.
+  Optional missing/corrupt models do not disable deterministic work. Prepared
+  metadata is not native-model verification or corpus/evidence sufficiency.
+- `application/skill_service.py`: engine-generated schemas and non-overwriting
+  exports of the same bundled skill into an explicit new host directory. Wheel
+  and sdist include supporting resources; no source checkout or host SDK required.
+- `reporting/export.py` and `cli/app.py`: explicit UTF-8 `report generate --output`,
+  preserving JSON envelopes, raw escaped Markdown, partial status/exit 5 and exact
+  canonical citations. Existing files/symlinks are refused. Exported copies remain
+  outside managed retention and must not be reused after withdrawal without checks.
+  HTML is deliberately unimplemented: JSON/Markdown have real tested consumers.
+- `scripts/check_distribution.py`, packaging and CI validate actual installed
+  bundles and report workflows. The existing three-OS/two-Python matrix is retained
+  with UTF-8 and bounded BLAS threads. Statistical methods remain unchanged;
+  `0.0.19` frozen comparisons are explicitly included in compatible reproduction.
+- Existing deterministic video, R2 comparisons and R7/R8 cooking/history tests
+  remain the engine integrations, not reimplemented host logic. A core-only install
+  includes reviewed research interfaces but no invented prepared semantics; absent
+  inputs still withhold conclusions. No platform action or experiment is executed.
+
+### Verification record
+
+Locally verified on Linux/Python 3.11:
+
+- **608 collected: 605 passed / 3 prepared-real-model skips**. Four disjoint
+  regression groups produced 370, 68, 73 and 91 passes (the last also had the three
+  skips). Three subsequently added cases passed separately: cross-creator CLI
+  reporting, prior-release reproduction and bundled-export dry-run. Overlapping
+  targeted reruns are not counted twice.
+- New automated coverage is in `tests/unit/test_capabilities.py`,
+  `tests/unit/test_report_export.py`, `tests/unit/test_skill_export.py`,
+  `tests/contract/test_skill_contract.py` and
+  `tests/end_to_end/test_portable_skill.py`. It covers policy/secret-safe failures,
+  bundle links/routes/options/schemas, non-overwrite behavior, three host directory
+  layouts, no-FFmpeg/no-model work, partial reports, exact citations, UTF-8/Markdown
+  escaping, two-creator comparisons and cross-process schema-2.0 reproduction.
+  `tests/integration/test_versioned_analytics.py` explicitly verifies both frozen
+  statistical methods remain reproducible from `0.0.19`.
+- Ruff lint and formatting passed (309 Python files); strict mypy passed across
+  195 source modules; skill-creator structural validation and `git diff --check`
+  passed. Offline lock consistency checked all 194 pinned packages; wheel/sdist
+  builds passed. Both isolated offline wheel and sdist smokes passed: all three
+  host-layout exports matched the complete eight-resource bundle, and static/video,
+  account/versioned comparisons, creative, behavioral, audience, citations, report
+  restart, persistent memory and erasure workflows succeeded. All 195 source modules
+  were present in the wheel. These are engine/packaging checks, not live host chats.
+
+CI configuration is not a claim of observed macOS/Windows or Python 3.13 runs.
+
+Read-only CLI version checks found Codex `0.162.0-alpha.17.2`, Claude Code `2.1.296`
+and OpenCode `1.19.0`. No live agent conversation, real host configuration mutation,
+model download or remote request was performed. Live host behavioral acceptance,
+prepared-real-model quality and empirical scientific validity remain open gates,
+not implied by skill validation. See the operations guide for a future live-smoke protocol.
+
 ## 17. Release and verification gates
 
 The old `v0.1`–`v0.4` milestone labels are withdrawn planning gates, not promised releases. R1 advances the package to `0.0.5` with additive migration `0005_evidence`, preserving released migrations and old data/report identities. Each implementation sets its package/specification/migration versions deliberately; an R ID is not a schema revision number.
@@ -866,7 +930,7 @@ Official platform adapters are optional, permission-aware additions after export
 
 Data-access, self-selected comments, small creator/niche counts, paid distribution, unavailable historical covariates, measurement error and hidden confounding can make a question unanswerable. More embeddings, larger reasoners or more posts from the same few creators do not remove these limits. A psychological mechanism remains a hypothesis unless a justified measurement/experimental identification supports it; randomized creative effects alone do not establish mediation.
 
-R1–R10 and C1 have their own bounded delivery records above/below. U1/U2 require
+R1–R10, C1 and U1/U2 have bounded delivery records above/below. Future work requires
 separate authorization; no next milestone starts automatically.
 
 ## 19. C1 — Versioned production and growth-context evidence

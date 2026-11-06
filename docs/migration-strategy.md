@@ -1,6 +1,6 @@
 # Migration, compatibility and retention strategy
 
-Status (`0.0.19` / `0017_images`, 2026-11-06): R1–R10, C1 and U1 have canonical producers; U2 remains planned. Released migrations `0001`–`0016` remain unchanged. Static media adds three FK-backed projections and extends the universal evidence CHECK through the existing atomic rebuild. See [static image/carousel evidence](image-analysis.md), [architecture](../ARCHITECTURE.md), [roadmap](../PLAN.md) and [research contracts](research-contracts.md). Existing experiment/research schemas retain their semantics.
+Status (`0.0.20` / `0017_images`, 2026-11-06): R1–R10, C1 and U1 have canonical producers; U2 adds portable skill/report compatibility without a new migration. Released migrations `0001`–`0017` remain unchanged. Static media's three FK-backed projections and universal evidence CHECK retain their semantics. See [portable skill/report delivery](portable-skill.md), [static media](image-analysis.md), [architecture](../ARCHITECTURE.md), [roadmap](../PLAN.md) and [research contracts](research-contracts.md). Existing experiment/research schemas are unchanged.
 
 ## 1. Compatibility contract
 

@@ -22,6 +22,7 @@ from socialdna.cli.platform_commands import register as register_platform_comman
 from socialdna.cli.profile_commands import register as register_profile_commands
 from socialdna.cli.recommendation_commands import register as register_recommendations
 from socialdna.cli.research_commands import register as register_research_commands
+from socialdna.cli.skill_commands import register as register_skill_commands
 from socialdna.config.settings import Settings
 from socialdna.core.enums import ExitCode
 from socialdna.core.exceptions import ConfigurationError, SocialDNAError
@@ -51,6 +52,7 @@ app.add_typer(compare_app, name="compare")
 register_experiments(app)
 register_recommendations(app)
 register_images(analysis)
+register_skill_commands(app)
 
 
 @app.callback()
@@ -362,12 +364,16 @@ def report_command(
     run: Annotated[str | None, typer.Option()] = None,
     account: Annotated[str | None, typer.Option()] = None,
     report_format: Annotated[str, typer.Option("--format")] = "json",
+    output: Annotated[
+        Path | None, typer.Option(help="Save report content to a new UTF-8 file.")
+    ] = None,
     data_dir: DataDir = None,
     config: ConfigFile = None,
 ) -> None:
-    """Emit a JSON report envelope or raw Markdown; persist the generated report artifact."""
+    """Emit JSON or raw Markdown; optionally export content without overwriting files."""
     from socialdna.application.bootstrap import open_application
     from socialdna.application.report_service import generate_report
+    from socialdna.reporting.export import export_report
 
     if bool(run) == bool(account):
         raise ConfigurationError("Supply exactly one of --run or --account.")
@@ -377,7 +383,10 @@ def report_command(
 
         def operation(settings: Settings) -> dict[str, Any]:
             with open_application(settings) as application:
-                return generate_report(application, run, "json", account_id=account)
+                result = generate_report(application, run, "json", account_id=account)
+                if output is not None:
+                    result["export_path"] = export_report(result, output)
+                return result
 
         execute(ctx, "report.generate", operation, data_dir, config, "json")
     else:
@@ -388,6 +397,8 @@ def report_command(
         )
         with open_application(settings) as application:
             result = generate_report(application, run, "markdown", account_id=account)
+            if output is not None:
+                export_report(result, output)
         typer.echo(result["content"], nl=False)
         if result["status"] == "partial":
             raise typer.Exit(ExitCode.PARTIAL)

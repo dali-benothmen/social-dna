@@ -1,6 +1,6 @@
 # Research contracts
 
-Status (`0.0.19`, 2026-11-06): R1–R10 and C1 are preserved; U1 adds [static image/carousel evidence](image-analysis.md) without research registration or fabricated intervals. U2 remains planned. See the linked operations guides and roadmap for actual signatures/limits; prepared-real-model acceptance is opt-in and conceptual interfaces below are not all executable APIs.
+Status (`0.0.20`, 2026-11-06): R1–R10, C1 and U1's [static evidence](image-analysis.md) contracts are preserved. U2 adds [portable orchestration and report exports](portable-skill.md) without new canonical entities, evidence types or database changes. CapabilityManifest 1.0 is preflight metadata, not scientific evidence; ResultEnvelope 1.0 is unchanged. See the operations guides and roadmap for actual signatures/limits; live host behavior and prepared-real-model acceptance are separate gates, and conceptual interfaces below are not all executable APIs.
 
 This document makes the research payloads and invariants in [ARCHITECTURE.md](../ARCHITECTURE.md) concrete. It does not replace the implemented video timeline, comment imports, scalar metrics, or frozen statistical analyses. [Statistical design](statistical-design.md) defines comparison/validation methods; [migration strategy](migration-strategy.md) defines additive adoption. The complete reference flow is in [the cooking use case](research-use-case.md).
 

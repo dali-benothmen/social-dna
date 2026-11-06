@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "source": {
+    "dataset_id": "synthetic-skill-example",
+    "permission_basis": "creator_owned_export",
+    "source_uri": "urn:socialdna:synthetic-skill-example",
+    "comments_permitted": false,
+    "terms": {"note": "Invented syntax example, not real account or performance evidence"}
+  },
+  "records": [
+    {"record_type": "account", "platform": "demo", "external_id": "example-owner", "creator_key": "example-creator", "niche": "cooking"},
+    {"record_type": "post", "platform": "demo", "external_id": "example-post", "account_external_id": "example-owner", "content_type": "carousel", "published_at": "2026-01-01T10:00:00Z", "caption": "Synthetic recipe caption"},
+    {"record_type": "tag", "platform": "demo", "post_external_id": "example-post", "kind": "hashtag", "value": "recipe"},
+    {"record_type": "media", "platform": "demo", "post_external_id": "example-post", "position": 0, "uri": "/replace/with/authorized/local-photo.jpg", "alt_text": "Example source-supplied description, not OCR"},
+    {"record_type": "metric_definition", "platform": "demo", "key": "demo.views.v1", "definition": "Synthetic cumulative view count, not unique viewers"},
+    {"record_type": "metric_snapshot", "platform": "demo", "subject_external_id": "example-post", "metric_key": "demo.views.v1", "observed_at": "2026-01-08T10:00:00Z", "value": 100}
+  ]
+}
