@@ -33,9 +33,18 @@ def register(app: typer.Typer) -> None:
         )
 
     @skill.command("export")
-    def export(ctx: typer.Context, destination: Path, output_format: Format = None) -> None:
-        """Copy the bundled skill to a new explicit socialdna directory; never overwrite."""
-        execute(ctx, "skill.export", lambda _: export_skill(destination), None, None, output_format)
+    def export(
+        ctx: typer.Context, destination: Path, name: str = "socialdna", output_format: Format = None
+    ) -> None:
+        """Export an implemented skill to a new matching directory; never overwrite."""
+        execute(
+            ctx,
+            "skill.export",
+            lambda _: export_skill(destination, name),
+            None,
+            None,
+            output_format,
+        )
 
     @skill.command("schema")
     def inspect_schema(ctx: typer.Context, name: str, output_format: Format = None) -> None:

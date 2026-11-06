@@ -1,19 +1,32 @@
 # Portable skill and report delivery
 
-Delivered in `0.0.20`; database head stays `0017_images`. One instruction bundle
+Originally delivered in `0.0.20` with database head `0017_images`. One instruction bundle
 orchestrates the existing engine in Codex, Claude Code and OpenCode. There are no
 host SDKs, new servers, credentials, automatic downloads or duplicated statistics.
 
 ## Planned URL-first task experience
 
-The current bundle accepts local inputs and permitted supplied exports; it does not
-collect arbitrary account/post URLs. Proposed `social-dna-report`,
-`social-dna-analyze` and `social-dna-compare` skills will share a durable URL-intake
-and workflow layer before the existing engine. They are **not installed or implemented**
-by this document. See the [workflow architecture](url-first-workflows.md) and
+The original bundle accepts local inputs and permitted supplied exports; it does not
+collect arbitrary account/post URLs. Release `0.0.21` adds separately exported
+`social-dna-ingest` and `social-dna-report` for the [native-only first URL slice](source-workflows.md),
+with live source/host acceptance still open. Database head is now `0018_workflows`.
+The agreed **14 target task skills** share
+one durable workflow layer before the existing engine. Research owns end-to-end
+investigations; analyze covers owned/influencer profile audits and individual content;
+reconstruct produces finished-video scripts; report assembles saved results. The
+[complete catalog and discovery boundaries](url-first-workflows.md#target-catalog-and-agent-discovery)
+also cover ingest, account, psychology, audience, compare, discover, platform,
+strategy, experiment and evidence audit. Only bounded ingest/report bundles are
+implemented; none is automatically installed. See the [workflow architecture](url-first-workflows.md) and
 [DX milestones and acceptance tests](../PLAN.md#20-url-first-dx-and-task-skills--proposed).
 The existing `socialdna` bundle/export contract remains supported. A real URL-first
 delivery needs permitted collection and observed end-to-end behavior, not new names alone.
+Each future bundle includes its shared references and works independently; none
+requires all 14 installed. Delivery/availability is per task and per analyze scope,
+not inferred from the existence of a skill directory. The DX5 packaging/host gates
+also apply to later DX7 specialists. Current `workflow` commands are documented in
+[source-only operations](source-workflows.md); no host installation or model preparation
+is automatic.
 
 ## Start with a local task
 
@@ -87,7 +100,8 @@ a deeper library check and **can initialize/upgrade/reconcile storage**.
 
 `skill schema NAME` returns the actual engine Pydantic JSON Schema for `result`,
 `capabilities`, `comparison`, `registration`, `literature`, `protocol`, `evaluation`
-or `experiment`. Business/cross-field validation remains authoritative: JSON Schema
+or `experiment`, plus `workflow_request`, `workflow_plan`, `capture` and `workflow_report`.
+Business/cross-field validation remains authoritative: JSON Schema
 alone cannot prove an eligible design. The bundled [interface contract](../skills/socialdna/references/interface.md)
 and [inventory](../skills/socialdna/references/commands.json) are tested against real
 CLI routes/options, schemas and exit codes.

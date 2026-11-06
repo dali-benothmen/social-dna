@@ -1,7 +1,9 @@
 # URL-first workflows and task skills
 
-Status: **proposed design; not implemented**. Reviewed 2026-11-06 against package
-`0.0.20` / database `0017_images`. Implementation requires separate approval.
+Status: **DX1 implemented within native-report bounds; live acceptance pending**.
+Reviewed 2026-11-06 against package `0.0.21` / database `0018_workflows`. Other DX
+deliveries remain proposed. [Implemented operations and limits](source-workflows.md)
+are authoritative for current commands; the broader design below remains the target.
 The delivery sequence and milestone-specific acceptance tests are in
 [PLAN.md §20](../PLAN.md#20-url-first-dx-and-task-skills--proposed).
 
@@ -17,7 +19,7 @@ The engine already imports supplied exports, analyzes local video/images/carouse
 compares eligible populations, maintains research memory and exports reports. U2
 delivered one portable `socialdna` instruction bundle. It did **not** deliver URL
 collection, account enumeration, durable multi-stage conversational tasks or the
-three task-specific skills below. Stored `Post.url` / `Media.uri` values are
+14 task-specific skills below. Stored `Post.url` / `Media.uri` values are
 references, not implemented download instructions.
 
 This design adds an intake/coordinator layer before existing producers. It does
@@ -33,23 +35,119 @@ record. No route may be called complete merely because a URL shape is recognized
 
 ## 2. User-facing skills and examples
 
-| Skill | Primary job | Expected inputs and boundaries |
+### Target catalog and agent discovery
+
+These are **14 target task skills**; only bounded ingest/report implementations
+ship in DX1. The descriptions
+below define distinct discovery intent; detailed procedures belong in each bundle's
+focused references. Existing `socialdna` remains the supported umbrella/local/export
+skill, not a fifteenth new task. No duplicate `reverse-engineer`, `track` or `brief`
+alias is needed: research includes explicit follow-up, and strategy includes original
+briefs. All delivery IDs refer to [PLAN.md §20](../PLAN.md#20-url-first-dx-and-task-skills--proposed).
+
+| Skill | Description for agent discovery | First bounded delivery |
 |---|---|---|
-| `social-dna-report` | Study an account or assemble a readable report about supplied subjects | One or more account/post URLs, goal, optional supplied evidence. Route to content, publishing, audience, distribution and profile sections only where evidence permits. |
-| `social-dna-analyze` | Inspect particular content in depth | One or more post URLs; dispatch actual available video/photo/carousel media and metadata. Never describe unobserved footage as watched. |
-| `social-dna-compare` | Compare accounts or posts under a declared question | At least two compatible subjects; explain unequal coverage and withhold invalid numerical comparisons. |
-| Existing `socialdna` | Backward-compatible umbrella and local/export/research entrypoint | Keep its name, installed behavior and existing commands. It can route to the same workflows when those ship. |
+| `social-dna-research` | Investigate a creator or social-media research question end to end. Use to connect available content, account, audience and outcome evidence, evaluate competing explanations, or explicitly refresh and reevaluate prior research. Return a qualified synthesis and proposed tests. | DX3-B; reviewed specialist branches in DX7 |
+| `social-dna-ingest` | Collect, import and organize permitted social-media research inputs. Use for explicit data acquisition, local-media/export imports, source validation or missing-input diagnosis, without automatically launching expensive analysis. | DX1 |
+| `social-dna-account` | Study an account's strategy across a bounded content history. Use for content pillars, recurring formats, publishing patterns, longitudinal performance and growth evidence; disclose unavailable periods and metrics. | DX3-B |
+| `social-dna-analyze` | Audit a profile or deconstruct individual videos, photos or carousels. Use to identify a profile's observable strengths, weaknesses and improvements, or inspect content construction with timestamped/region evidence and explicit coverage. | Content DX2-A; profile DX3-A |
+| `social-dna-reconstruct` | Reconstruct a timecoded transcript or audiovisual script from a supplied video or supported video URL. Use to extract permitted spoken/on-screen text and reconstruct visible action, editing and sound cues, separating transcription, observation and inference. | DX2-B |
+| `social-dna-psychology` | Investigate candidate psychological explanations for creative effects. Use to compare falsifiable mechanisms against reviewed literature, audience/outcome evidence and counterexamples; do not infer individual hidden mental states. | DX7-B |
+| `social-dna-audience` | Investigate collected audience responses and available behavior. Use for comments, questions, objections, expressed intentions, sharing/saving or authorized retention evidence; keep stated reactions separate from measured actions. | DX7-A |
+| `social-dna-compare` | Compare specified creators, accounts, posts or strategies. Use for a declared contrast with compatible observations, appropriate baselines, uncertainty and counterexamples; withhold unsupported quantitative comparisons. | DX4 |
+| `social-dna-discover` | Search an eligible research corpus for candidate patterns and feature combinations. Use for bounded exploratory discovery, then evaluate robustness and transfer across available creators, times or niches. | DX7-D |
+| `social-dna-platform` | Investigate a specified platform/surface's distribution and search behavior. Use to connect dated official guidance with permitted traffic/exposure observations, separating documentation, local inference and experiments. | DX7-C |
+| `social-dna-strategy` | Turn eligible findings into an original content and growth plan. Use for production briefs, scripts, packaging, publishing, profile improvements or conversion proposals; distinguish supported actions from speculative tests. | DX7-E |
+| `social-dna-experiment` | Design/register a prospective social-media experiment or evaluate supplied authorized outcomes. Use for declared variants, assignments, endpoints and limitations; registration does not execute publishing or account changes. | DX7-F |
+| `social-dna-report` | Assemble or export eligible saved SocialDNA results into a readable report or playbook. Use for presentation, synthesis and formatting of existing findings, without hidden collection, refitting or new research. | DX1 |
+| `social-dna-evidence` | Audit an existing finding's exact sources, dependencies, duplicates, contradictions or revision history. Use to resolve citations and inspect canonical records/qualified graph paths, not to treat retrieval rank or graph connectivity as proof. | DX4 |
+
+This revises the earlier three-skill proposal deliberately: **research**, not
+**report**, is the primary account-URL + research question front door. The first
+DX1 source-only acquisition still produces a useful report through shared services;
+it does not claim the later research skill is implemented.
+
+### Intent boundaries
+
+- `analyze` with a profile URL audits the visible profile snapshot; `account` studies
+  a scoped post/history corpus; `research` investigates a question across evidence
+  domains. An account URL alone does not force exhaustive account collection.
+- `analyze` explains observable content construction; `reconstruct` produces its
+  finished-video script; `strategy` creates a new original adaptation. Do not call a
+  reconstructed script the creator's original writing/production document.
+- `compare` evaluates specified subjects/contrasts; `discover` searches a declared
+  candidate family. Neither may use search top-K as a statistical sampling frame.
+- `ingest` owns an explicit acquisition/import request; all analytical skills can
+  use that same engine operation internally without requiring the ingest bundle.
+- `report` renders existing results; `evidence` audits their lineage. New acquisition,
+  refitting and reevaluation must be explicit planned operations, not report side effects.
+- Route by the user's requested outcome, not merely by URL presence. Preserve an
+  explicitly selected skill and requested goal; clarify genuine ambiguity instead
+  of silently substituting another task or requiring a chain of manual skill calls.
+
+### Profile audits in `social-dna-analyze`
+
+Accept either the user's own profile or an influencer profile. Support improvement,
+strengths and balanced focus without assuming that an owned profile is weak or a
+popular influencer is effective. Audit available username/display name, photo, bio,
+positioning, category, links/CTA, pinned posts and visible branding/consistency.
+Use an explicitly bounded post sample only when needed and permitted. Uncollected
+photos/pins/links are unknown, not absent; inaccessible visuals cannot receive an
+invented aesthetic assessment. External bio links are not automatic crawl targets.
+
+Return cited observations, labeled qualitative proposals, strengths/weaknesses,
+prioritized improvements, counterexamples and coverage. Actual profile visits,
+follows, link clicks or installs form a separate source-qualified funnel lane;
+an attractive profile or proposed improvement is not measured conversion lift.
+
+Reuse C1-D `ProfileSnapshot` and exact evidence. Its frozen `ProfileReview` is a
+human-review contract; an agent must not self-certify it. Add a typed profile-audit
+proposal output at first use, preserving model/agent identity, source dependencies,
+scope and review state. Human promotion is a distinct genuinely performed action.
+Inferred positioning/pillars remain proposals, not invented owner declarations.
+
+### Finished-video scripts in `social-dna-reconstruct`
+
+Offer transcript-only, audiovisual-script and combined output. Preserve original
+language; any requested translation is a separate labeled derivative. Ordered rows
+bind original-presentation intervals to selected speech text, visible text, visual
+actions/shot/editing cues, audio observations and exact evidence. Preserve unknown
+word timings, unclear speech, coverage gaps and track disagreements. Supplied
+subtitles are not automatically verified speech, and OCR is not an audio transcript.
+
+Reuse ASR/aligned-ASR/subtitle/OCR tracks, scenes, frames, audio observations and
+creative annotations. No current diarization/speaker-ID capability is assumed.
+Never invent speakers, off-screen actions, exact camera settings, production intent
+or dialogue for silent/unavailable audio. Visual interpretations remain proposals
+unless actually reviewed; sparse frames do not establish frame-by-frame coverage.
+If a provider is missing, return useful partial output without auto-downloading it.
+
+Introduce a versioned reconstruction composition with real cited dependencies,
+resolver and retention coverage; a new skill file alone is not this producer.
+Verbatim extraction requires supported source access and applicable reproduction
+permission; otherwise offer a non-verbatim structural summary. Public URL metadata
+does not imply caption/media access. For example, YouTube's official
+[caption-download endpoint](https://developers.google.com/youtube/data/reference/rest/v3/captions/download)
+requires edit permission for the video. No bypass route is implied.
 
 Illustrative **future** Codex requests:
 
 ```text
-$social-dna-report https://www.youtube.com/@example
+$social-dna-research https://www.youtube.com/@example
 Study the available recent posts. What is distinctive about the account,
 what performance evidence supports the patterns, and what should I test?
+
+$social-dna-analyze https://www.instagram.com/example/
+Audit my profile's weaknesses and prioritize improvements to its bio,
+positioning, photo, links and pins. Separate suggestions from measured results.
 
 $social-dna-analyze https://www.instagram.com/reel/EXAMPLE/
 Explain the opening, pacing, subtitles and sound design. Separate what
 you measured from interpretation and tell me what you could not access.
+
+$social-dna-reconstruct https://www.youtube.com/watch?v=EXAMPLE
+Return a timestamped spoken transcript and audiovisual script.
+Keep speech, on-screen text, observations and inferred directions distinct.
 
 $social-dna-compare https://www.tiktok.com/@example_a https://www.tiktok.com/@example_b
 Compare their content approaches, including ordinary posts, not just hits.
@@ -97,12 +195,14 @@ URL intake → persisted bounded plan → source/access checks
 | Source policy enforcement | `ingestion/access_policy.py` | Existing permission/consent, source-capability and retention rules; no second scientific eligibility system |
 | Composite output | `application/workflow_report_service.py`, `reporting/workflow.py` | Existing evidence resolver, report documents and safe export helper |
 | Agent interface | `cli/workflow_commands.py`, additive skill export/schema support | Existing CLI/envelope/exit families and non-initializing capabilities |
-| Task skills | Future `skills/social-dna-{report,analyze,compare}/` | One maintained shared reference source, packaged independently into each bundle |
+| Task skills | Future `skills/social-dna-<task>/` for the 14 catalog entries | One maintained shared reference source, packaged independently into each delivered bundle |
+| Profile audit / finished-video reconstruction | Proposed `domain/{profile_audit,reconstruction}.py`, corresponding application/reporting adapters | Existing C1-D snapshots/funnels, image analysis and exact media/text/creative tracks; no fabricated human reviews |
 
 These are responsibility boundaries, not permission to scaffold unused modules.
 Introduce each file only with its first tested consumer. Start synchronous and
-single-machine: no agent framework, MCP server, background scheduler, queue server,
-headless browser dependency or new database service is required.
+single-machine: offline/export work needs no agent framework, MCP server, background
+scheduler, queue server, headless browser or new database service. DX1 live capture
+has an explicit OS retention-maintenance prerequisite, not a generic scheduler framework.
 
 The coordinator executes a validated plan; it does not invent research designs.
 Basic inspection dispatches directly to existing deterministic services. Optional
@@ -112,15 +212,22 @@ scientific reviews or auto-create human approval records.
 
 ## 4. Contracts, commands and resumability
 
-All interfaces below are **proposed**, not part of the current command inventory.
+The broad contracts below are the target. DX1 ships only ingest/report request modes,
+one URL or saved-workflow input, native captures and the commands documented in
+[source-only operations](source-workflows.md). Other modes/scopes remain proposed.
 
 ### Typed objects
 
-- `WorkflowRequest` 1.0: mode (`report`, `analyze`, `compare`), sanitized user goal,
-  ordered URLs/local attachments, requested platform/language/niche/audience/objective,
-  declared scope and library. No embedded credentials or executable expressions.
+- `WorkflowRequest` 1.0: typed task mode from the 14-entry catalog, sanitized user
+  goal, ordered URLs/local attachments or saved result/evidence references, requested
+  platform/language/niche/audience/objective, declared scope and selected library.
+  `analyze` has explicit profile/content scope; `reconstruct` has transcript/AV-script/
+  combined output, selected source tracks and optional language/time-range settings.
+  No embedded credentials or executable expressions. Implement only shipped modes;
+  planned tasks remain explicitly unavailable, never unchecked function-name dispatch.
 - `WorkflowPlan` 1.0: request hash, typed unresolved/resolved targets, exact planned
-  operations, connector/policy versions, scope, resource ceilings, reuse/freshness
+  operations, requested skill/task and resolved subject scope, connector/policy versions,
+  scope, resource ceilings, reuse/freshness
   rules and required actions. Approval binds the plan hash; changing its access,
   destinations, comparison purpose or budget invalidates affected grants.
 - `CaptureManifest` 1.0: provider route/version, original sanitized URL and stable
@@ -131,6 +238,10 @@ All interfaces below are **proposed**, not part of the current command inventory
 - `WorkflowReport` 1.0: exact subject/plan/run/evidence references, coverage, explicit
   claim lanes, results and unavailable branches. Keep this composition versioned
   separately from existing video/account/research report schemas.
+- `ProfileAuditProposal` / `VideoReconstruction` 1.0: first-use typed compositions
+  for the two new output responsibilities above. Pin exact snapshot/media/run/track
+  revisions, observation versus interpretation, coverage and citation locators.
+  Add only with actual writers/readers; do not repurpose C1 human-review attestations.
 
 Expose these through the existing `skill schema` registry when implemented. Models
 and cross-field validation are authoritative; bundled schemas derive from them.
@@ -140,7 +251,10 @@ capture contract. Pasted AI prose or a search snippet is not a numeric API respo
 ### Minimal engine surface
 
 ```text
-socialdna workflow plan --mode report --url URL --goal "QUESTION"
+socialdna workflow plan --mode ingest --url URL --goal "Capture permitted metadata"
+socialdna workflow plan --mode analyze --scope profile --url URL --goal "Audit my profile"
+socialdna workflow plan --mode research --url URL --goal "QUESTION"
+socialdna workflow plan --mode report --from WORKFLOW_ID --goal "Summarize saved results"
 socialdna workflow run WORKFLOW_ID
 socialdna workflow show WORKFLOW_ID
 socialdna workflow report WORKFLOW_ID --format markdown --output NEW_FILE
@@ -154,6 +268,9 @@ Multiple `--url` / attachment arguments and a typed request-file option serve th
 agent, not a requirement for ordinary users to author JSON. Credentials are
 configured outside arguments/prompts; expose only redacted prerequisite state.
 An explicit refresh creates a new capture/plan revision, not an accidental retry.
+Report/evidence modes may need only saved references, not URLs. The exact additive
+task options are stabilized alongside their first implementation; these examples
+do not expand today's CLI or authorize all modes in the first delivery.
 
 Lifecycle: `planned → running → completed | partial | awaiting_action | failed |
 cancelled`. Resuming an eligible interrupted/awaiting workflow returns to running;
@@ -218,6 +335,15 @@ embedding space is required. Reuse R6 projection/outbox rules if an actually use
 capture locator needs SQL/FTS/graph retrieval. A structural “workflow used post”
 relationship is not a causal/psychological finding. SQL population manifests, not
 nearest-neighbor retrieval, determine quantitative comparison samples.
+
+All 14 tasks share the same selected library: SQLite is authority, managed artifacts
+hold permitted media/reports, Qdrant is optional derived text retrieval, and persistent
+SQLite graph rows feed bounded NetworkX views. These are not three independent
+copies of every record. Profile proposals and reconstructed scripts enter memory
+only through registered typed producers with their qualifications intact. Future
+research may retrieve eligible prior evidence and explicitly reevaluate registered
+assessments, preserving contrary history; no automatic LLM/embedding fine-tuning,
+cross-library sharing or unattended learning loop is introduced.
 
 Policy expiry is a first-use requirement: recheck eligibility on run/resume/report/
 query, reconcile overdue managed material on library access and expose due cleanup.
@@ -345,6 +471,12 @@ Every workflow report contains:
 5. Evidence-qualified actions to test; no promised lift, hidden ranking weights,
    automatic publishing or asserted psychological cause.
 
+Keep this proportional to the task: an ingest report may be a source/coverage
+manifest, and a profile audit need not become a research paper. The report skill
+can present already saved recommendations; it does not silently create new assessed
+findings, acquisition or fits. If new investigation is requested, expose that as an
+explicit research/analyze operation rather than strengthening old claims by wording.
+
 Use three explicit coverage levels: **source-only**, **media-enriched**, and
 **research-qualified**. These describe evidence supplied, not a universal quality
 score. Report-only metadata work may complete a metadata question; it remains
@@ -374,7 +506,7 @@ symlinks or relative links escaping a skill directory. Tests detect shared-refer
 drift. No duplicated statistics, alternate acquisition engine or host-specific SDK.
 
 Preserve `skill export DEST/socialdna`. Proposed additive selection is
-`skill export --name social-dna-report DEST/social-dna-report`; destinations remain
+`skill export --name social-dna-analyze DEST/social-dna-analyze`; destinations remain
 explicit, new and non-overwriting. The same bundle uses project-local
 `.agents/skills` (Codex), `.claude/skills` (Claude Code) or `.opencode/skills`
 (OpenCode). Installation, dependency preparation, model consent and source connection
@@ -397,9 +529,13 @@ or private creator data in fixtures or distribution archives.
 
 ## 9. Decisions for review
 
-- Proceed additively with three task skills and one shared workflow coordinator.
-- Deliver one cold post-URL/source-only report first, then genuine permitted media,
-  account studies, comparisons, release hardening and independent platform additions.
+- Proceed additively with the agreed 14-task catalog and one shared workflow
+  coordinator. Research is the investigation front door; report assembles saved
+  outputs. Analyze includes both owned/influencer profile audits and individual content.
+- Deliver one cold post-URL/source-only acquisition/report first, then independent
+  content/reconstruction and profile/account slices, comparison/evidence, portable
+  hardening and platform additions. Deliver the six specialist tasks independently
+  through DX7, not as fourteen empty entrypoints in the first milestone.
 - Include all three platforms as required targets, with YouTube provisionally first
   in delivery order and source-policy feasibility reviewed for each connector. Public
   API data does not necessarily permit every requested goal.
@@ -408,9 +544,12 @@ or private creator data in fixtures or distribution archives.
   workflow/capture persistence and no required infrastructure.
 - Keep live source and live host acceptance explicit. A public claim of complete
   URL-first account intelligence requires the account/comparison and applicable
-  source/media gates, not just the first metadata report or three skill directories.
+  source/media gates, not just the first metadata report or fourteen skill directories.
   A claim of three-platform support additionally requires DX6-A and DX6-B's actual
   routes and source-access checks; they are not optional product commitments.
+- The complete catalog requires both analyze scopes, real reconstruction composition
+  and every DX7 workflow with per-task acceptance. Reapply installed-bundle and
+  live-host gates as tasks ship; no current runtime support is implied by this design.
 
 Deferred: unattended monitoring, universal browser collection, paid data vendors,
 automatic literature collection, a GUI, hosting/report sharing, publishing/account

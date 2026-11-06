@@ -85,7 +85,10 @@ def validate_references(
             account_id = _identity("account", record.platform, record.account_external_id)
             if previous and (
                 previous["account_id"] != account_id
-                or previous["published_at"] != record.published_at
+                or (
+                    previous["published_at"] is not None
+                    and previous["published_at"] != record.published_at
+                )
             ):
                 errors.append(
                     {"row": number, "message": "Existing post ownership/time is immutable"}
@@ -246,6 +249,25 @@ def _upsert(connection: Connection, table_name: str, data: dict[str, Any], keys:
         if changes
         else statement.on_conflict_do_nothing()
     )
+
+
+def persist_records(
+    application: Application, connection: Connection, parsed: ParsedImport
+) -> dict[str, Any]:
+    """Atomic in-memory import for collectors; caller owns the writer lifecycle/transaction.
+
+    Remote collectors cannot sneak local file references through this entrypoint.
+    Reuse exactly the v1 reference checks/writer without reopening the application lock.
+    """
+    if not parsed.source or parsed.errors or any(isinstance(r, Media) for r in parsed.records):
+        raise ConfigurationError("Collector imports require validated non-media records")
+    state = {
+        name: [dict(row) for row in connection.execute(select(metadata.tables[name])).mappings()]
+        for name in STATE_TABLES
+    }
+    if validate_references(parsed, state):
+        raise ConfigurationError("Collected metadata conflicts with existing canonical identities")
+    return _persist(application, connection, parsed, application.paths.root / "capture.json")
 
 
 def _persist(

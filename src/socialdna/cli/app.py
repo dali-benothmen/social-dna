@@ -23,6 +23,7 @@ from socialdna.cli.profile_commands import register as register_profile_commands
 from socialdna.cli.recommendation_commands import register as register_recommendations
 from socialdna.cli.research_commands import register as register_research_commands
 from socialdna.cli.skill_commands import register as register_skill_commands
+from socialdna.cli.workflow_commands import register as register_workflows
 from socialdna.config.settings import Settings
 from socialdna.core.enums import ExitCode
 from socialdna.core.exceptions import ConfigurationError, SocialDNAError
@@ -53,6 +54,7 @@ register_experiments(app)
 register_recommendations(app)
 register_images(analysis)
 register_skill_commands(app)
+register_workflows(app)
 
 
 @app.callback()

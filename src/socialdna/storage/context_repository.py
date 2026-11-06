@@ -15,6 +15,8 @@ from socialdna.storage.evidence_repository import EvidenceRepository
 from socialdna.storage.schema import metadata
 
 KINDS = {
+    "acquisition_capture",
+    "workflow_report",
     "publication_context",
     "publishing_window",
     "trend_context",
@@ -117,6 +119,8 @@ def field_value(payload: dict[str, Any], field: str) -> str:
     # Exact bounded pointer into a typed producer's spec, never an executable path.
     value: Any = payload["spec"]
     for part in field.split("/"):
+        # RFC 6901 escaping also permits exact native API field paths as dictionary keys.
+        part = part.replace("~1", "/").replace("~0", "~")
         if isinstance(value, list) and part.isdecimal():
             index = int(part)
             if index >= len(value):

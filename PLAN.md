@@ -2,13 +2,13 @@
 
 Revised: 2026-11-06. Scope: R1–R10, all four C1 deliveries and U1 remain completed within their documented bounds. U2's portable skill/report implementation is delivered; verification is recorded in §16. Live host behavioral checks and prepared-real-model acceptance remain separate opt-in gates; no weights were downloaded or inferred.
 
-New product work: **URL-first DX and task skills are proposed, not implemented**
-in §20 and [the workflow design](docs/url-first-workflows.md). The current engine
-and single `socialdna` skill do not yet provide account/post URL collection and
-end-to-end conversational orchestration. This planning request authorizes documentation
-only; no new implementation, dependency installation or source/host connection.
+New product work: **DX1 is implemented within its source-only bounds; live source
+and real host acceptance remain open** in §20 and [operations](docs/source-workflows.md).
+The target remains 14 task skills. This release adds independently exportable ingest
+and saved-report skills to the existing `socialdna` bundle, not full creator research,
+profile auditing or audiovisual URL analysis. DX2 and later are not started.
 
-Runtime: package `0.0.20`, SQLite head `0017_images`. Released migrations `0001_foundation`–`0017_images` remain unchanged; U2 requires no database migration. Legacy Milestones 0, 1, 3 and 4 are completed deliveries; their limitations remain visible. Legacy Milestones 2, 5 and 6 are **superseded, not completed**.
+Runtime: package `0.0.21`, SQLite head `0018_workflows`. Released migrations `0001_foundation`–`0017_images` remain unchanged; U2 required no database migration. Legacy Milestones 0, 1, 3 and 4 are completed deliveries; their limitations remain visible. Legacy Milestones 2, 5 and 6 are **superseded, not completed**.
 
 Authoritative design: [ARCHITECTURE.md](ARCHITECTURE.md), [research contracts](docs/research-contracts.md), [statistical design](docs/statistical-design.md), [migration strategy](docs/migration-strategy.md), and [reference use case](docs/research-use-case.md). The [audit](docs/architecture-audit.md) records the reasons for this revision; the [previous roadmap](docs/history/PLAN.pre-research-revision.md) is historical, not an alternative active plan.
 
@@ -1089,10 +1089,10 @@ Broad nonlinear/cross-creator discovery belongs to R9; recommendations and creat
 
 ## 20. URL-first DX and task skills — proposed
 
-Status: **architecture/planning only; all DX deliveries below are unimplemented**.
-The runtime remains `0.0.20` / `0017_images`. Completed milestone records above are
-preserved, not reclassified as URL-first acceptance. Implementation requires a
-separate instruction. Finish/test one delivery before starting the next.
+Status: **DX1 implementation and automated verification; live acceptance pending**.
+Runtime is `0.0.21` / `0018_workflows`. Other DX deliveries remain planned. Completed
+milestone records above are preserved, not reclassified as URL-first acceptance.
+Finish/test one delivery before starting the next.
 
 The missing product contract is **task skill + account/post URLs + prompt → automatic
 permitted collection/binding → existing engine → useful cited report**. The user
@@ -1102,24 +1102,78 @@ Architecture, contracts, policy research and examples are in
 [URL-first workflows](docs/url-first-workflows.md) and
 [ARCHITECTURE.md §34](ARCHITECTURE.md#34-url-first-dx-and-task-skills--proposed).
 
+### Agreed 14-skill catalog and delivery ownership
+
+The canonical discovery descriptions and routing boundaries are in
+[the workflow catalog](docs/url-first-workflows.md#target-catalog-and-agent-discovery).
+Names alone do not establish runtime support. Existing `socialdna` remains the
+backward-compatible umbrella, not a fifteenth task skill. This revision supersedes
+the proposed three-skill routing: `research` owns end-to-end investigations;
+`report` assembles saved results without silently collecting or refitting.
+
+| Task skill | Required outcome | First bounded delivery |
+|---|---|---|
+| `social-dna-research` | Question-driven creator investigation and qualified synthesis; explicit refresh/reevaluation | DX3-B; specialist branches in DX7 |
+| `social-dna-ingest` | Explicit permitted acquisition/import, source validation and coverage | DX1 |
+| `social-dna-account` | Scoped account strategy across content history, not just the visible profile | DX3-B |
+| `social-dna-analyze` | Profile strengths/weaknesses/prioritized improvements **and** individual media deconstruction | Content DX2-A; profile DX3-A |
+| `social-dna-reconstruct` | Source-qualified transcript and timecoded finished-video audiovisual script | DX2-B |
+| `social-dna-psychology` | Competing mechanisms, reviewed literature/applicability and falsifiable predictions | DX7-B |
+| `social-dna-audience` | Qualified expressed-reaction and available behavioral analysis | DX7-A |
+| `social-dna-compare` | Declared subjects/contrasts with actual eligible comparisons or explicit refusal | DX4 |
+| `social-dna-discover` | Bounded corpus discovery and actual robustness/transfer evaluation | DX7-D |
+| `social-dna-platform` | Separate official guidance, observed distribution/search and experiments | DX7-C |
+| `social-dna-strategy` | Original evidence-qualified production/growth plan and test-first actions | DX7-E |
+| `social-dna-experiment` | Prospective registration and separate evaluation of supplied outcomes | DX7-F |
+| `social-dna-report` | Eligible saved-result synthesis/export without hidden acquisition or new fits | DX1 |
+| `social-dna-evidence` | Exact source/provenance, contradictions, duplication and revision audit | DX4 |
+
+All analytical tasks can call shared acquisition/report/evidence operations without
+requiring sibling skills to be installed. Do not trigger ingest merely because a
+URL is present. Do not force research registration for a profile audit, transcript
+or basic media description. An unsupported branch returns partial/unavailable with
+a concrete next action, not a different task disguised as completion.
+
+Common catalog contract tests must cover one representative request and a meaningful
+boundary/refusal for each of the 14 modes: in particular profile audit → analyze/profile,
+content breakdown → analyze/content, script extraction → reconstruct, history study →
+account, question-led investigation → research, existing-result export → report and
+source challenge → evidence. Proposed `tests/contract/test_task_routing.py` validates
+typed intent/scope/operation plans and per-mode availability against real services;
+it must not claim to prove host skill selection through wording/regex matches.
+Separately record realistic host conversations and their actual selected task,
+tool actions, citations and outcome; do not force other specialists into basic tasks.
+
 ### Sequence and completion levels
 
 | Delivery | Working result | Dependencies | Status |
 |---|---|---|---|
-| DX1 | One real post URL → persisted source-qualified report, with `social-dna-report` | Existing U2/R1; source-policy feasibility gate | Proposed |
-| DX2 | Permitted media-enriched post analysis, with `social-dna-analyze` | DX1; existing video/U1/provider services | Proposed |
-| DX3 | Bounded account URL study, incremental capture and usable account report | DX1; DX2 for media claims; existing account/C1/memory producers | Proposed |
-| DX4 | Multiple URLs → eligible comparison and cited synthesis, with `social-dna-compare` | DX3, existing R2/R9/R10; source-use permissions | Proposed |
+| DX1 | One real post URL → permitted capture/import → source-qualified saved report; ingest/report skills | Existing U2/R1; source-policy feasibility gate | Proposed |
+| DX2-A | Permitted media-enriched post analysis; analyze content scope | DX1; existing video/U1/provider services | Proposed |
+| DX2-B | Finished-video transcript and audiovisual-script reconstruction | DX2-A; actual text/media tracks and optional prepared providers | Proposed |
+| DX3-A | Owned/influencer profile URL → cited strengths/weaknesses audit; analyze profile scope | DX1; C1-D/U1; actual snapshot/photo access | Proposed |
+| DX3-B | Bounded account/question study and explicit incremental follow-up; account/research skills | DX1, DX3-A; DX2-A/B for media/script claims; existing account/C1/memory producers | Proposed |
+| DX4 | Multi-URL comparison, exact evidence audit and cited synthesis; compare/evidence skills | DX3-B, existing R2/R6–R10; source-use permissions | Proposed |
 | DX5 | First-use setup guidance, portable release hardening and live host acceptance | DX1–DX4; source/model access for applicable smoke tests | Proposed |
 | DX6-A | Independently delivered Instagram routes | DX1–DX5 shared contracts; actual Meta app/access approval | Proposed |
 | DX6-B | Independently delivered TikTok routes | DX1–DX5 shared contracts; actual eligible TikTok app/access approval | Proposed |
+| DX7-A | Audience collection/reaction/behavior workflow | DX3-B; R4/R5, permitted bounded evidence | Proposed |
+| DX7-B | Literature-backed psychological investigation and explicit reevaluation | DX3-B/DX4; R7/R8, reviewed inputs | Proposed |
+| DX7-C | Platform/surface distribution and search investigation | DX3-B/DX4; C1-C/R5 and actual access | Proposed |
+| DX7-D | Bounded discovery and transfer/confirmation workflow | DX4; R9, declared corpus/family and support | Proposed |
+| DX7-E | Evidence-qualified original strategy and production briefs | DX4; R10/relevant C1 and eligible findings | Proposed |
+| DX7-F | Experiment registration, outcome intake and evaluation workflow | DX4; R10 and actual authorized execution records | Proposed |
 
 YouTube is the **provisional** first connector, not an unrestricted data source.
 Confirm the platform/use case and applicable permissions before implementation.
 Source-only, media-enriched and research-qualified are distinct evidence levels.
 Supplied-original/export assistance is explicitly distinguished from cold URL-only
 acquisition. A partial report can be useful without satisfying a deeper requested
-question. All three task skills share one engine; existing `socialdna` is retained.
+question. All 14 task skills share one engine; existing `socialdna` is retained.
+DX2-A/B, DX3-A/B and DX7-A–F are independent serial deliveries, not authorization
+for a combined change. DX7 requires its actual evidence/engine prerequisites, not
+approval for every platform; offline/export-supported branches remain first-class.
+DX5 packaging/host gates apply again to every skill added after DX5.
 
 **User-confirmed platform target: Instagram, TikTok and YouTube.** DX6-A and DX6-B
 are required to fulfill that target, not optional extras. Delivering YouTube first
@@ -1130,17 +1184,73 @@ placeholder successes or a silent downgrade to recognizing URLs.
 
 ### DX1 — One post URL to a real, durable report
 
+**Delivery record (2026-11-06):** implementation delivered, acceptance not closed.
+Implemented safe offline URL classification; bounded official YouTube native metadata
+HTTP; immutable plans and attempt tokens/cooldowns; atomic identity/publication import
+and source captures; exact field citations; frozen JSON/escaped Markdown artifacts;
+separate ingest/report skills with shared references assembled into each export;
+policy-qualified expiry, withdrawal, erasure and restore integration. No dependency
+added: existing `httpx` is reused. Envelope remains 1.0. Released migrations are unchanged.
+
+Operational additions: `workflow maintenance` exports/verifies an exact systemd user
+timer, without installing or enabling it; `workflow maintain` applies declared expiry
+offline. The first live capture is gated on that timer and a secret environment key.
+Linux/systemd is the only live-retention adapter in this delivery. API fields do not
+enter generic metrics, analytics, FTS/Qdrant or graph research projections; native
+reporting is the sole enabled use, pending any further provider approval.
+
+Actual modules also include `application/workflow_maintenance.py` and
+`storage/workflow_retention.py`. A connector base abstraction was deliberately not
+added for one adapter; `CaptureManifest`/`CaptureFailure` form the shared boundary.
+Tests live in `test_source_acquisition.py`, `test_source_workflows.py` and
+`test_workflow_skills.py`, plus extended existing contract/migration/restore and
+installed-distribution checks. Frozen `0.0.20` statistical runs remain explicitly
+reproducible with unchanged numerical methods and matching library pins.
+
+**Automated verification (Linux, Python 3.11): 656 distinct tests passed, 3 optional
+prepared-model checks skipped; 659 cases covered across partitions and focused reruns.**
+
+- Unit/contract partition: 360 passed. Integration partitions: 94 passed; 62 passed;
+  77 passed with 3 prepared-real-model skips. Migration/upgrade/backup partition:
+  32 passed. Source-workflow integration: 18 passed across the final 16-case run and
+  two additional index-isolation/explicit-recapture cases. Archived-method focused
+  rerun: 5 passed, including the new `0.0.20` variant (other cases overlap coverage).
+- Separate end-to-end process/layout/research suite: 12 passed. No live source or
+  agent behavior is inferred from these fixtures/subprocesses. The three skips
+  require explicitly prepared embedding, ASR/OCR or MediaPipe assets/interpreters;
+  no weights were downloaded or inferred.
+- Ruff lint/format, strict mypy over 209 modules and `git diff --check` passed.
+  Both exported task skills passed skill-creator structural validation.
+- `uv sync --locked --offline` and wheel/sdist builds passed, with no added dependency.
+  Rebuilt wheel and sdist independently passed
+  `scripts/check_distribution.py --offline --source-workflows-only`: actual installed
+  resources, all three export layouts, schemas, static reports, synthetic HTTP capture,
+  exact citations, frozen native reports and resume. This is not a live host conversation.
+  The broader installed smoke also completed all legacy wheel checks; its sdist run
+  was deliberately interrupted during final audience-memory checks, not counted as
+  a complete full-distribution pass. Final acceptance uses the scoped rebuilt artifacts.
+- Exported systemd unit syntax check returned 0 (sandbox bus-access warnings present);
+  no user service was installed/started. The supplied real URL passed offline
+  no-write planning. API key absent and maintenance inactive in this environment.
+
+**Open acceptance gates:** user supplied `https://www.youtube.com/shorts/EaYRjrQuxEk`.
+No live API capture is certified without locally configured credentials and verified
+retention maintenance. No real Codex/Claude Code/OpenCode conversation is certified
+by export/layout or synthetic transport tests. Keep DX1 open for these live gates;
+do not proceed to DX2 automatically. See [setup and limitations](docs/source-workflows.md).
+
 **Implement:** offline typed URL intake; one actual permitted YouTube post-metadata
 route; bounded request client and access policy; durable workflow/target/attempt/
 capture/output bindings; normalized canonical import; source-native report composition;
-`workflow plan|run|show|report`; one independently exported `social-dna-report` bundle.
+`workflow plan|run|show|report`; independently exported `social-dna-ingest` and
+`social-dna-report` bundles. Ingest acquires/imports; report reuses saved results.
 Ship the minimal first-use migration, capture citations, retention and safe export
 together. Do not build an account collector, downloader or research agent first.
 
 **Modules/files:** new `domain/{workflows,acquisition}.py`, `ingestion/{urls,access_policy}.py`,
-`ingestion/connectors/{base,youtube}.py`, `application/{workflow_service,workflow_report_service}.py`,
+`ingestion/connectors/youtube.py`, `application/{workflow_service,workflow_report_service}.py`,
 `storage/workflow_repository.py`, `cli/workflow_commands.py`, `reporting/workflow.py`,
-first-use migration and `skills/social-dna-report/`. Extend existing CLI registration,
+first-use migration and `skills/social-dna-{ingest,report}/`. Extend existing CLI registration,
 capabilities, skill schema/export, packaging, evidence/retention/backup integration
 and `scripts/check_distribution.py` only where this first slice needs them.
 
@@ -1167,6 +1277,9 @@ a legitimate live route, this delivery is blocked—not complete by URL parsing 
   authentication. Secrets never reach artifacts, prompts, reports or errors.
 - Source expiry/withdrawal and confirmed erasure gate/scrub new captures and dependent
   managed reports; old released migrations/IDs/reports remain intact while permitted.
+- Rendering a saved capture/report through the report skill performs no hidden fetch,
+  model fit or hypothesis registration. An explicit ingest request does not launch
+  unrelated media/research tasks. Neither bundle requires the other to be installed.
 
 **Tests:** proposed `tests/unit/test_url_intake.py` (aliases, spoofed hosts, malformed
 IDs, redirects/SSRF), `tests/contract/test_workflow_contract.py` (real commands, schemas,
@@ -1179,13 +1292,14 @@ live source smoke and one real host/skill conversation separately; their evidenc
 cannot be substituted by recorded HTTP fixtures or directory-layout tests. If not
 run, report the remaining live gates explicitly; DX5 extends this to all claimed hosts.
 
-### DX2 — Real media-enriched URL analysis
+### DX2-A — Real media-enriched URL analysis
 
 **Implement:** bind resolved post IDs to permitted acquired assets or independently
 supplied originals; dispatch video/image/ordered-carousel through existing services;
 reuse checksums, cache, modality coverage and optional prepared providers. Add
 `social-dna-analyze`, with shared references included inside its exported bundle.
-Never make the existing local analyzers unconditional URL downloaders.
+Deliver its content scope here; profile scope remains explicitly planned until
+DX3-A. Never make the existing local analyzers unconditional URL downloaders.
 
 **Modules/files:** extend intake/coordinator/report contracts and first connector's
 explicit media capability; new media-binding helper only if shared; touch existing
@@ -1216,19 +1330,107 @@ missing models and transfer denial. Extend media/cache/retention regressions. A 
 permitted media route is a separate gate for advertising URL-only media analysis;
 if unavailable, ship only the accurately labeled assisted capability.
 
-### DX3 — Bounded account study and incremental evidence
+### DX2-B — Finished-video transcript and audiovisual script
+
+**Implement:** `social-dna-reconstruct` over actual available media/text/creative
+tracks. Support transcript-only, audiovisual-script and combined output with exact
+original-media intervals, source text/visible text, visual/edit/audio cues, coverage
+and uncertainties. Reconstruct the finished clip, not an inaccessible original
+writing document. Any original adaptation is a separate strategy request.
+
+**Modules/files:** proposed `domain/reconstruction.py`,
+`application/reconstruction_service.py`, `reporting/reconstruction.py` and
+`skills/social-dna-reconstruct/`; extend workflow mode/schema/bindings and existing
+timeline/evidence/retention adapters. Reuse `media/{timeline,subtitles}.py`,
+`application/{enrichment_service,creative_service}.py` and existing report exports.
+
+**Dependencies/integration:** DX2-A; optional explicitly prepared ASR/OCR/alignment,
+supplied caption tracks and genuinely reviewed cues. No new mandatory model or
+delivered speaker identification is assumed. Add a typed cited reconstruction
+producer/resolver/retention path only at first write; no new vector collection.
+Verbatim extraction needs permitted access/reproduction; unsupported sources receive
+a structural summary or partial result, not a bypass download.
+
+**Acceptance:**
+
+- A permitted post/clip produces a persisted transcript and ordered AV-script rows
+  with exact media/run/track revisions and resolvable timestamps/regions.
+- Speech, supplied subtitles and OCR remain distinct; disagreements, unclear words,
+  null timings, sampled coverage and missing providers are shown. Translation is
+  optional, separately labeled and never replaces original-language source text.
+- Caption-only access does not become verified speech; unavailable ASR is not proof
+  of silence. A genuinely silent/no-audio clip has no invented dialogue or speakers.
+- Measured/reviewed observations and model/agent interpretations remain separate.
+  No fabricated camera settings, off-screen action, intent or exhaustive coverage.
+- Restart/re-export reuses eligible output; changing a selected track invalidates
+  only dependent work. Withdrawal/erasure covers scripts and indexed derivatives.
+
+**Tests:** proposed `tests/integration/test_video_reconstruction_workflows.py` and
+contract cases for output/track/time-range selection; real clip → actual track
+composition → cited script → new-process reload. Include subtitle/speech conflicts,
+music-only/no-audio, multilingual text, missing/unaligned words, unavailable providers,
+partial visual coverage, safe exports, changed inputs and erasure. Extend existing
+`test_enrichment.py` / `test_creative_analysis.py` regressions. Prepared-real-model
+accuracy is a separate owned/reviewed gold-sample gate, never inferred from fixtures.
+
+### DX3-A — Profile strengths, weaknesses and improvements
+
+**Implement:** `social-dna-analyze` profile scope for either owned or influencer
+profiles. Capture/import a real supported snapshot and available photo/pin context;
+return cited strengths, weaknesses, unknowns and prioritized proposals about username,
+display name, photo, bio/positioning, links/CTA, pins and visible consistency. Support
+strengths/improvement/balanced focus without bias from account ownership/popularity.
+
+**Modules/files:** existing workflow/connector/report modules, C1-D
+`domain/profile.py`, `application/profile_service.py` and U1 image services; proposed
+`domain/profile_audit.py` and `application/profile_audit_service.py` only for the new
+proposal producer. Extend the analyze bundle; use existing artifact/evidence/retention
+registries rather than another profile database or scoring service.
+
+**Dependencies/integration:** DX1, C1-D/U1 and permitted source operations. A profile
+audit does not require full account enumeration, media downloads, embeddings or a
+research registration. Existing `ProfileReview` is human-reviewed: automated output
+must use a labeled agent/model proposal lane, never fake a reviewer attestation or
+owner-declared positioning. Without interpretation capability, return source inventory
+and explicit partial/review prompts, not invented judgments.
+
+**Acceptance:**
+
+- A supported profile URL + "find weaknesses" or "explain strengths" produces a
+  snapshot-bound audit without user-authored JSON. Both owned/influencer fixtures
+  retain favorable, unfavorable and unknown observations with cited examples.
+- Profile-only scope does not trigger a complete post crawl. Uncollected photo,
+  links or pins remain unknown, not empty; primitive photo metrics are not proof of
+  branding quality, and external bio links are not implicitly fetched.
+- Qualitative proposals and human reviews are distinguished. Actual authorized
+  visits/follows/clicks/installs use the separate C1-D/R5 funnel lane; no conversion
+  rate, promised lift or follower explanation is invented from public appearance.
+- Reopen exact snapshot/audit, refresh a changed bio/pin, and expose staleness without
+  silently rewriting prior permitted output. Apply withdrawal/erasure to proposals.
+
+**Tests:** proposed `tests/integration/test_url_profile_audits.py`: source snapshot →
+typed proposal → cited report → reload; both audit focuses, absent versus uncollected
+assets, ambiguous positioning, unavailable model/private metrics, counterfeit review
+rejection, source changes/withdrawal and no whole-account enumeration. Extend
+`test_profile_contracts.py`, `test_profile_conversion.py` and profile command contracts.
+
+### DX3-B — Bounded account study and incremental research
 
 **Implement:** account identity resolution and permitted paginated enumeration;
 scoped recent-post manifests including ordinary/failed/unavailable items; resumable
 per-post dispatch; account report composition; explicit refresh with preserved
-permitted history and stale-result detection. Reuse canonical SQL/FTS/graph memory
+permitted history and stale-result detection. Add `social-dna-account` and the bounded
+`social-dna-research` front door. Research pins a question, observed scope and actual
+analysis bindings; reviewed psychological/discovery/experiment branches arrive only
+with their DX7 delivery. Reuse canonical SQL/FTS/graph memory
 for eligible evidence; no new vector collection or mandatory indexing.
 
 **Modules/files:** existing workflow/connector/repository/report modules; integrate
 `account_import_service.py`, account analysis and relevant C1 import services.
-Extend the report skill's account instructions and workflow operations guide.
+Add `skills/social-dna-{account,research}/`; report continues to compose saved outputs,
+not acquire accounts itself. Extend the workflow operations guide.
 
-**Dependencies/integration:** DX1; DX2 for actual media sections. Imports remain the
+**Dependencies/integration:** DX1, DX3-A; DX2-A/B for media/script claims. Imports remain the
 same atomic engine contracts. Handle aliases resolve to stable IDs. Honor source
 retention and operation permissions before reusing or analyzing captured fields.
 
@@ -1243,6 +1445,10 @@ retention and operation permissions before reusing or analyzing captured fields.
   eligible unchanged media work. An interrupted page/batch resumes without silent gaps.
 - Profile quality, measured conversion, official platform guidance and inferred
   patterns remain separate; unknown retention/saves/follows/install metrics stay unknown.
+- The research skill can coordinate the available services without installing sibling
+  bundles. Missing reviewed literature/protocols produce draft/partial research,
+  not a certified mechanism. Explicit reevaluation preserves prior assessments and
+  contradictions; imports alone do not refit or train the host AI.
 
 **Tests:** `tests/integration/test_url_account_workflows.py`: multi-page account →
 import → actual per-post dispatch → cited account report → process restart; identity
@@ -1253,17 +1459,19 @@ claiming API availability. Record a consented live account acquisition smoke.
 
 ### DX4 — URL comparisons and evidence-qualified synthesis
 
-**Implement:** `social-dna-compare`; multi-subject scope negotiation; exact canonical
-sample/output bindings; validated R2 comparison plans where eligible; labeled narrative
+**Implement:** `social-dna-compare` and `social-dna-evidence`; multi-subject scope
+negotiation; exact canonical sample/output bindings; validated R2 comparison plans
+where eligible; labeled narrative
 comparison otherwise. Add optional existing R7–R10 workflows for sufficiently prepared
 evidence without forcing them on basic reports. Generate user-readable recommendations
 through the existing qualified proposal path when its prerequisites are met.
 
 **Modules/files:** shared workflow/domain/report modules, existing comparison/research/
-discovery/recommendation service adapters and `skills/social-dna-compare/`.
+discovery/recommendation service adapters, `application/query_service.py`, exact evidence
+resolvers and `skills/social-dna-{compare,evidence}/`.
 Extend generated schemas and all independently packaged skill references.
 
-**Dependencies/integration:** DX3, R2/R9/R10 and relevant C1 producers, plus source-use
+**Dependencies/integration:** DX3-B, R2/R6–R10 and relevant C1 producers, plus source-use
 permission for derived metrics/comparisons. Do not feed prohibited API data into
 otherwise valid engine calculations. Existing registered timing/holdout/review
 contracts remain authoritative; no agent-generated human attestations.
@@ -1280,12 +1488,19 @@ contracts remain authoritative; no agent-generated human attestations.
   model/host interpretation and proposed tests remain separately cited and labeled.
 - Persist exact run/evidence references; reopen/reproduce while eligible. Source
   correction/withdrawal affects current reuse without silently rewriting old conclusions.
+- "Why did you conclude this?" resolves exact supporting and contrary records,
+  duplicates and prior revisions through SQL/evidence/qualified graph views. Retrieval
+  rank and a graph path are not confidence, replication or causal proof; an audit
+  does not silently acquire fresh data or accept withdrawn evidence.
 
 **Tests:** `tests/integration/test_url_comparisons.py`: multi-URL acquisition → actual
 R2 comparison → report → new-process reproduction; ordinary/failure examples,
 incompatible platforms/denominators/windows, incomplete samples, prohibited derived
 uses, invalid literature/review proposals and source withdrawal. Verify deep-research
 refusal without losing useful basic comparison output; retain frozen legacy regressions.
+Add `tests/integration/test_workflow_evidence_audits.py` for source/contradiction/history
+audit through real R6/R8 services, duplicate evidence, stale indexes, withdrawal,
+bounded paths and cross-process reload; reuse existing research-memory tests.
 
 ### DX5 — Portable first use and release verification
 
@@ -1294,7 +1509,9 @@ self-contained selected-bundle exports; complete installed-wheel/sdist workflows
 live host acceptance protocol and executed checks where authorized. Keep the common
 workflow/evidence references maintained once and included in every task bundle.
 Earlier DX deliveries already ship usable bundles; this is hardening, not the first
-time an actual skill or package works.
+time an actual skill or package works. At this point the eight delivered tasks are
+ingest, report, analyze (both scopes), reconstruct, account, research, compare and
+evidence. The six DX7 tasks remain planned until their own tested delivery.
 
 **Modules/files:** `application/{skill_service,capability_service}.py`,
 `cli/skill_commands.py`, `skills/`, `pyproject.toml`, `scripts/check_distribution.py`,
@@ -1307,7 +1524,7 @@ Installing skills/changing host settings needs separate authority.
 
 **Acceptance:**
 
-- A fresh install exports each task skill independently; it needs neither siblings nor
+- A fresh install exports each delivered task skill independently; it needs neither siblings nor
   a source checkout. Shared references and real commands/schemas agree across bundles.
 - In each claimed host, a real conversation selects the appropriate skill, accepts a
   supported URL/prompt, runs the same engine, returns cited output and handles a denied
@@ -1322,6 +1539,8 @@ Installing skills/changing host settings needs separate authority.
 tests and installed distribution checks for all bundles and workflows. Run the relevant
 full regression/lint/type/build suite and record live source/host smoke results
 separately. A missing credential/model/host means an open acceptance gate, not a pass.
+Apply these same packaging/routing/host gates to every subsequent DX7 bundle;
+do not mark all 14 supported by exporting empty specialist instructions in DX5.
 
 ### DX6-A / DX6-B — Independent additional platform deliveries
 
@@ -1354,6 +1573,148 @@ real shared import/report/reload; policy denial and cross-platform comparison
 refusals; separately consented live source smoke and host workflow check. Repeat
 installed-bundle, retention, migration and legacy-engine regressions.
 
+### DX7-A–F — Independent specialist workflows
+
+Each item below is a separate serial implementation/verification/commit unit, not
+one omnibus delivery. Reuse the shipped coordinator, typed requests, source policies,
+citations and existing engine services. A skill can work on permitted local/export
+evidence without requiring every live connector; it cannot advertise unsupported
+URL acquisition. DX5's independently packaged bundle, installed distribution and
+actual host-behavior gates apply to each. A route-selection mock alone is insufficient:
+exercise at least one real engine result and one refusal/partial branch per task.
+
+#### DX7-A — Audience intelligence
+
+**Implement/files:** add `skills/social-dna-audience/` and a focused workflow adapter
+to `application/audience_service.py`, `behavioral_service.py` and qualified content
+links. Extend shared workflow schemas/reporting only as needed. No duplicate reaction
+classifier or metric store.
+
+**Dependencies/integration:** DX3-B, R4/R5; actual permitted collection frames,
+original comment/annotation references and compatible measured behavior. Collection
+is explicit and bounded, never all-comments scraping by default.
+
+**Acceptance:** a plain-language audience question over a real imported/captured
+sample produces cited reactions, counterexamples and coverage, with the actual
+behavioral lane where supplied. Intention is not action; commenters are not the
+whole audience; missing retention/shares/saves stay unavailable. Model labels are
+proposals, not fabricated reviewed annotations or sensitive individual profiles.
+
+**Tests:** `tests/integration/test_audience_workflows.py` through actual R4/R5 imports,
+analysis, report and reload; bounded/biased samples, disabled comments, uncertain
+annotations, inaccessible metrics, source withdrawal and erasure. Extend existing
+`test_audience_analysis.py` / `test_behavioral_analysis.py` regressions.
+
+#### DX7-B — Psychological investigation and follow-up
+
+**Implement/files:** `skills/social-dna-psychology/`, explicit specialist routing in
+the research workflow, existing investigation/literature/reevaluation application
+services and research report adapters. The research skill now exposes
+this delivered branch rather than pretending every account study proves a mechanism.
+
+**Dependencies/integration:** DX3-B/DX4, R7/R8; genuinely reviewed literature,
+operationalizations, rival predictions and actual eligible analyses. No automatic
+literature crawler, invented citations or agent self-certification of human reviews.
+
+**Acceptance:** a question over prepared evidence returns an actual registered
+protocol/assessment with applicable studies, rivals, counterexamples and limitations,
+or a clearly labeled draft/partial result when review is missing. New contrary
+evidence explicitly reevaluates the assessment and preserves weakened/contradicted
+history. Engagement is not proof of a mechanism; creative effects do not prove mediation.
+
+**Tests:** `tests/integration/test_psychology_workflows.py` through real R7/R8 services,
+not fabricated prose: irrelevant/withdrawn study, missing review, actual assessment,
+contrary update, immutable history, restart and erasure. Extend existing
+`test_psychological_research.py` / `test_research_reevaluation.py`.
+
+#### DX7-C — Platform and surface research
+
+**Implement/files:** `skills/social-dna-platform/` and coordinator/report adapters to
+`application/platform_service.py` and relevant publication/behavior services. Reuse
+C1-C document/statement/capability/observation contracts, not a new ranking database.
+
+**Dependencies/integration:** DX3-B/DX4, C1-C/R5; dated permitted official sources,
+platform/surface-specific metric definitions and actual distribution observations.
+Each connector's downstream-use approval remains a separate prerequisite.
+
+**Acceptance:** answer a specified platform/surface question with separately labeled
+official guidance and actual descriptive/experimental evidence. Where eligible, run
+the real early-response/later-distribution pipeline; missing exposure or owner data
+produces a qualified guidance-only/partial answer. No identical-platform assumptions,
+proprietary-weight recovery, future leakage or guaranteed reach.
+
+**Tests:** `tests/integration/test_platform_workflows.py` for actual C1 imports →
+analysis/report/reload; platform/surface mismatch, source dates/corrections, traffic
+type, incompatible windows, unavailable/private metrics and withdrawal. Extend
+`test_platform_research.py` / `test_publication_context.py`.
+
+#### DX7-D — Bounded discovery
+
+**Implement/files:** `skills/social-dna-discover/` and adapters to existing
+`application/{discovery_service,discovery_inputs,discovery_confirmation}.py`.
+Persist actual R9 outputs/attempt references in the same workflow bindings.
+
+**Dependencies/integration:** DX4, R9 and respective C1 evidence; declared SQL corpus,
+feature/outcome timing, candidate family, creator/time splits and actual support.
+Source policies must permit derived analysis; nearest-neighbor hits are not a corpus.
+
+**Acceptance:** execute the real bounded discovery/transfer pipeline for an eligible
+fixture, preserve the whole attempted family and failures, and produce an evidence-
+qualified pattern or inconclusive result. Distinguish hypothesis generation from
+independent confirmation. An insufficient corpus refuses inference rather than
+manufacturing a viral recipe or inflating independent creator counts.
+
+**Tests:** `tests/integration/test_discovery_workflows.py`: real corpus → R9 search →
+transfer/confirmation as eligible → cited report → reload; insufficient creators,
+confounding/leakage, consumed holdout, API-use denial and stale/withdrawn inputs.
+Retain `test_discovery.py` / `test_discovery_context.py` regressions.
+
+#### DX7-E — Original evidence-qualified strategy
+
+**Implement/files:** `skills/social-dna-strategy/` and workflow/report adapters to
+`application/recommendation_service.py`. Produce original scripts/production briefs,
+packaging/publishing/profile actions and a prioritized testing plan through the
+existing structured proposal producer, not a second content-generation engine.
+
+**Dependencies/integration:** DX4, R10 and relevant C1 evidence; supplied goals,
+niche/language/audience/constraints and eligible findings. Retrieve earlier evidence
+only when applicable; do not assume a technique transfers across creators/platforms.
+
+**Acceptance:** persist an actual cited recommendation set with proposed actions,
+support/counterevidence, applicability, missing context and next tests. Distinguish
+supported recommendations from speculative ideas; never assert measured lift,
+duplicate a third-party script or execute publishing/profile edits. Reconstruction
+and original adaptation remain different output types.
+
+**Tests:** `tests/integration/test_strategy_workflows.py`: actual qualified findings →
+R10 proposals → report/reload; unrelated evidence, unsupported lift, missing domain
+inputs, conflicting findings, source withdrawal and absent model. Structural/citation
+validation does not claim comprehensive originality or scientific validity. Extend
+`test_recommendations.py`.
+
+#### DX7-F — Experiment design and outcome evaluation
+
+**Implement/files:** `skills/social-dna-experiment/` and workflow adapters to
+`application/experiment_service.py`, real R5 outcome intake and assessment/history
+reports. Design/register and evaluate are explicit separate operations.
+
+**Dependencies/integration:** DX4, R10; actual prospective design/review and supported
+assignment/outcome records. No experiment execution, recruitment, paid spend, account
+mutation or publication is authorized by registration.
+
+**Acceptance:** a test request yields a genuine draft or registered prospective
+protocol with variants, units, endpoints and stopping/analysis constraints. After
+authorized execution outside this skill, supplied actual outcomes reach the real
+supported estimator and qualified assessment/history. Missing review, invalid
+assignment, insufficient support or incompatible outcomes cause refusal/partial,
+not invented experiments, causal lift or fresh holdout claims.
+
+**Tests:** `tests/integration/test_experiment_workflows.py`: real registration → later
+actual outcome import → R10 evaluation → report/reload; unsupported designs,
+unexecuted plans, deviations, missing outcomes, repeated tests, source correction/
+withdrawal and confirmation that no external publishing/action occurs. Extend
+`test_experiments.py`, `test_experiment_limits.py` and `test_experiment_history.py`.
+
 ### Completion and scope control
 
 DX1 is deliberately a small source-only post-report product, **not** completion of
@@ -1363,12 +1724,24 @@ an honestly stated media-access branch. DX6-A/B are independent **required** pla
 deliveries for the user's three-platform target. A first-platform release is useful
 but does not finish that target or justify claiming all URLs are supported.
 
+The complete 14-task catalog additionally requires all DX7 deliveries, both analyze
+scopes and the DX2-B reconstruction producer, with each task's actual distribution/
+host/source gates recorded. One working host conversation does not certify all
+14 tasks on all three hosts. A profile audit cannot be declared done by an account
+report, nor reconstruction by exporting raw ASR text under a new heading.
+
+All tasks reuse one selected persistent library: canonical SQLite + managed artifacts,
+optional Qdrant text retrieval and SQLite-backed NetworkX graph views. New typed
+outputs need exact lineage/eligibility and correction/erasure tests at first use.
+Future research retrieves and explicitly reevaluates earlier evidence; it does not
+automatically fine-tune the host AI or create new infrastructure per skill.
+
 No mandatory paid provider, browser, worker cluster, server database, new graph
 database, UI, autonomous monitoring or account publishing is included. If source
 restrictions block a requested capability, report the limitation and present
 permitted assistance; do not expand scope or silently change to an unauthorized route.
 
-### Planning verification record — 2026-11-06
+### Initial three-skill planning verification record — 2026-11-06
 
 Documentation only: this section, ARCHITECTURE §34, the detailed URL-first design
 and current-scope clarifications in README/portable-skill documentation. No application
@@ -1379,3 +1752,21 @@ code, skill bundle, migration, dependency or host/source configuration changed.
 - Full application suite, new workflow tests, live source acquisition and live host
   behavior were not run for this planning change. New DX acceptance is unimplemented,
   not established by those existing passing tests.
+
+### Fourteen-skill planning update verification — 2026-11-06
+
+Documentation-only revision: all 14 names agree across PLAN, ARCHITECTURE and the
+canonical workflow catalog. The proposal now separates content/reconstruction,
+profile/account and six specialist deliveries; README and portable-skill scope
+notes agree. No application code, actual skill bundle, migration, dependency or
+host/source configuration changed.
+
+- `git diff --check` passed; 135 local document links and 22 local heading anchors
+  checked, none missing.
+- Catalog comparison passed: exactly the same 14 unique task names in all three
+  authoritative tables, with a delivery/acceptance/test owner for each.
+- Existing regression tests could not be rerun: this checkout has no `.venv`, and
+  system Python has no `pytest`. No dependencies were installed. The initial
+  three-skill verification record above is historical, not a current test run.
+- New workflow tests, live source/host checks and model-quality acceptance remain
+  future implementation gates; this documentation update does not mark them passed.

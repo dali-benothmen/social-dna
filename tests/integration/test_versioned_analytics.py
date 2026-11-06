@@ -314,7 +314,7 @@ def test_as_of_media_links_and_duplicate_hashes_use_production_batch(
         )
 
 
-@pytest.mark.parametrize("original_engine", ["0.0.4", "0.0.5", "0.0.19"])
+@pytest.mark.parametrize("original_engine", ["0.0.4", "0.0.5", "0.0.19", "0.0.20"])
 def test_legacy_method_reproduction_does_not_reinterpret_archived_spec(
     settings: Settings,
     account_export: Path,
@@ -347,7 +347,7 @@ def test_legacy_method_reproduction_does_not_reinterpret_archived_spec(
         with app.database.transaction() as connection:
             archived = json.loads(json.dumps(new))
             archived["analysis_configuration"]["engine_version"] = (
-                "0.0.19" if original_engine == "0.0.19" else "0.0.6"
+                original_engine if original_engine in {"0.0.19", "0.0.20"} else "0.0.6"
             )
             for key in ("creative_recipes", "creative_annotation_key", "creative_label_policy"):
                 archived["analysis_configuration"]["spec"].pop(key, None)

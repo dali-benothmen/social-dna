@@ -240,11 +240,40 @@ def capabilities(settings: Settings, *, no_ai: bool = False) -> dict[str, Any]:
             limitations=["Host subscriptions do not configure or authorize engine model requests."],
         )
     )
+    available(
+        "source_workflows",
+        "Bounded planning, durable attempts and source-only saved reports; no model required.",
+        ["workflow", "plan"],
+        ["workflow", "run"],
+        ["workflow", "show"],
+        ["workflow", "report"],
+        ["workflow", "maintenance"],
+        ["workflow", "maintain"],
+        limitations=["Only ingest/report task modes are implemented."],
+    )
+    entries.append(
+        CapabilityEntry(
+            id="youtube_native_metadata",
+            status="available"
+            if not settings.offline and os.environ.get(settings.youtube_api_key_env)
+            else "unavailable",
+            reason="Official one-post native metadata adapter; no endpoint contacted.",
+            commands=[["workflow", "run"]],
+            prerequisites=[
+                "Valid API key, online permission and verified matching retention timer."
+            ],
+            limitations=[
+                "Credential validity and scheduler are not verified by this cheap preflight.",
+                "No media, captions, comments, account enumeration or derived analytics.",
+            ],
+        )
+    )
     unimplemented: tuple[tuple[str, CapabilityState, str], ...] = (
         (
             "live_platform_connectors",
             "planned",
-            "Export-first only; no live platform adapter shipped.",
+            "Broad live acquisition is planned; only one YouTube post's native metadata ships. "
+            "Instagram, TikTok, profiles and audiovisual acquisition are not implemented.",
         ),
         (
             "publishing_execution",

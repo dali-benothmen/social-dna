@@ -46,7 +46,7 @@ class EvidenceResolver:
         ref: EvidenceRef | str,
         *,
         revision_id: str | None = None,
-        purpose: Literal["inspect", "new_claim"] = "inspect",
+        purpose: Literal["inspect", "new_claim", "native_report"] = "inspect",
         as_of: str | None = None,
         expected_subject: EntityRef | None = None,
         media_id: str | None = None,
@@ -55,7 +55,7 @@ class EvidenceResolver:
         _ancestors: frozenset[str] = frozenset(),
         _memo: dict[str, ResolvedEvidence] | None = None,
     ) -> ResolvedEvidence:
-        if purpose not in ("inspect", "new_claim"):
+        if purpose not in ("inspect", "new_claim", "native_report"):
             raise ConfigurationError("Unknown evidence resolution purpose")
         if isinstance(ref, EvidenceRef):
             if revision_id and revision_id != ref.revision_id:
@@ -221,6 +221,11 @@ class EvidenceResolver:
         sources = {item["source_id"] for item in entities if item["source_id"]}
         if row["source_id"]:
             sources.add(row["source_id"])
+        from socialdna.ingestion.access_policy import restriction
+
+        for source_id in sources:
+            if reason := restriction(self.connection, source_id, purpose):
+                limitations.append(reason)
         if any(is_redacted(self.connection, "source", source_id) for source_id in sources):
             limitations.append("Source was erased; new use is unavailable")
         withdrawals = metadata.tables["evidence_withdrawals"]
@@ -339,14 +344,23 @@ class EvidenceResolver:
 
             for raw in document["entity_inputs"]:
                 try:
-                    memory_entity_active(
-                        self.connection, EntityRef.model_validate(raw), as_of=as_of
-                    )
+                    if locator.subject.kind in {"acquisition_capture", "workflow_report"}:
+                        native = self.repository.entity(EntityRef.model_validate(raw))
+                        from socialdna.ingestion.access_policy import assert_operation
+
+                        assert_operation(self.connection, native["source_id"], purpose)
+                        if as_of and (not native["available_at"] or native["available_at"] > as_of):
+                            raise ConfigurationError("Native input was not known at the cutoff")
+                    else:
+                        memory_entity_active(
+                            self.connection, EntityRef.model_validate(raw), as_of=as_of
+                        )
                 except ConfigurationError as exc:
                     limitations.append("Context entity is ineligible: " + str(exc))
             for raw in document["evidence_inputs"]:
                 dependency = self.resolve(
                     EvidenceRef.model_validate(raw),
+                    purpose=purpose,
                     as_of=as_of,
                     _ancestors=_ancestors | {row["id"]},
                     _memo=memo,
@@ -445,7 +459,7 @@ class EvidenceResolver:
                     "Evidence availability is unknown or later than the as-of cutoff"
                 )
         eligible = not limitations
-        if purpose == "new_claim" and not eligible:
+        if purpose in ("new_claim", "native_report") and not eligible:
             raise ConfigurationError("Ineligible evidence: " + "; ".join(limitations))
         result = ResolvedEvidence(
             ref=EvidenceRef(id=identity, revision_id=row["id"]),
@@ -874,6 +888,9 @@ def assert_active_inputs(
 
     for identity in source_ids:
         guard(connection, "source", identity)
+        from socialdna.ingestion.access_policy import assert_operation
+
+        assert_operation(connection, identity, "derive")
     if evidence_ids:
         evidence = metadata.tables["evidence_revisions"]
         for identity in connection.scalars(

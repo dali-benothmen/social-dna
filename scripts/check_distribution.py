@@ -83,6 +83,35 @@ def portable_smoke(base: list[str], python: Path, isolated: Path, bundle_source:
             (destination / name).read_bytes() != content for name, content in expected.items()
         ):
             raise RuntimeError("Installed skill differs from the complete source bundle")
+        for task in ("social-dna-ingest", "social-dna-report"):
+            target = parent / task
+            manifest = json.loads(
+                run([*base, "skill", "export", str(target), "--name", task], cwd=isolated)
+            )["data"]
+            if set(manifest["files"]) != {"SKILL.md", "references/workflow.md"}:
+                raise RuntimeError("Installed task skill is not independently self-contained")
+            task_source = bundle_source.parent / task / "SKILL.md"
+            shared_source = bundle_source.parent / "shared" / "workflow.md"
+            if (target / "SKILL.md").read_bytes() != task_source.read_bytes() or (
+                target / "references/workflow.md"
+            ).read_bytes() != shared_source.read_bytes():
+                raise RuntimeError("Installed task skill differs from its maintained source")
+    dry = json.loads(
+        run(
+            [*base, "workflow", "plan", "--url", "https://youtu.be/EaYRjrQuxEk", "--dry-run"],
+            cwd=isolated,
+        )
+    )["data"]
+    if not dry["dry_run"] or dry["written"]:
+        raise RuntimeError("Installed URL planning failed its no-write contract")
+    planned = json.loads(
+        run([*base, "workflow", "plan", "--url", "https://youtu.be/EaYRjrQuxEk"], cwd=isolated)
+    )["data"]
+    shown = json.loads(run([*base, "workflow", "show", planned["workflow_id"]], cwd=isolated))[
+        "data"
+    ]
+    if shown["attempts"] or shown["plan"]["external_id"] != "EaYRjrQuxEk":
+        raise RuntimeError("Installed workflow plan did not survive process restart")
     contract = json.loads(run([*base, "skill", "schema", "result"], cwd=isolated))["data"]
     if contract["schema"]["properties"]["schema_version"]["const"] != "1.0":
         raise RuntimeError("Installed result schema diverged")
@@ -440,6 +469,11 @@ def main() -> None:
     parser.add_argument("--uv", default="uv")
     parser.add_argument("--cache-dir")
     parser.add_argument("--offline", action="store_true")
+    parser.add_argument(
+        "--source-workflows-only",
+        action="store_true",
+        help="Run health, skill and source-workflow acceptance; skip legacy deep research smokes.",
+    )
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     version = tomllib.loads((root / "pyproject.toml").read_text())["project"]["version"]
@@ -524,9 +558,21 @@ def main() -> None:
             ]
             portable_smoke(base, python, isolated, root / "skills" / "socialdna")
             print(
+                run(
+                    [
+                        str(python),
+                        str(root / "scripts/source_workflow_smoke.py"),
+                        str(isolated / "synthetic-source-data"),
+                    ],
+                    cwd=isolated,
+                ).strip()
+            )
+            print(
                 f"PASS: {distribution.name} portable skill exports, schemas, "
                 "static reports and citations"
             )
+            if args.source_workflows_only:
+                continue
             imported = json.loads(run([*base, "import", "json", str(export)], cwd=isolated))
             account_id = imported["data"]["account_ids"][0]
             audience_posts = imported["data"]["post_ids"]

@@ -42,6 +42,12 @@ class Settings(BaseSettings):
     max_output_tokens: int = Field(default=2000, ge=100, le=16000)
     max_provider_attempts: int = Field(default=2, ge=1, le=3)
     reasoning_profile: ReasoningProfile | None = None
+    youtube_api_key_env: str = Field(
+        default="SOCIALDNA_YOUTUBE_API_KEY", pattern=r"^[A-Z][A-Z0-9_]{0,100}$"
+    )
+    workflow_retention_days: int = Field(default=7, ge=1, le=29)
+    workflow_request_timeout_seconds: float = Field(default=20, gt=0, le=60, allow_inf_nan=False)
+    workflow_response_byte_limit: int = Field(default=1_048_576, ge=1024, le=10_485_760)
 
     @classmethod
     def load(cls, *, config_file: Path | None = None, **overrides: Any) -> "Settings":

@@ -1,12 +1,14 @@
 # SocialDNA architecture
 
-Revised: 2026-11-06. Implementation: **0.0.20**, database head **0017_images**. R1–R10, C1 and U1 remain completed within their documented bounds. U2 adds the [portable skill and report delivery](docs/portable-skill.md); live host behavioral checks remain a separate unexecuted gate. Verification is recorded in [PLAN.md](PLAN.md). The approved [intelligence audit](docs/architecture-audit.md), [capability audit](docs/intelligence-capability-audit.md), [experiment/strategy](docs/registered-experiments.md), [bounded discovery](docs/bounded-discovery.md), [research memory](docs/research-memory.md), [versioned analytics](docs/versioned-analytics.md) and [psychological research](docs/psychological-research.md) contracts retain their scope.
+Revised: 2026-11-06. Implementation: **0.0.21**, database head **0018_workflows**. R1–R10, C1 and U1 remain completed within their documented bounds. U2 adds the [portable skill and report delivery](docs/portable-skill.md); live host behavioral checks remain a separate unexecuted gate. DX1 adds [source-only URL workflows](docs/source-workflows.md), with live source/host acceptance still open. Verification is recorded in [PLAN.md](PLAN.md). The approved [intelligence audit](docs/architecture-audit.md), [capability audit](docs/intelligence-capability-audit.md), [experiment/strategy](docs/registered-experiments.md), [bounded discovery](docs/bounded-discovery.md), [research memory](docs/research-memory.md), [versioned analytics](docs/versioned-analytics.md) and [psychological research](docs/psychological-research.md) contracts retain their scope.
 
 The [implementation plan](PLAN.md) defines delivery and acceptance gates. Detailed contracts live in [research contracts](docs/research-contracts.md), [statistical design](docs/statistical-design.md), [migration strategy](docs/migration-strategy.md), and the [twelve-step cooking use case](docs/research-use-case.md). The [previous architecture](docs/history/ARCHITECTURE.pre-research-revision.md) is a historical record, not a competing specification. Architecture/plan line references inside the unchanged audit refer to those pre-revision documents.
 
 The [URL-first workflow design](docs/url-first-workflows.md) and §34 propose the
-missing intake/orchestration and task-skill experience. They are **not implemented**
-and do not change the runtime/schema versions or completed delivery records above.
+missing intake/orchestration and **14-task-skill** experience, including profile
+audits and finished-video script reconstruction. Only the bounded DX1 ingest/report
+path is implemented; all other task bundles/scopes remain planned. Completed
+delivery records above retain their original verification/version boundaries.
 
 ## 1. Product and non-negotiable boundaries
 
@@ -348,9 +350,11 @@ Keep current CLI commands and result envelopes. R1's evidence/registration/repor
 
 The delivered [portable skill](skills/socialdna/SKILL.md) routes to focused core/research/interface/setup references. Host differences are discovery paths and invocation guidance only. Validate actual live behavior separately: format compatibility, directory-layout tests and installed CLI execution are not proof of identical agent behavior.
 
-Proposed `social-dna-report`, `social-dna-analyze` and `social-dna-compare` task skills
-share the §34 workflow layer. Neither their names nor the proposed `workflow`
-commands are currently shipped; existing local/export skill behavior is preserved.
+The 14 proposed task skills in §34 share one workflow layer. `social-dna-research`
+owns end-to-end investigations; `social-dna-analyze` handles profile audits and
+individual content; `social-dna-report` composes saved outputs. No proposed task
+bundle or `workflow` command is currently shipped; existing local/export skill
+behavior is preserved.
 
 Reports distinguish source-backed observations, mechanism hypotheses/rivals, scoped associations and permitted causal findings. Show missing modalities/data, collection coverage, comparison population, definitions/windows, effect uncertainty, counterexamples and claim limitations. A single-video report remains short and useful; research detail is linked/expandable rather than mandatory in every report.
 
@@ -1044,15 +1048,16 @@ discovery sources, installation, permissions and separate verification gates.
 
 ## 34. URL-first DX and task skills — proposed
 
-Status: **planning only**. No application code, migration, dependency, actual skill
-bundle or platform connection is introduced by this design. The detailed contracts,
+Status: **DX1 implemented, live acceptance pending; later DX deliveries planned**.
+The first implementation adds native-only capture/reporting and migration0018,
+not account enumeration or audiovisual URL analysis. The detailed contracts,
 source-policy findings and security/retention model are in
 [URL-first workflows](docs/url-first-workflows.md); implementation and concrete tests
 are in [PLAN.md §20](PLAN.md#20-url-first-dx-and-task-skills--proposed).
 
 1. **Product boundary.** Support skill + URL(s) + natural-language question, hiding
-   routine normalization and engine-ID plumbing. Three independently distributable
-   task skills cover reports, individual-content analysis and comparisons; preserve
+   routine normalization and engine-ID plumbing. Fourteen independently distributable
+   task skills have distinct intent boundaries (§34.1); preserve
    `socialdna` as the umbrella/local/export skill. Skills contain guidance, not a
    second acquisition/statistics engine. Shared references are maintained once but
    included in each bundle so no sibling installation is required.
@@ -1063,8 +1068,11 @@ are in [PLAN.md §20](PLAN.md#20-url-first-dx-and-task-skills--proposed).
    or dedicated C1 contracts. Leave local `analyze video|image|carousel`, frozen
    comparisons and existing report schemas unchanged.
 3. **One durable coordinator.** Proposed `workflow plan|run|show|report` orchestrates
-   existing services synchronously. Persist immutable request/plan pins, target
-   identities, attempts/checkpoints, capture provenance and exact output bindings in
+   existing services synchronously. Typed task modes match the catalog; analyze
+   has profile/content scope, and reconstruct has transcript/AV-script outputs.
+   Saved-result/evidence modes do not require fresh URLs or collection. Persist
+   immutable request/plan pins, target identities, attempts/checkpoints, capture
+   provenance and exact output bindings in
    SQLite. ResultEnvelope stays 1.0; workflow state and required actions live in
    `data`. Resume is idempotent; refresh is explicit new evidence, not an independent
    retry or an automatic hypothesis reevaluation. No new scheduler/agent framework.
@@ -1095,21 +1103,167 @@ are in [PLAN.md §20](PLAN.md#20-url-first-dx-and-task-skills--proposed).
    research-qualified coverage and URL-only versus assisted acquisition. A metadata
    report cannot satisfy an editing/psychological-effect question silently. Preserve
    source freshness, missingness, counterexamples and eligibility on re-export.
-8. **Memory remains derived.** No new Qdrant collection, graph server or automatic
-   embedding is required. Reuse R6 canonical projections only for eligible actual
+8. **Shared persistence, qualified reuse.** SQLite and managed artifacts remain
+   authoritative; persistent graph rows are in SQLite and NetworkX is a bounded
+   query view, not a third independent database. No new Qdrant collection, graph
+   server or automatic embedding is required. Reuse R6 canonical projections only for eligible actual
    evidence. Do not index prompts, credentials, HTML dumps or unsourced agent prose.
    Graph relationships do not discover causality; SQL manifests define statistical
    populations, and source restrictions can forbid otherwise valid computations.
+   Explicit research follow-up can refit eligible analyses and preserve contrary
+   assessment history; it does not automatically fine-tune the host/embedding model
+   or share knowledge across independent libraries.
 9. **Security and autonomy.** Validate hosts/schemes/redirects/DNS, cap requests/bytes/
    decoding and treat imported text as untrusted data. Never acquire credentials
    through passwords/cookies or put tokens in arguments/reports. Skill discovery,
    source authorization, dependency/model preparation and remote transfers remain
    separate decisions. URL-first authorizes no posting, messaging or account edits.
-10. **Delivery and verification.** DX1 delivers one actual post-URL/source-only report;
-    DX2 permitted media; DX3 bounded accounts/incremental capture; DX4 comparison;
-    DX5 first-use/portable/live-host hardening. DX6-A/B independently add platforms.
+10. **Delivery and verification.** DX1 delivers real acquisition/import and saved
+    reports; DX2-A/B deliver content analysis and reconstruction independently;
+    DX3-A/B deliver profile audits and bounded account/research workflows independently;
+    DX4 adds comparison/evidence audit; DX5 first-use/portable/live-host hardening.
+    DX6-A/B independently add platforms; DX7-A–F independently add the six specialists.
     Instagram, TikTok and YouTube are all required product targets; staged delivery
     is not permission to omit the other two or call the three-platform goal complete.
     Fixtures, installed-package tests, real source access and real host conversations
     are different gates. Missing live acceptance stays visible. Completed U2 and
-    three named directories do not establish the full URL-first product.
+    fourteen named directories do not establish the full URL-first product.
+
+### 34.1 Task catalog and routing responsibilities
+
+These are the agreed **proposed** task names. Canonical discovery descriptions live
+in [the workflow catalog](docs/url-first-workflows.md#target-catalog-and-agent-discovery);
+concrete delivery/files/dependency/acceptance/test contracts live in PLAN §20.
+
+| Task skill | Architectural responsibility / existing integration |
+|---|---|
+| `social-dna-research` | Question-led coordination of eligible account/content/audience/outcome evidence; R7/R8 investigation and explicit follow-up when prepared |
+| `social-dna-ingest` | Explicit bounded capture/import/validation; existing account/local imports and permitted source adapters |
+| `social-dna-account` | Strategy across a scoped account content history; account batches/performance plus delivered C1 producers |
+| `social-dna-analyze` | Profile strengths/weaknesses audit **or** individual media deconstruction; explicit profile/content scope |
+| `social-dna-reconstruct` | New cited finished-video transcript/AV-script composition over existing media/text/creative tracks |
+| `social-dna-psychology` | Reviewed literature, rivals, predictions and actual qualified assessments; no mental-state diagnosis |
+| `social-dna-audience` | R4/R5 reactions, content links and actual available behavior; intentions remain distinct |
+| `social-dna-compare` | Declared subjects/contrasts through existing R2 comparison/statistical contracts |
+| `social-dna-discover` | R9 bounded hypothesis generation, robustness and transfer/confirmation under the actual ledger |
+| `social-dna-platform` | C1-C dated official guidance and scoped distribution/search observations; platform/surface distinctions |
+| `social-dna-strategy` | R10 evidence-qualified original briefs/scripts and proposed growth actions, not execution |
+| `social-dna-experiment` | R10 prospective registration and separate actual-outcome evaluation; no autonomous social experiment |
+| `social-dna-report` | Presentation/export of eligible saved results; no hidden fetch, refit or new claim certification |
+| `social-dna-evidence` | Exact citation/lineage, duplicates, contradictions and history via canonical SQL and qualified graph views |
+
+Route by requested outcome, not URL presence. Profile-only analysis must not expand
+into a full account crawl; account history is not automatically psychological
+research. A declared comparison is not open-ended discovery. Reconstruction explains
+what is present in the finished clip; strategy creates new work. Report/evidence
+tasks inspect saved outputs unless the user explicitly requests a new operation.
+
+The richer catalog deliberately supersedes the earlier proposal that report would
+be the end-to-end research front door. The user can select one skill and supply a
+normal-language goal; orchestration invokes shared engine services, not a mandatory
+sequence of installed sibling skills or user-authored JSON. No new duplicate
+reverse-engineer/track/brief task is required. Capability reporting distinguishes
+planned, delivered and input/provider-dependent modes; an exported file is not
+proof that its promised workflow is implemented.
+
+### 34.2 Profile analysis is a first-class analyze scope
+
+Analyze either an owned or influencer profile for observable strengths, weaknesses,
+counterexamples and prioritized improvements. The goal/focus is explicit, not an
+assumption that the user's profile is weak or an influencer's is effective. Scope
+available username/display name, photo, bio, positioning, links/CTA, pins and visible
+branding/consistency; only collect a declared bounded post sample when needed.
+Unknown/uncollected assets remain unknown. Do not crawl linked sites implicitly.
+
+Reuse actual C1-D snapshots, source locators and U1 image observations. A new typed
+`ProfileAuditProposal` composition captures agent/model interpretations, exact
+snapshot/sample dependencies and review state; it cannot self-certify C1-D's frozen
+human `ProfileReview` or invent owner-declared pillars. Human promotion requires a
+genuinely performed review. Primitive image statistics do not prove branding quality.
+Actual visits/follows/clicks/installs remain a separate permitted R5/C1-D funnel lane,
+not a conversion score derived from public-facing profile appearance.
+
+### 34.3 Finished-video reconstruction is a cited producer
+
+The new `VideoReconstruction` composition binds a real asset/run, selected text/
+annotation tracks and original-presentation times to ordered speech, visible text,
+visual/editing and audio cues. Provide transcript, AV-script or combined output;
+preserve original language and separately label requested translations. ASR,
+aligned ASR, supplied subtitles and OCR retain distinct provenance and disagreements.
+Unknown word timing, unavailable models and sparse visual coverage stay explicit.
+
+This is reconstruction of the finished clip, not recovery of the creator's original
+writing document, camera settings, off-screen actions or intent. No delivered
+diarization/speaker-ID capability or complete frame-by-frame interpretation is
+assumed. Models cannot certify human review or invent dialogue from silent/missing
+audio. Source access and reproduction permissions gate verbatim extraction.
+
+Add proposed `domain/{profile_audit,reconstruction}.py` and their application/reporting
+adapters only with actual writers, typed evidence locators, export readers, source
+dependencies and first-use retention/migration tests. Canonical outputs stay in the
+existing SQLite/artifact store; only qualified registered representations enter R6
+SQL/FTS/graph or optional vectors. There is no per-skill database or mandatory model.
+
+### 34.4 Completion and behavioral acceptance
+
+Every task needs actual engine-backed positive and refusal/partial scenarios, exact
+citations, restart/reuse and source eligibility tests. Profile acceptance must show
+both owned-profile improvements and influencer-profile strengths without fabricated
+conversion or review claims. Reconstruction acceptance must show conflicting tracks,
+unclear speech, actual silent/no-audio cases and unavailable modalities without
+hallucinated content. Specialist acceptance executes real audience/research/platform/
+discovery/recommendation/experiment services, not route-only mocks.
+
+Each bundle exports independently with its shared references included and derived
+schemas/real commands checked; no sibling links, checkout fallback or host setting
+mutation. Preserve current `skill export DEST/socialdna` and ResultEnvelope 1.0.
+DX5's installed wheel/sdist and host gates apply again to later DX7 additions. Record
+which host/task/source combinations actually ran; static checks do not certify all
+14 tasks on every host or every platform. The full catalog remains unfinished until
+each listed delivery meets its own acceptance criteria.
+
+### 34.5 Implemented first-use decisions
+
+DX1 adds five operational tables in `0018`, leaving released migrations unchanged:
+`workflow_sessions`, `workflow_targets`, `workflow_attempts`, `acquisition_captures`
+and `workflow_bindings`. Request/plan/hash are immutable pins; attempts use deadlines,
+tokens, a lifetime cap and durable cooldowns. Captures bind source/policy/expiry to
+exact canonical revisions. Existing context records/ContextLocator hold typed native
+captures and reports; no second evidence registry or database is introduced.
+
+The existing strict account importer gains an in-transaction non-media entrypoint.
+Canonical identity/publication rows commit atomically with source capture/bindings;
+native API titles/descriptions/counts stay only in qualified captures/artifacts.
+No counts are normalized into metrics or silently treated as historical observations.
+An existing central source guard also enforces allowed operations, blocking generic
+analytics and research/semantic/graph projection for this native-only policy. A narrow
+`native_report` citation purpose permits exact native reports without authorizing
+derived claims. Qdrant and NetworkX need no new representation for this slice.
+
+One existing `httpx` dependency supplies the fixed official endpoint client. A shared
+typed manifest/failure contract is sufficient for one connector; a speculative base
+class, provider framework and async queue are deferred. All HTTP occurs outside the
+directory lock. A second claim check and token revalidation prevent concurrent/stale
+publication. Capture completion precedes frozen report publication; interrupted
+composition resumes without reacquiring. Reports verify eligibility and checksums
+without inference or fetch. Arbitrary unsupported goals stay partial with next actions.
+
+Source retention uses the existing deny-first erasure journal and startup/restore
+reconciliation. Confirmed erasure scrubs native canonical/artifact copies and restores
+previous independent current metadata where available. To satisfy the approved
+first-writer maintenance requirement, the first live adapter requires a matching
+active systemd user timer. `workflow maintenance` only exports/inspects units;
+`workflow maintain` expires sources offline. No scheduler framework is added and
+no host job is installed/started automatically. This deliberately limits live capture
+to Linux/systemd; offline/core and bundle formats remain portable. Other schedulers
+need separate adapters/acceptance. Offline machines and external backups retain
+explicit operational limits; this is not a compliance certification.
+
+The 14-skill catalog is a target, not 14 implemented commands. Only ingest/report
+bundles ship alongside legacy `socialdna`. A single maintained shared reference is
+assembled into each export and packaged wheel/sdist resource. The existing default
+export contract and ResultEnvelope 1.0 remain intact. The new `workflow report`
+returns JSON even for Markdown content; legacy report behavior is unchanged.
+Live API and real host behavior are separate open acceptance gates, not implied by
+synthetic HTTP, directory-layout or packaging tests. [Operations](docs/source-workflows.md)
+documents actual setup/limits; later milestones remain unstarted.

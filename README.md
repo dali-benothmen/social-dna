@@ -1,7 +1,11 @@
 # SocialDNA
 
 SocialDNA is a local-first social-media research engine. The implemented release is
-`0.0.20`: a [portable Codex/Claude Code/OpenCode skill](docs/portable-skill.md),
+`0.0.21`: [bounded source-only URL workflows](docs/source-workflows.md), independently
+exportable ingest/report skills, official one-post YouTube native metadata capture,
+durable attempts/citations and retention-gated frozen reports. Live source/host
+acceptance remains open; no audiovisual URL analysis or account enumeration ships.
+It extends `0.0.20`'s [portable Codex/Claude Code/OpenCode skill](docs/portable-skill.md),
 non-initializing capability preflight, engine-generated JSON schemas and explicit
 non-overwriting JSON/Markdown report exports. It extends `0.0.19`'s dedicated
 static-image and ordered-carousel analysis, exact asset/region
@@ -127,12 +131,20 @@ evidence (C1), and R7/R8 assessment/reevaluation are implemented. Host directory
 CLI and packaging checks are automated; live agent conversations remain separately
 unverified. The Python CLI works independently of an agent.
 
-**The URL-first experience is still missing.** The current release analyzes local
-media and supplied exports; stored account/post URLs do not collect their content.
-The proposed [URL-first workflow architecture](docs/url-first-workflows.md) and
-[DX roadmap](PLAN.md#20-url-first-dx-and-task-skills--proposed) add `social-dna-report`,
-`social-dna-analyze` and `social-dna-compare` over permitted acquisition and the same
-engine. These additions are planning-only, not shipped skills/connectors.
+**The first source-only URL slice is implemented; full account research remains planned.**
+Explicit ingestion can capture one YouTube post's native metadata after API/retention
+setup; saved reports never fetch implicitly. Instagram/TikTok/profile URLs are
+recognized but not collectable. See [current commands and setup](docs/source-workflows.md).
+The [URL-first workflow architecture](docs/url-first-workflows.md) and
+[DX roadmap](PLAN.md#20-url-first-dx-and-task-skills--proposed) define
+[14 task skills](docs/url-first-workflows.md#target-catalog-and-agent-discovery)
+over permitted acquisition and the same engine. `social-dna-research` is the
+investigation front door; `social-dna-analyze` covers profile strengths/weaknesses
+and individual content; `social-dna-reconstruct` produces finished-video scripts;
+`social-dna-report` presents saved results. The remaining tasks cover import,
+account history, audience/psychology, comparison/discovery, platform research,
+strategy, experiments and evidence audit. Only `social-dna-ingest` and
+`social-dna-report` ship, with the narrow scopes above; the other 12 remain planned.
 
 ## Install from this checkout
 

@@ -56,6 +56,9 @@ def open_application(settings: Settings) -> Iterator[Application]:
             from socialdna.storage.audience_retention import resume
 
             resume(database, paths)
+            from socialdna.storage.workflow_retention import expire
+
+            expire(database, paths)
             from socialdna.storage.evidence_repository import backfill_evidence
 
             backfill_evidence(database)

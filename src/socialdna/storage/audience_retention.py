@@ -118,12 +118,19 @@ def preview(
                 "image_analysis",
                 "carousel_analysis",
                 "post_media_input",
+                "acquisition_capture",
+                "workflow_report",
             )
             for r in entities
         )
     ):
         raise ConfigurationError("Selected source has no registered audience or context content")
     affected = {r["id"] for r in entities if r["kind"] == "comment" and r["entity_id"] in comments}
+    if source_id:
+        from socialdna.storage.workflow_retention import native_source
+
+        if native_source(connection, source_id):
+            affected.update(r["id"] for r in entities if r["source_id"] == source_id)
     affected.update(
         r["id"]
         for r in entities
@@ -322,6 +329,9 @@ def resume(database: Any, paths: DataPaths) -> None:
             from socialdna.memory.retention import scrub
 
             vector_points = scrub(connection, items)
+            from socialdna.storage.workflow_retention import scrub as scrub_workflows
+
+            scrub_workflows(connection, items)
             triggers = list(
                 connection.exec_driver_sql(
                     "SELECT name,sql FROM sqlite_master WHERE type='trigger' AND "
